@@ -16,10 +16,15 @@ public class AuthController {
 
     // Endpoint pour l'inscription
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody Map<String, String> request) {
+    public ResponseEntity<String> register(@RequestBody Map<String, Object> request) {
         String username = request.get("username");
         String email = request.get("email");
         String password = request.get("password");
+        Boolean accepted = (Boolean) request.get("acceptTerms");
+
+        if (accepted == null || !accepted) {
+            return ResponseEntity.badRequest().body("Vous devez accepter le contrat WatYouFace pour vous inscrire.");
+        }    
 
         String response = authService.register(username, email, password);
         return ResponseEntity.ok(response);

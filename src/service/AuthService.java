@@ -1,6 +1,7 @@
 package com.watyouface.service;
 
 import com.watyouface.entity.User;
+import com.watyouface.entity.Contract;
 import com.watyouface.repository.UserRepository;
 import com.watyouface.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,20 +22,8 @@ public class AuthService {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // Enregistrement d'un nouvel utilisateur
-    public String register(String username, String email, String password) {
-        if (userRepository.findByEmail(email).isPresent()) {
-            return "Email déjà utilisé.";
-        }
-
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
-
-        userRepository.save(user);
-        return "Inscription réussie.";
-    }
+    @Autowired
+    private ContractService contractService;
 
     // Connexion -> génération du token JWT
     public String login(String email, String password) {
@@ -49,5 +38,31 @@ public class AuthService {
         }
 
         return jwtUtil.generateToken(user.getUsername());
+    }
+
+    // Enregistrement d'un nouvel utilisateur avec acceptation du contrat
+    public String register(String username, String email, String password, boolean acceptedContract) {
+        if (!acceptedContract) {
+            return "Vous devez accepter les conditions générales avant de vous inscrire.";
+        }
+
+        if (userRepository.findByEmail(email).isPresent()) {
+            return "Email déjà utilisé.";
+        }
+
+        Contract activeContract = contractService.getActiveContract();
+        if (activeContract == null) {
+            return "Aucun contrat actif n’est disponible.";
+        }
+
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setAcceptedContract(true);
+        user.setAcceptedContractVersion(activeContract);
+
+        userRepository.save(user);
+        return "Inscription réussie et contrat accepté.";
     }
 }
