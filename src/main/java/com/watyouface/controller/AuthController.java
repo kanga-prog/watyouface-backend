@@ -1,5 +1,6 @@
 package com.watyouface.controller;
 
+import com.watyouface.dto.RegisterRequest; 
 import com.watyouface.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,17 +17,17 @@ public class AuthController {
 
     // Endpoint pour l'inscription
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody Map<String, Object> request) {
-        String username = request.get("username");
-        String email = request.get("email");
-        String password = request.get("password");
-        Boolean accepted = (Boolean) request.get("acceptTerms");
-
-        if (accepted == null || !accepted) {
+    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
+        System.out.println("acceptTerms: " + request.isAcceptTerms());
+        if (!request.isAcceptTerms()) {
             return ResponseEntity.badRequest().body("Vous devez accepter le contrat WatYouFace pour vous inscrire.");
-        }    
+        }
 
-        String response = authService.register(username, email, password);
+        String response = authService.register(request.getUsername(),
+                                               request.getEmail(),
+                                               request.getPassword(),
+                                               request.isAcceptTerms()
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -39,4 +40,10 @@ public class AuthController {
         String token = authService.login(email, password);
         return ResponseEntity.ok(token);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String authHeader) {
+        // Ici tu pourrais ajouter le token à une blacklist pour l’invalider
+        return ResponseEntity.ok("Déconnexion réussie");
+}
 }

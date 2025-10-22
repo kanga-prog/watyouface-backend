@@ -1,14 +1,25 @@
 package com.watyouface.service;
 
+import com.watyouface.entity.User;
 import com.watyouface.entity.Video;
+import com.watyouface.entity.VideoShare;
+import com.watyouface.repository.UserRepository;
 import com.watyouface.repository.VideoRepository;
+import com.watyouface.repository.VideoShareRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
 public class VideoService {
+
+    @Autowired
     private final VideoRepository videoRepository;
+
+    @Autowired
     private final UserRepository userRepository;
+
+    @Autowired
     private final VideoShareRepository videoShareRepository;
 
     public VideoService(VideoRepository videoRepository,UserRepository userRepository,

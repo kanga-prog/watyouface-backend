@@ -23,10 +23,16 @@ public class ContractService {
     @Autowired
     private UserContractRepository userContractRepository;
 
+    /**
+     * Récupère le contrat actif (celui dont active = true)
+     */
     public Contract getActiveContract() {
         return contractRepository.findByActiveTrue().orElse(null);
     }
 
+    /**
+     * Permet à un utilisateur d'accepter ou refuser un contrat
+     */
     public String acceptContract(Long userId, Long contractId, boolean accepted) {
         Optional<User> userOpt = userRepository.findById(userId);
         Optional<Contract> contractOpt = contractRepository.findById(contractId);
@@ -35,8 +41,12 @@ public class ContractService {
             return "Utilisateur ou contrat introuvable.";
         }
 
-        UserContract uc = new UserContract(userOpt.get(), contractOpt.get(), accepted);
-        userContractRepository.save(uc);
+        User user = userOpt.get();
+        Contract contract = contractOpt.get();
+
+        UserContract userContract = new UserContract(user, contract, accepted);
+        userContractRepository.save(userContract);
+
         return accepted ? "Contrat accepté avec succès." : "Contrat refusé.";
     }
 }

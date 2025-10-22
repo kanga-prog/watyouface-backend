@@ -80,4 +80,20 @@ public class User {
 
     public List<Like> getLikes() { return likes; }
     public void setLikes(List<Like> likes) { this.likes = likes; }
+
+    public boolean isAcceptedContract() {
+    return acceptedContract;
+    }
+
+    public void setAcceptedContract(boolean acceptedContract) {
+        this.acceptedContract = acceptedContract;
+    }
+
+    public Contract getAcceptedContractVersion() {
+        return acceptedContractVersion;
+    }
+
+    public void setAcceptedContractVersion(Contract acceptedContractVersion) {
+        this.acceptedContractVersion = acceptedContractVersion;
+    }
 }
