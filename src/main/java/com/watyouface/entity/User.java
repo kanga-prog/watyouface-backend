@@ -23,8 +23,10 @@ public class User {
     @Column(nullable = false)
     private boolean acceptedContract = false;
 
-    // Relations
+    @Column
+    private String avatarUrl; // Ajout du champ avatarUrl
 
+    // Relations
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL)
     private List<Post> posts;
 
@@ -44,6 +46,7 @@ public class User {
     @JoinColumn(name = "contract_id")
     private Contract acceptedContractVersion;
 
+    // --- Constructeurs ---
     public User() {}
 
     public User(String username, String email, String password) {
@@ -53,7 +56,6 @@ public class User {
     }
 
     // --- Getters & Setters ---
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -65,6 +67,9 @@ public class User {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
     public List<Post> getPosts() { return posts; }
     public void setPosts(List<Post> posts) { this.posts = posts; }
@@ -81,19 +86,9 @@ public class User {
     public List<Like> getLikes() { return likes; }
     public void setLikes(List<Like> likes) { this.likes = likes; }
 
-    public boolean isAcceptedContract() {
-    return acceptedContract;
-    }
+    public boolean isAcceptedContract() { return acceptedContract; }
+    public void setAcceptedContract(boolean acceptedContract) { this.acceptedContract = acceptedContract; }
 
-    public void setAcceptedContract(boolean acceptedContract) {
-        this.acceptedContract = acceptedContract;
-    }
-
-    public Contract getAcceptedContractVersion() {
-        return acceptedContractVersion;
-    }
-
-    public void setAcceptedContractVersion(Contract acceptedContractVersion) {
-        this.acceptedContractVersion = acceptedContractVersion;
-    }
+    public Contract getAcceptedContractVersion() { return acceptedContractVersion; }
+    public void setAcceptedContractVersion(Contract acceptedContractVersion) { this.acceptedContractVersion = acceptedContractVersion; }
 }
