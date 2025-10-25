@@ -56,6 +56,7 @@ public class SecurityConfig {
             "http://172.28.24.211:5173",
             "http://172.28.24.211:5174"
         ));
+        config.addAllowedOriginPattern("*"); 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
