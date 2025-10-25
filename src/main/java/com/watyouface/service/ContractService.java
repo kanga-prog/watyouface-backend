@@ -23,16 +23,18 @@ public class ContractService {
     @Autowired
     private UserContractRepository userContractRepository;
 
-    /**
-     * Récupère le contrat actif (celui dont active = true)
-     */
-    public Contract getActiveContract() {
-        return contractRepository.findByActiveTrue().orElse(null);
+    @Autowired
+    private PdfService pdfService;
+
+    @Autowired
+    private MailService mailService;
+
+    /** 🔹 Récupère le contrat actif */
+    public Optional<Contract> getActiveContract() {
+        return contractRepository.findByActiveTrue();
     }
 
-    /**
-     * Permet à un utilisateur d'accepter ou refuser un contrat
-     */
+    /** 🔹 Accepter ou refuser un contrat */
     public String acceptContract(Long userId, Long contractId, boolean accepted) {
         Optional<User> userOpt = userRepository.findById(userId);
         Optional<Contract> contractOpt = contractRepository.findById(contractId);
@@ -48,5 +50,32 @@ public class ContractService {
         userContractRepository.save(userContract);
 
         return accepted ? "Contrat accepté avec succès." : "Contrat refusé.";
+    }
+
+    /** 🔹 Signature du contrat par l’utilisateur */
+    public void signContractForUser(User user) throws Exception {
+        Optional<Contract> activeOpt = getActiveContract();
+        if (activeOpt.isEmpty()) {
+            throw new Exception("Aucun contrat actif.");
+        }
+        Contract contract = activeOpt.get();
+
+        // Vérifie si déjà signé
+        boolean alreadySigned = userContractRepository.existsByUserAndContract(user, contract);
+        if (alreadySigned) {
+            throw new Exception("Le contrat est déjà signé par cet utilisateur.");
+        }
+
+        // Génération du PDF
+        byte[] pdfBytes = pdfService.generateContractPdf(contract, user).readAllBytes();
+
+        // Envoi du PDF par e-mail
+        mailService.sendContractEmail(user, pdfBytes);
+
+        // Enregistrement de la signature
+        UserContract userContract = new UserContract();
+        userContract.setUser(user);
+        userContract.setContract(contract);
+        userContractRepository.save(userContract);
     }
 }

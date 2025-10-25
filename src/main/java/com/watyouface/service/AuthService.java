@@ -25,7 +25,9 @@ public class AuthService {
     @Autowired
     private ContractService contractService;
 
+    // ========================
     // Connexion -> génération du token JWT
+    // ========================
     public String login(String email, String password) {
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
@@ -40,7 +42,10 @@ public class AuthService {
         return jwtUtil.generateToken(user.getUsername());
     }
 
-    // Enregistrement d'un nouvel utilisateur avec acceptation du contrat
+    // ========================
+    // Enregistrement d'un nouvel utilisateur
+    // avec acceptation du contrat
+    // ========================
     public String register(String username, String email, String password, boolean acceptedContract) {
         if (!acceptedContract) {
             return "Vous devez accepter les conditions générales avant de vous inscrire.";
@@ -50,10 +55,11 @@ public class AuthService {
             return "Email déjà utilisé.";
         }
 
-        Contract activeContract = contractService.getActiveContract();
-        if (activeContract == null) {
+        Optional<Contract> activeContractOpt = contractService.getActiveContract();
+        if (activeContractOpt.isEmpty()) {
             return "Aucun contrat actif n’est disponible.";
         }
+        Contract activeContract = activeContractOpt.get();
 
         User user = new User();
         user.setUsername(username);

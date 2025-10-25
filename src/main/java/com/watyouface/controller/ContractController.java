@@ -6,6 +6,7 @@ import com.watyouface.repository.UserRepository;
 import com.watyouface.security.JwtUtil;
 import com.watyouface.service.ContractService;
 import com.watyouface.service.PdfService;
+import com.watyouface.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -28,19 +29,22 @@ public class ContractController {
     private PdfService pdfService;
 
     @Autowired
+    private UserService userService;
+
+    @Autowired
     private JwtUtil jwtUtil;
 
     @Autowired
     private UserRepository userRepository;
 
-    // 📜 Récupérer le contrat actif
+    /** 🔹 Voir le contrat actif */
     @GetMapping("/active")
     public ResponseEntity<?> getActiveContract() {
-        Contract active = contractService.getActiveContract();
-        if (active == null) {
+        Optional<Contract> activeOpt = contractService.getActiveContract();
+        if (activeOpt.isEmpty()) {
             return ResponseEntity.status(404).body("Aucun contrat actif");
         }
-
+        Contract active = activeOpt.get();
         return ResponseEntity.ok(Map.of(
                 "id", active.getId(),
                 "title", active.getTitle(),
@@ -49,7 +53,30 @@ public class ContractController {
         ));
     }
 
-    // ✅ Accepter le contrat
+    /** 🔹 Signer le contrat */
+    @PostMapping("/sign")
+    public ResponseEntity<?> signContract(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Token manquant ou invalide.");
+        }
+
+        String token = authHeader.substring(7);
+        String username = jwtUtil.extractUsername(token);
+
+        Optional<User> userOpt = userService.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body("Utilisateur introuvable.");
+        }
+
+        try {
+            contractService.signContractForUser(userOpt.get());
+            return ResponseEntity.ok("Contrat signé et envoyé par e-mail ✅");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erreur : " + e.getMessage());
+        }
+    }
+
+    /** 🔹 Accepter ou refuser un contrat */
     @PostMapping("/accept")
     public ResponseEntity<String> acceptContract(@RequestBody Map<String, Object> req) {
         Long userId = Long.valueOf(req.get("userId").toString());
@@ -60,31 +87,26 @@ public class ContractController {
         return ResponseEntity.ok(result);
     }
 
-    // 📥 Télécharger le contrat actif en PDF personnalisé
+    /** 🔹 Télécharger le contrat actif en PDF personnalisé */
     @GetMapping("/{id}/download")
     public ResponseEntity<InputStreamResource> downloadContract(
             @PathVariable Long id,
             @RequestHeader("Authorization") String authHeader) {
 
-        // ✅ Extraction du username depuis le token JWT
         String username = jwtUtil.extractUsername(authHeader.substring(7));
         Optional<User> userOpt = userRepository.findByUsername(username);
-
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404).body(null);
         }
 
         User user = userOpt.get();
-
-        // ✅ Vérification du contrat actif
-        Contract contract = contractService.getActiveContract();
-        if (contract == null || !contract.getId().equals(id)) {
+        Optional<Contract> contractOpt = contractService.getActiveContract();
+        if (contractOpt.isEmpty() || !contractOpt.get().getId().equals(id)) {
             return ResponseEntity.notFound().build();
         }
+        Contract contract = contractOpt.get();
 
-        // ✅ Génération du PDF personnalisé
         ByteArrayInputStream bis = pdfService.generateContractPdf(contract, user);
-
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Disposition",
                 "attachment; filename=WatYouFace_Contract_" + user.getUsername() + "_v" + contract.getVersion() + ".pdf");

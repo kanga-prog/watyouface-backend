@@ -19,9 +19,9 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
         System.out.println("acceptTerms: " + request.isAcceptTerms());
-        if (!request.isAcceptTerms()) {
-            return ResponseEntity.badRequest().body("Vous devez accepter le contrat WatYouFace pour vous inscrire.");
-        }
+        //if (!request.isAcceptTerms()) {
+           // return ResponseEntity.badRequest().body("Vous devez accepter le contrat WatYouFace pour vous inscrire.");
+        //}
 
         String response = authService.register(request.getUsername(),
                                                request.getEmail(),

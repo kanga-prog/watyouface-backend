@@ -1,3 +1,4 @@
+
 package com.watyouface.controller;
 
 import com.watyouface.entity.User;
@@ -21,17 +22,14 @@ public class UserController {
     private JwtUtil jwtUtil;
 
     // 🔐 Récupérer le profil de l'utilisateur connecté
-    @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(@RequestHeader("Authorization") String authHeader) {
-        System.out.println("📩 Requête reçue sur /api/user/profile");
-
+    @GetMapping("/me") // nouveau endpoint
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body("Token manquant ou invalide");
         }
 
         String token = authHeader.substring(7); // Supprime "Bearer "
         String username = jwtUtil.extractUsername(token);
-        System.out.println("👤 Utilisateur extrait du token: " + username);
 
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
@@ -39,7 +37,6 @@ public class UserController {
         }
 
         User user = userOpt.get();
-        System.out.println("✅ Utilisateur trouvé: " + user.getEmail());
 
         return ResponseEntity.ok(Map.of(
                 "username", user.getUsername(),
@@ -48,6 +45,12 @@ public class UserController {
                 "contractVersion", user.getAcceptedContractVersion() != null ? user.getAcceptedContractVersion().getVersion() : "N/A",
                 "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""
         ));
+    }
+
+    // 🔄 Garde ton endpoint /profile si besoin
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(@RequestHeader("Authorization") String authHeader) {
+        return getCurrentUser(authHeader); // juste un alias pour éviter la duplication
     }
 
     // ✏️ Mise à jour du profil (username, avatar)
