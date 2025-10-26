@@ -1,6 +1,7 @@
 package com.watyouface.controller;
 
-import com.watyouface.dto.RegisterRequest; 
+import com.watyouface.dto.RegisterRequest;
+import com.watyouface.entity.User;
 import com.watyouface.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,35 +16,41 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
-    // Endpoint pour l'inscription
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
-        System.out.println("acceptTerms: " + request.isAcceptTerms());
-        //if (!request.isAcceptTerms()) {
-           // return ResponseEntity.badRequest().body("Vous devez accepter le contrat WatYouFace pour vous inscrire.");
-        //}
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        try {
+            User user = authService.register(
+                request.getUsername(),
+                request.getEmail(),
+                request.getPassword(),
+                request.isAcceptTerms()
+            );
 
-        String response = authService.register(request.getUsername(),
-                                               request.getEmail(),
-                                               request.getPassword(),
-                                               request.isAcceptTerms()
-        );
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                "userId", user.getId(),
+                "needsContractAcceptance", !request.isAcceptTerms(),
+                "message", request.isAcceptTerms() ?
+                    "Inscription réussie et contrat accepté." :
+                    "Compte créé. Veuillez accepter le contrat pour finaliser."
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
-    // Endpoint pour la connexion
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         String password = request.get("password");
-
-        String token = authService.login(email, password);
-        return ResponseEntity.ok(token);
+        String result = authService.login(email, password);
+        if (result.startsWith("Email") || result.startsWith("Veuillez")) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestHeader("Authorization") String authHeader) {
-        // Ici tu pourrais ajouter le token à une blacklist pour l’invalider
         return ResponseEntity.ok("Déconnexion réussie");
-}
+    }
 }

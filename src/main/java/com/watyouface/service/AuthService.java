@@ -39,36 +39,42 @@ public class AuthService {
             return "Email ou mot de passe invalide.";
         }
 
+        // 🔒 Bloquer la connexion si contrat non accepté
+        if (!user.isAcceptedContract()) {
+            return "Veuillez accepter le contrat WatYouFace pour vous connecter.";
+        }
+
         return jwtUtil.generateToken(user.getUsername());
     }
 
     // ========================
-    // Enregistrement d'un nouvel utilisateur
-    // avec acceptation du contrat
+    // Enregistrement : toujours sauvegarder l'utilisateur
     // ========================
-    public String register(String username, String email, String password, boolean acceptedContract) {
-        if (!acceptedContract) {
-            return "Vous devez accepter les conditions générales avant de vous inscrire.";
-        }
-
+    public User register(String username, String email, String password, boolean acceptedContract) {
+        // Vérifications
         if (userRepository.findByEmail(email).isPresent()) {
-            return "Email déjà utilisé.";
+            throw new RuntimeException("Email déjà utilisé.");
         }
-
-        Optional<Contract> activeContractOpt = contractService.getActiveContract();
-        if (activeContractOpt.isEmpty()) {
-            return "Aucun contrat actif n’est disponible.";
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new RuntimeException("Nom d'utilisateur déjà pris.");
         }
-        Contract activeContract = activeContractOpt.get();
 
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
-        user.setAcceptedContract(true);
-        user.setAcceptedContractVersion(activeContract);
+        user.setAcceptedContract(acceptedContract); // false si pas encore accepté
 
-        userRepository.save(user);
-        return "Inscription réussie et contrat accepté.";
+        // Si accepté maintenant, lie le contrat actif
+        if (acceptedContract) {
+            Optional<Contract> activeContractOpt = contractService.getActiveContract();
+            if (activeContractOpt.isEmpty()) {
+                throw new RuntimeException("Aucun contrat actif n’est disponible.");
+            }
+            user.setAcceptedContractVersion(activeContractOpt.get());
+        }
+        // Sinon : acceptedContractVersion reste null → OK
+
+        return userRepository.save(user); // 👈 Toujours sauvegardé
     }
 }
