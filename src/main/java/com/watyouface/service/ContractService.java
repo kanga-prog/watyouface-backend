@@ -8,6 +8,7 @@ import com.watyouface.repository.UserContractRepository;
 import com.watyouface.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -35,6 +36,7 @@ public class ContractService {
     }
 
     /** 🔹 Accepter ou refuser un contrat */
+    @Transactional
     public String acceptContract(Long userId, Long contractId, boolean accepted) {
         Optional<User> userOpt = userRepository.findById(userId);
         Optional<Contract> contractOpt = contractRepository.findById(contractId);
@@ -46,13 +48,31 @@ public class ContractService {
         User user = userOpt.get();
         Contract contract = contractOpt.get();
 
-        UserContract userContract = new UserContract(user, contract, accepted);
-        userContractRepository.save(userContract);
+        if (accepted) {
+            // Mise à jour de l'utilisateur
+            user.setAcceptedContract(true);
+            user.setAcceptedContractVersion(contract);
+            userRepository.save(user);
 
-        return accepted ? "Contrat accepté avec succès." : "Contrat refusé.";
+            // Historique dans UserContract
+            UserContract userContract = new UserContract(user, contract, true);
+            userContractRepository.save(userContract);
+
+            return "Contrat accepté avec succès ✅";
+        } else {
+            user.setAcceptedContract(false);
+            user.setAcceptedContractVersion(null);
+            userRepository.save(user);
+
+            UserContract userContract = new UserContract(user, contract, false);
+            userContractRepository.save(userContract);
+
+            return "Contrat refusé ❌";
+        }
     }
 
     /** 🔹 Signature du contrat par l’utilisateur */
+    @Transactional
     public void signContractForUser(User user) throws Exception {
         Optional<Contract> activeOpt = getActiveContract();
         if (activeOpt.isEmpty()) {
@@ -60,7 +80,6 @@ public class ContractService {
         }
         Contract contract = activeOpt.get();
 
-        // Vérifie si déjà signé
         boolean alreadySigned = userContractRepository.existsByUserAndContract(user, contract);
         if (alreadySigned) {
             throw new Exception("Le contrat est déjà signé par cet utilisateur.");
