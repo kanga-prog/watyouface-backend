@@ -1,4 +1,3 @@
-
 package com.watyouface.controller;
 
 import com.watyouface.entity.User;
@@ -22,35 +21,41 @@ public class UserController {
     private JwtUtil jwtUtil;
 
     // 🔐 Récupérer le profil de l'utilisateur connecté
-    @GetMapping("/me") // nouveau endpoint
+    @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body("Token manquant ou invalide");
         }
 
-        String token = authHeader.substring(7); // Supprime "Bearer "
-        String username = jwtUtil.extractUsername(token);
+        String token = authHeader.substring(7);
 
-        Optional<User> userOpt = userRepository.findByUsername(username);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(404).body("Utilisateur introuvable");
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(401).body("Token invalide ou expiré");
         }
 
-        User user = userOpt.get();
+        try {
+            String username = jwtUtil.extractUsername(token);
+            Optional<User> userOpt = userRepository.findByUsername(username);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(404).body("Utilisateur introuvable");
+            }
 
-        return ResponseEntity.ok(Map.of(
+            User user = userOpt.get();
+            return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
                 "username", user.getUsername(),
                 "email", user.getEmail(),
                 "acceptedContract", user.isAcceptedContract(),
-                "contractVersion", user.getAcceptedContractVersion() != null ? user.getAcceptedContractVersion().getVersion() : "N/A",
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""
-        ));
-    }
-
-    // 🔄 Garde ton endpoint /profile si besoin
-    @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(@RequestHeader("Authorization") String authHeader) {
-        return getCurrentUser(authHeader); // juste un alias pour éviter la duplication
+                "contractVersion", user.getAcceptedContractVersion() != null 
+                    ? user.getAcceptedContractVersion().getVersion() 
+                    : "N/A",
+                "avatarUrl", user.getAvatarUrl() != null 
+                    ? user.getAvatarUrl() 
+                    : ""
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body("Impossible d'extraire l'utilisateur du token");
+        }
     }
 
     // ✏️ Mise à jour du profil (username, avatar)
@@ -64,22 +69,43 @@ public class UserController {
         }
 
         String token = authHeader.substring(7);
-        String username = jwtUtil.extractUsername(token);
 
-        Optional<User> userOpt = userRepository.findByUsername(username);
-        if (userOpt.isEmpty()) return ResponseEntity.status(404).body("Utilisateur introuvable");
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(401).body("Token invalide ou expiré");
+        }
 
-        User user = userOpt.get();
+        try {
+            String username = jwtUtil.extractUsername(token);
+            Optional<User> userOpt = userRepository.findByUsername(username);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(404).body("Utilisateur introuvable");
+            }
 
-        if (updates.containsKey("username")) user.setUsername(updates.get("username"));
-        if (updates.containsKey("avatarUrl")) user.setAvatarUrl(updates.get("avatarUrl"));
+            User user = userOpt.get();
 
-        userRepository.save(user);
+            if (updates.containsKey("username")) {
+                String newUsername = updates.get("username");
+                if (newUsername != null && !newUsername.trim().isEmpty()) {
+                    user.setUsername(newUsername.trim());
+                }
+            }
+            if (updates.containsKey("avatarUrl")) {
+                user.setAvatarUrl(updates.get("avatarUrl"));
+            }
 
-        return ResponseEntity.ok(Map.of(
+            userRepository.save(user);
+
+            return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
                 "username", user.getUsername(),
                 "email", user.getEmail(),
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""
-        ));
+                "avatarUrl", user.getAvatarUrl() != null 
+                    ? user.getAvatarUrl() 
+                    : ""
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Erreur lors de la mise à jour du profil");
+        }
     }
 }

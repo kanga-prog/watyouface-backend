@@ -1,5 +1,6 @@
 package com.watyouface.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -15,23 +16,23 @@ public class Comment {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // L'auteur du commentaire
+    // ✅ On garde l'auteur (pour afficher "par X")
     @ManyToOne
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
-    // Le post commenté (optionnel)
+    // ❌ On masque le post pour éviter la boucle Post → Comments → Post
     @ManyToOne
     @JoinColumn(name = "post_id")
+    @JsonIgnore
     private Post post;
 
-    // La vidéo commentée (optionnel)
     @ManyToOne
     @JoinColumn(name = "video_id")
+    @JsonIgnore
     private Video video;
 
     // --- Getters & Setters ---
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

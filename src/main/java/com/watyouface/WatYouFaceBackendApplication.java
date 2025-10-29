@@ -1,7 +1,10 @@
 package com.watyouface;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import java.io.File;
 
 @SpringBootApplication(
     scanBasePackages = {
@@ -13,5 +16,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class WatYouFaceBackendApplication {
     public static void main(String[] args) {
         SpringApplication.run(WatYouFaceBackendApplication.class, args);
+    }
+
+
+    @PostConstruct
+    public void logUploadPath() {
+        String uploadDir = System.getProperty("user.dir") + "/uploads";
+        System.out.println("📁 Dossier uploads résolu : " + uploadDir);
+        System.out.println("📂 Existe ? " + new File(uploadDir).exists());
     }
 }

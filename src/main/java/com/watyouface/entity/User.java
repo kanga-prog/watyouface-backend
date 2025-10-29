@@ -1,5 +1,6 @@
 package com.watyouface.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -28,21 +29,27 @@ public class User {
 
     // Relations
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Post> posts;
 
     @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Message> sentMessages;
 
     @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Message> receivedMessages;
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Comment> comments;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Like> likes;
 
     @ManyToOne
+    @JsonIgnore
     @JoinColumn(name = "contract_id")
     private Contract acceptedContractVersion;
 

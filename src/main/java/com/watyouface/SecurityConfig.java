@@ -33,22 +33,17 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        System.out.println("✅ Security config loaded with /uploads/** permitAll");
         http
-            .csrf().disable()
-            .cors().and()
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // ✅ Routes publiques
-                .requestMatchers(
-                    "/api/auth/register",
-                    "/api/auth/login",
-                    "/api/contracts/active",
-                    "/api/contracts/accept"
-                ).permitAll()
-
-                // 🔐 Les autres nécessitent un token
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/contracts/active").permitAll()
+                .requestMatchers("/api/contracts/accept").permitAll()
+                .requestMatchers("/uploads/**").permitAll() // ✅ Isolé
                 .anyRequest().authenticated()
             )
-            // ✅ Ajout du filtre JWT avant la vérif d’identité Spring
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
