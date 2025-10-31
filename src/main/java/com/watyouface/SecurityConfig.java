@@ -41,6 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/contracts/active").permitAll()
                 .requestMatchers("/api/contracts/accept").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll() // ✅ Isolé
                 .anyRequest().authenticated()
             )
