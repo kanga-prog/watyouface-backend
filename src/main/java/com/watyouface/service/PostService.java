@@ -71,4 +71,8 @@ public class PostService {
         // Retourner le chemin relatif (ex: "/uploads/media_20251028123456789.jpg")
         return "/" + UPLOAD_DIR + filename;
     }
+    // 🔹 Récupérer tous les posts du plus récent au plus ancien
+    public List<Post> getAllPostsOrderedByDateDesc() {
+        return postRepository.findAllOrderedByDateDesc();
+    }
 }

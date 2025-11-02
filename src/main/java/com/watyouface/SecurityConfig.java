@@ -16,6 +16,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.http.HttpMethod;
 
 import java.util.List;
+import java.util.Arrays;
 
 @Configuration
 public class SecurityConfig {
@@ -33,7 +34,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        System.out.println("✅ Security config loaded with /uploads/** permitAll");
+        System.out.println("✅ Security config loaded with CORS for 172.28.24.211:5174");
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -42,7 +43,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/contracts/active").permitAll()
                 .requestMatchers("/api/contracts/accept").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
-                .requestMatchers("/uploads/**").permitAll() // ✅ Isolé
+                .requestMatchers("/uploads/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -53,11 +54,22 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+        
+        // ✅ Ajoute explicitement ton IP locale
         config.setAllowedOrigins(List.of(
             "http://localhost:5173",
-            "http://localhost:5174"
+            "http://localhost:5174",
+            "http://172.28.24.211:5173",
+            "http://172.28.24.211:5174"
         ));
-        config.addAllowedOriginPattern("*");
+        
+        // Optionnel : pour autoriser tout localhost/127.0.0.1 dynamique
+        config.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "http://172.28.24.211:*"
+        ));
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
