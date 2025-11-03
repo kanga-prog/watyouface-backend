@@ -37,6 +37,21 @@ public class JwtUtil {
                 .getSubject();
     }
 
+     public Long getUserIdFromToken(String token) {
+        return ((Number) Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("userId")).longValue();
+    }
+
+
+    public Long getUserIdFromHeader(String header) {
+        String token = header.replace("Bearer ", "");
+        return getUserIdFromToken(token); // méthode interne qui extrait l’ID
+    }
+
     // Vérifier si le token est valide
     public boolean validateToken(String token) {
         try {
@@ -46,4 +61,6 @@ public class JwtUtil {
             return false;
         }
     }
+
+    
 }

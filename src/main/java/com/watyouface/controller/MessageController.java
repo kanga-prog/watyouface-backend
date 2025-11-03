@@ -1,0 +1,60 @@
+package com.watyouface.controller;
+
+import com.watyouface.dto.MessageDTO;
+import com.watyouface.entity.Conversation;
+import com.watyouface.entity.Message;
+import com.watyouface.repository.ConversationRepository;
+import com.watyouface.security.JwtUtil;
+import com.watyouface.service.MessageService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/conversations")
+public class MessageController {
+
+    private final MessageService messageService;
+    private final ConversationRepository conversationRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final JwtUtil jwtUtil;
+
+    public MessageController(MessageService messageService,
+                             ConversationRepository conversationRepository,
+                             SimpMessagingTemplate messagingTemplate,
+                             JwtUtil jwtUtil) {
+        this.messageService = messageService;
+        this.conversationRepository = conversationRepository;
+        this.messagingTemplate = messagingTemplate;
+        this.jwtUtil = jwtUtil;
+    }
+
+    @GetMapping
+    public Page<Conversation> myConversations(@RequestHeader("Authorization") String auth, Pageable pageable) {
+        Long userId = jwtUtil.getUserIdFromHeader(auth);
+        return conversationRepository.findByUser(userId, pageable);
+    }
+
+    @GetMapping("/{id}/messages")
+    public Page<Message> getMessages(@PathVariable Long id,
+                                     @RequestParam(defaultValue = "0") int page,
+                                     @RequestParam(defaultValue = "50") int size,
+                                     @RequestHeader("Authorization") String auth) {
+        Long userId = jwtUtil.getUserIdFromHeader(auth);
+        // Optional: verify participant access here
+        return messageService.fetchMessages(id, page, size);
+    }
+
+    @PostMapping("/{id}/messages")
+    public Message postMessage(@PathVariable Long id,
+                               @RequestBody Map<String, String> body,
+                               @RequestHeader("Authorization") String auth) {
+        Long userId = jwtUtil.getUserIdFromHeader(auth);
+        Message m = messageService.sendMessage(id, userId, body.get("content"));
+        messagingTemplate.convertAndSend("/topic/conversations/" + id, new MessageDTO(m));
+        return m;
+    }
+}
