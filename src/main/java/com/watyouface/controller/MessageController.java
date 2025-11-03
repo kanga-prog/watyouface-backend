@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -56,5 +57,11 @@ public class MessageController {
         Message m = messageService.sendMessage(id, userId, body.get("content"));
         messagingTemplate.convertAndSend("/topic/conversations/" + id, new MessageDTO(m));
         return m;
+    }
+
+    // 🔹 Nouvelle route pour l’API REST front
+    @GetMapping("/messages/{conversationId}")
+    public List<MessageDTO> getMessagesRest(@PathVariable Long conversationId) {
+        return messageService.findByConversation(conversationId);
     }
 }
