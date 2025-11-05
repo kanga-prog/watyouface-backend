@@ -1,22 +1,40 @@
 package com.watyouface.repository;
 
-import com.watyouface.entity.Conversation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
+import com.watyouface.entity.Conversation;
+import java.util.*;
 
-import java.util.Optional;
-
-@Repository
 public interface ConversationRepository extends JpaRepository<Conversation, Long> {
 
-    @Query("SELECT c FROM Conversation c JOIN c.participants p WHERE p.user.id = :userId")
-    Page<Conversation> findByUser(@Param("userId") Long userId, Pageable pageable);
+    // 🔹 Trouver une conversation privée entre deux utilisateurs
+    @Query("""
+        SELECT c FROM Conversation c
+        JOIN c.participants cu1
+        JOIN c.participants cu2
+        WHERE cu1.user.id = :userId1
+          AND cu2.user.id = :userId2
+          AND c.isGroup = false
+    """)
+    Optional<Conversation> findPrivateBetween(Long userId1, Long userId2);
 
-    @Query("SELECT c FROM Conversation c JOIN c.participants p1 JOIN c.participants p2 " +
-           "WHERE p1.user.id = :a AND p2.user.id = :b AND c.isGroup = false")
-    Optional<Conversation> findOneToOneByUsers(@Param("a") Long a, @Param("b") Long b);
+    // 🔹 Lister toutes les conversations d’un utilisateur (non paginée)
+    @Query("""
+        SELECT DISTINCT c FROM Conversation c
+        JOIN c.participants cu
+        WHERE cu.user.id = :userId
+        ORDER BY c.createdAt DESC
+    """)
+    List<Conversation> findByUserId(Long userId);
+
+    // 🔹 Lister les conversations avec pagination
+    @Query("""
+        SELECT DISTINCT c FROM Conversation c
+        JOIN c.participants cu
+        WHERE cu.user.id = :userId
+        ORDER BY c.createdAt DESC
+    """)
+    Page<Conversation> findByUser(Long userId, Pageable pageable);
 }

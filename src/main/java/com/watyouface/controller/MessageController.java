@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/conversations")
+@RequestMapping("/api/messages") // ✅ Modifié pour éviter conflit avec ConversationController
 public class MessageController {
 
     private final MessageService messageService;
@@ -33,13 +33,15 @@ public class MessageController {
         this.jwtUtil = jwtUtil;
     }
 
-    @GetMapping
+    // 🔹 Liste des conversations de l’utilisateur
+    @GetMapping("/conversations")
     public Page<Conversation> myConversations(@RequestHeader("Authorization") String auth, Pageable pageable) {
         Long userId = jwtUtil.getUserIdFromHeader(auth);
         return conversationRepository.findByUser(userId, pageable);
     }
 
-    @GetMapping("/{id}/messages")
+    // 🔹 Messages d’une conversation
+    @GetMapping("/conversations/{id}")
     public Page<Message> getMessages(@PathVariable Long id,
                                      @RequestParam(defaultValue = "0") int page,
                                      @RequestParam(defaultValue = "50") int size,
@@ -49,7 +51,8 @@ public class MessageController {
         return messageService.fetchMessages(id, page, size);
     }
 
-    @PostMapping("/{id}/messages")
+    // 🔹 Poster un message dans une conversation
+    @PostMapping("/conversations/{id}")
     public Message postMessage(@PathVariable Long id,
                                @RequestBody Map<String, String> body,
                                @RequestHeader("Authorization") String auth) {
@@ -59,8 +62,8 @@ public class MessageController {
         return m;
     }
 
-    // 🔹 Nouvelle route pour l’API REST front
-    @GetMapping("/messages/{conversationId}")
+    // 🔹 Route REST supplémentaire pour récupérer messages sous forme DTO
+    @GetMapping("/{conversationId}/all")
     public List<MessageDTO> getMessagesRest(@PathVariable Long conversationId) {
         return messageService.findByConversation(conversationId);
     }
