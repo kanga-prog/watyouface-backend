@@ -44,7 +44,7 @@ public class AuthService {
             return "Veuillez accepter le contrat WatYouFace pour vous connecter.";
         }
 
-        return jwtUtil.generateToken(user.getUsername());
+        return jwtUtil.generateToken(user.getId(), user.getUsername());
     }
 
     // ========================

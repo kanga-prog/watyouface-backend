@@ -1,4 +1,3 @@
-// src/main/java/com/watyouface/dto/MessageDTO.java
 package com.watyouface.dto;
 
 import com.watyouface.entity.Message;
@@ -9,6 +8,7 @@ public class MessageDTO {
     private Long conversationId;
     private Long senderId;
     private String senderUsername;
+    private String senderAvatarUrl; // ✅ nouvel attribut
     private String content;
     private Instant sentAt;
 
@@ -19,14 +19,30 @@ public class MessageDTO {
         this.conversationId = m.getConversation().getId();
         this.senderId = m.getSender().getId();
         this.senderUsername = m.getSender().getUsername();
+        this.senderAvatarUrl = m.getSender().getAvatarUrl(); // ✅ ajout ici
         this.content = m.getContent();
         this.sentAt = m.getSentAt();
     }
 
-    // getters / setters
+    // Getters & Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
     public Long getConversationId() { return conversationId; }
     public void setConversationId(Long conversationId) { this.conversationId = conversationId; }
 
+    public Long getSenderId() { return senderId; }
+    public void setSenderId(Long senderId) { this.senderId = senderId; }
+
+    public String getSenderUsername() { return senderUsername; }
+    public void setSenderUsername(String senderUsername) { this.senderUsername = senderUsername; }
+
+    public String getSenderAvatarUrl() { return senderAvatarUrl; }
+    public void setSenderAvatarUrl(String senderAvatarUrl) { this.senderAvatarUrl = senderAvatarUrl; }
+
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+
+    public Instant getSentAt() { return sentAt; }
+    public void setSentAt(Instant sentAt) { this.sentAt = sentAt; }
 }

@@ -3,6 +3,7 @@ package com.watyouface.service;
 
 import com.watyouface.entity.User;
 import com.watyouface.repository.UserRepository;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UserService implements UserDetailsService { // ✅ ajouté
+public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
@@ -21,23 +22,39 @@ public class UserService implements UserDetailsService { // ✅ ajouté
         this.userRepository = userRepository;
     }
 
-    // 🔑 Nouvelle méthode obligatoire
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<User> userOpt = findByUsername(username);
-        if (userOpt.isEmpty()) {
-            throw new UsernameNotFoundException("Utilisateur non trouvé: " + username);
-        }
-        User user = userOpt.get();
-        // Retourne un UserDetails Spring avec les infos de ton entité
+    /**
+     * 🔹 Chargement d’un utilisateur par ID (utilisé dans JwtAuthenticationFilter)
+     */
+    public UserDetails loadUserById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "Utilisateur non trouvé avec l'id: " + userId));
+
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
-                user.getPassword(), // ⚠️ doit être non null
+                user.getPassword(),
+                List.of(new SimpleGrantedAuthority("ROLE_USER"))
+        );
+    }
+
+   @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        Optional<User> userOpt = userRepository.findByEmail(email); // <- email
+        if (userOpt.isEmpty()) {
+            throw new UsernameNotFoundException("Utilisateur non trouvé: " + email);
+        }
+
+        User user = userOpt.get();
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(), // ou username, à toi de décider
+                user.getPassword(),
                 Collections.emptyList()
         );
     }
 
-    // ... tes autres méthodes existantes (getAllUsers, findByUsername, etc.)
+    /**
+     * 🔹 Méthodes utilitaires métiers
+     */
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }

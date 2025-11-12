@@ -28,26 +28,36 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        // ✅ Correction ici
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
             List<String> auth = accessor.getNativeHeader("Authorization");
             if (auth == null || auth.isEmpty()) {
-                return message; // ou throw new IllegalArgumentException("Missing token");
+                System.err.println("❌ Aucun token JWT dans l’en-tête STOMP");
+                return null;
             }
 
             String header = auth.get(0);
             String token = header.replace("Bearer ", "");
 
             if (!jwtUtil.validateToken(token)) {
+                System.err.println("❌ Token JWT invalide");
                 return null;
             }
 
-            String username = jwtUtil.extractUsername(token);
-            Optional<User> uOpt = userRepository.findByUsername(username);
-            if (uOpt.isEmpty()) return null;
+            // ✅ On extrait désormais l’ID depuis le token
+            Long userId = jwtUtil.extractUserId(token);
+            if (userId == null) {
+                System.err.println("❌ Aucun userId dans le token");
+                return null;
+            }
+
+            Optional<User> uOpt = userRepository.findById(userId);
+            if (uOpt.isEmpty()) {
+                System.err.println("❌ Utilisateur non trouvé pour userId=" + userId);
+                return null;
+            }
 
             User user = uOpt.get();
-            accessor.setUser(new StompPrincipal(user.getUsername(), user.getId()));
+            accessor.setUser(new StompPrincipal(user.getUsername(), user.getId(),user.getAvatarUrl()));
         }
 
         return message;

@@ -3,22 +3,23 @@ package com.watyouface.config;
 import com.watyouface.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.http.HttpMethod;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
-import java.util.Arrays;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
@@ -32,45 +33,46 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    // 🔹 Chaîne PUBLIQUE (sans JWT)
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        System.out.println("✅ Security config loaded with CORS for 172.28.24.211:5174");
+    @Order(1)
+    public SecurityFilterChain publicFilterChain(HttpSecurity http) throws Exception {
         http
+            .securityMatcher("/uploads/**", "/api/auth/**", "/api/contracts/**", "/ws/**", "/default.png")
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()));
+        System.out.println("➡️ Security: PUBLIC filter chain loaded");
+        return http.build();
+    }
+
+    // 🔹 Chaîne SÉCURISÉE (JWT)
+    @Bean
+    @Order(2)
+    public SecurityFilterChain securedFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/api/**")
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/contracts/active").permitAll()
-                .requestMatchers("/api/contracts/accept").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
-                .requestMatchers("/uploads/**").permitAll()
-                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/api/users/**").authenticated()
                 .anyRequest().authenticated()
             )
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
+        System.out.println("➡️ Security: SECURED filter chain loaded");
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        
-        // ✅ Ajoute explicitement ton IP locale
         config.setAllowedOrigins(List.of(
             "http://localhost:5173",
             "http://localhost:5174",
             "http://172.28.24.211:5173",
             "http://172.28.24.211:5174"
         ));
-        
-        // Optionnel : pour autoriser tout localhost/127.0.0.1 dynamique
-        config.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:*",
-            "http://127.0.0.1:*",
-            "http://172.28.24.211:*"
-        ));
-
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
