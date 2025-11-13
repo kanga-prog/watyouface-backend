@@ -1,4 +1,3 @@
-// src/main/java/com/watyouface/controller/MessageController.java
 package com.watyouface.controller;
 
 import com.watyouface.dto.MessageDTO;
@@ -11,6 +10,7 @@ import com.watyouface.security.JwtUtil;
 import com.watyouface.service.MessageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,48 +40,64 @@ public class MessageController {
         this.userRepository = userRepository;
     }
 
-    // 🔹 Liste des conversations de l’utilisateur
+    // 🔹 Liste des conversations de l’utilisateur (pagination)
     @GetMapping("/conversations")
     public Page<Conversation> myConversations(@RequestHeader("Authorization") String auth, Pageable pageable) {
         Long userId = jwtUtil.getUserIdFromHeader(auth);
         return conversationRepository.findByUser(userId, pageable);
     }
 
-    // 🔹 Messages d’une conversation
+    // 🔹 Messages d’une conversation (pagination)
     @GetMapping("/conversations/{id}")
     public Page<Message> getMessages(@PathVariable Long id,
                                      @RequestParam(defaultValue = "0") int page,
                                      @RequestParam(defaultValue = "50") int size,
                                      @RequestHeader("Authorization") String auth) {
         Long userId = jwtUtil.getUserIdFromHeader(auth);
+        if (!conversationRepository.existsByIdAndParticipants_User_Id(id, userId)) {
+            throw new RuntimeException("Utilisateur non autorisé");
+        }
         return messageService.fetchMessages(id, page, size);
     }
 
     // 🔹 Poster un message dans une conversation avec avatar
     @PostMapping("/conversations/{id}")
-    public MessageDTO postMessage(@PathVariable Long id,
-                                  @RequestBody Map<String, String> body,
-                                  @RequestHeader("Authorization") String auth) {
+    public ResponseEntity<MessageDTO> postMessage(@PathVariable Long id,
+                                                  @RequestBody Map<String, String> body,
+                                                  @RequestHeader("Authorization") String auth) {
         Long userId = jwtUtil.getUserIdFromHeader(auth);
         Optional<User> uOpt = userRepository.findById(userId);
-        if (uOpt.isEmpty()) throw new RuntimeException("Utilisateur non trouvé");
+        if (uOpt.isEmpty()) return ResponseEntity.notFound().build();
 
         User sender = uOpt.get();
         Message m = messageService.sendMessage(id, userId, body.get("content"));
 
-        // Conversion en DTO avec avatar
         MessageDTO dto = new MessageDTO(m);
         dto.setSenderAvatarUrl(sender.getAvatarUrl());
 
-        // Publication via STOMP
         messagingTemplate.convertAndSend("/topic/conversations/" + id, dto);
 
-        return dto;
+        return ResponseEntity.ok(dto);
     }
 
-    // 🔹 Route REST supplémentaire pour récupérer messages sous forme DTO
+    // 🔹 Messages d’une conversation (DTO pour React)
+    @GetMapping("/conversations/{id}/messages")
+    public ResponseEntity<List<MessageDTO>> getMessagesByConversation(@PathVariable Long id,
+                                                                      @RequestHeader("Authorization") String auth) {
+        Long userId = jwtUtil.getUserIdFromHeader(auth);
+        if (!conversationRepository.existsByIdAndParticipants_User_Id(id, userId)) {
+            return ResponseEntity.status(403).build();
+        }
+
+        List<MessageDTO> list = messageService.findByConversation(id);
+        return ResponseEntity.ok(list);
+    }
+
+    // 🔹 Endpoint debug / récupération complète
     @GetMapping("/{conversationId}/all")
-    public List<MessageDTO> getMessagesRest(@PathVariable Long conversationId) {
-        return messageService.findByConversation(conversationId);
+    public ResponseEntity<List<MessageDTO>> getMessagesRest(@PathVariable Long conversationId) {
+        List<MessageDTO> list = messageService.findByConversation(conversationId);
+        System.out.println("DEBUG messages: " + list);
+        return ResponseEntity.ok(list);
     }
 }

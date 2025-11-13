@@ -43,18 +43,16 @@ public class UserController {
             return ResponseEntity.status(401).body("Token invalide ou expiré");
         }
 
-        // ✅ Ici on récupère l’email (car ton JWT stocke l’email comme username)
         String email = jwtUtil.extractUsername(token);
         System.out.println("🔍 Email extrait du token: " + email);
 
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            System.out.println("❌ Utilisateur introuvable en base pour l’email: " + email);
+            System.out.println("❌ Utilisateur introuvable pour l’email: " + email);
             return ResponseEntity.status(404).body("Utilisateur introuvable");
         }
 
         User user = userOpt.get();
-        System.out.println("✅ Utilisateur trouvé: " + user.getEmail());
 
         return ResponseEntity.ok(Map.of(
                 "id", user.getId(),
@@ -82,7 +80,6 @@ public class UserController {
             return ResponseEntity.status(401).body("Token invalide ou expiré");
         }
 
-        // 🔹 Récupération via email également
         String email = jwtUtil.extractUsername(token);
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) return ResponseEntity.status(404).body("Utilisateur introuvable");
@@ -151,4 +148,28 @@ public class UserController {
                 "avatarUrl", publicUrl
         ));
     }
+    // 🔹 GET /api/users
+    @GetMapping
+    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Token manquant ou invalide");
+        }
+
+        String token = authHeader.substring(7);
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(401).body("Token invalide ou expiré");
+        }
+
+        // ✅ On renvoie uniquement les infos publiques (id, username, avatarUrl)
+        var users = userRepository.findAll().stream()
+                .map(u -> Map.of(
+                        "id", u.getId(),
+                        "username", u.getUsername(),
+                        "avatarUrl", u.getAvatarUrl() != null ? u.getAvatarUrl() : "/uploads/avatars/default.png"
+                ))
+                .toList();
+
+        return ResponseEntity.ok(users);
+    }
+
 }

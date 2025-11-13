@@ -15,74 +15,71 @@ import com.watyouface.repository.ConversationUserRepository;
 @Service
 public class ConversationService {
 
-    private final ConversationRepository convRepo;
-    private final ConversationUserRepository convUserRepo;
-    private final UserRepository userRepo;
+    private final ConversationRepository conversationRepository;
+    private final ConversationUserRepository conversationUserRepository;
+    private final UserRepository userRepository;
 
     public ConversationService(
-            ConversationRepository convRepo,
-            ConversationUserRepository convUserRepo,
-            UserRepository userRepo
+            ConversationRepository conversationRepository,
+            ConversationUserRepository conversationUserRepository,
+            UserRepository userRepository
     ) {
-        this.convRepo = convRepo;
-        this.convUserRepo = convUserRepo;
-        this.userRepo = userRepo;
+        this.conversationRepository = conversationRepository;
+        this.conversationUserRepository = conversationUserRepository;
+        this.userRepository = userRepository;
     }
 
     /**
      * 🔹 Crée ou récupère une conversation privée entre deux utilisateurs
      */
     @Transactional
-    public Conversation getOrCreatePrivate(Long userId1, Long userId2) {
-        // Vérifie si une conversation privée entre les deux existe déjà
-        Optional<Conversation> existing = convRepo.findPrivateBetween(userId1, userId2);
+    public Conversation GetOrCreatePrivate(Long userId1, Long userId2) {
+        Optional<Conversation> existing = conversationRepository.findPrivateBetween(userId1, userId2);
         if (existing.isPresent()) {
             return existing.get();
         }
 
-        // Sinon, créer une nouvelle conversation
-        Conversation conv = new Conversation();
-        conv.setGroup(false);
-        conv.setTitle(null); // pas de titre pour un chat privé
-        conv = convRepo.save(conv);
+        Conversation conversation = new Conversation();
+        conversation.setGroup(false);
+        conversation.setTitle(null);
+        conversation = conversationRepository.save(conversation);
 
-        // Créer les liens participants
-        List<User> users = userRepo.findAllById(List.of(userId1, userId2));
-        for (User u : users) {
+        List<User> users = userRepository.findAllById(List.of(userId1, userId2));
+        for (User user : users) {
             ConversationUser cu = new ConversationUser();
-            cu.setConversation(conv);
-            cu.setUser(u);
-            convUserRepo.save(cu);
+            cu.setConversation(conversation);
+            cu.setUser(user);
+            conversationUserRepository.save(cu);
         }
 
-        return conv;
+        return conversation;
     }
 
     /**
      * 🔹 Crée une conversation de groupe
      */
     @Transactional
-    public Conversation createGroup(String title, List<Long> participantIds) {
-        Conversation conv = new Conversation();
-        conv.setGroup(true);
-        conv.setTitle(title);
-        conv = convRepo.save(conv);
+    public Conversation CreateGroup(String title, List<Long> participantIds) {
+        Conversation conversation = new Conversation();
+        conversation.setGroup(true);
+        conversation.setTitle(title);
+        conversation = conversationRepository.save(conversation);
 
-        List<User> users = userRepo.findAllById(participantIds);
-        for (User u : users) {
+        List<User> users = userRepository.findAllById(participantIds);
+        for (User user : users) {
             ConversationUser cu = new ConversationUser();
-            cu.setConversation(conv);
-            cu.setUser(u);
-            convUserRepo.save(cu);
+            cu.setConversation(conversation);
+            cu.setUser(user);
+            conversationUserRepository.save(cu);
         }
 
-        return conv;
+        return conversation;
     }
 
     /**
      * 🔹 Récupère toutes les conversations d’un utilisateur
      */
-    public List<Conversation> findByUser(Long userId) {
-        return convRepo.findByUserId(userId);
+    public List<Conversation> FindByUser(Long userId) {
+        return conversationRepository.findByUserId(userId);
     }
 }

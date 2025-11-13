@@ -1,7 +1,6 @@
 package com.watyouface.controller;
 
 import org.springframework.web.bind.annotation.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
@@ -10,8 +9,6 @@ import java.util.Map;
 import com.watyouface.entity.Conversation;
 import com.watyouface.service.ConversationService;
 import com.watyouface.security.JwtUtil;
-
-
 
 @RestController
 @RequestMapping("/api/conversations")
@@ -29,7 +26,7 @@ public class ConversationController {
     @GetMapping
     public List<Conversation> getMyConversations(@RequestHeader("Authorization") String auth) {
         Long userId = jwtUtil.getUserIdFromHeader(auth);
-        return conversationService.findByUser(userId);
+        return conversationService.FindByUser(userId); // méthode capitalisée
     }
 
     // 🔹 Crée une conversation privée
@@ -37,7 +34,7 @@ public class ConversationController {
     public Conversation startPrivate(@PathVariable Long otherUserId,
                                      @RequestHeader("Authorization") String auth) {
         Long me = jwtUtil.getUserIdFromHeader(auth);
-        return conversationService.getOrCreatePrivate(me, otherUserId);
+        return conversationService.GetOrCreatePrivate(me, otherUserId); // méthode capitalisée
     }
 
     // 🔹 Crée un groupe
@@ -47,6 +44,15 @@ public class ConversationController {
         String title = (String) body.get("title");
         List<Integer> ids = (List<Integer>) body.get("participantIds");
         List<Long> participantIds = ids.stream().map(Long::valueOf).toList();
-        return conversationService.createGroup(title, participantIds);
+        return conversationService.CreateGroup(title, participantIds); // méthode capitalisée
+    }
+
+    // 🔹 Créer ou récupérer une conversation avec un autre utilisateur
+    @PostMapping("/with/{userId}")
+    public ResponseEntity<Conversation> getOrCreateConversation(@PathVariable Long userId,
+                                                                @RequestHeader("Authorization") String authHeader) {
+        Long currentUserId = jwtUtil.getUserIdFromHeader(authHeader);
+        Conversation conv = conversationService.GetOrCreatePrivate(currentUserId, userId); // appel correct
+        return ResponseEntity.ok(conv);
     }
 }

@@ -5,7 +5,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import com.watyouface.entity.Conversation;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 public interface ConversationRepository extends JpaRepository<Conversation, Long> {
 
@@ -37,4 +38,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
         ORDER BY c.createdAt DESC
     """)
     Page<Conversation> findByUser(Long userId, Pageable pageable);
+
+    // 🔹 Vérifier qu'un utilisateur est participant d'une conversation
+    boolean existsByIdAndParticipants_User_Id(Long conversationId, Long userId);
 }
