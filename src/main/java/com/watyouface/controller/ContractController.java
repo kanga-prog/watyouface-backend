@@ -66,7 +66,6 @@ public class ContractController {
             return ResponseEntity.status(400).body("Erreur lors de la validation du contrat : " + e.getMessage());
         }
     }
-
     /** 🔹 Télécharger le contrat actif en PDF (sécurisé) */
     @GetMapping("/{id}/download")
     public ResponseEntity<InputStreamResource> downloadContract(
@@ -85,16 +84,19 @@ public class ContractController {
             return ResponseEntity.status(401).build();
         }
 
-        // 👤 3. Extraire le username du token
-        String username;
+        // 👤 3. Extraire le userId du token
+        Long userId;
         try {
-            username = jwtUtil.extractUsername(token);
+            userId = jwtUtil.extractUserId(token);
+            if (userId == null) {
+                return ResponseEntity.status(401).build();
+            }
         } catch (Exception e) {
             return ResponseEntity.status(401).build();
         }
 
-        // 👤 4. Trouver l'utilisateur par username
-        Optional<User> userOpt = userService.findByUsername(username);
+        // 👤 4. Trouver l'utilisateur par ID
+        Optional<User> userOpt = userService.findById(userId);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404).build();
         }
@@ -124,4 +126,5 @@ public class ContractController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(new InputStreamResource(bis));
     }
+
 }

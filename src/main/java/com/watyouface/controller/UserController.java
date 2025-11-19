@@ -1,20 +1,18 @@
 package com.watyouface.controller;
 
 import com.watyouface.entity.User;
-import com.watyouface.repository.UserRepository;
+import com.watyouface.service.UserService;
 import com.watyouface.security.JwtUtil;
+import com.watyouface.media.AvatarService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.MediaType;
-import org.apache.commons.io.FilenameUtils;
 
 import java.io.IOException;
-import java.nio.file.*;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
@@ -22,37 +20,21 @@ import java.util.UUID;
 public class UserController {
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Autowired
     private JwtUtil jwtUtil;
 
-    private static final String UPLOAD_DIR = System.getProperty("user.dir") + "/uploads/avatars/";
+    @Autowired
+    private AvatarService avatarService;
 
     // 🔐 GET /api/users/me
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
-        System.out.println("➡️ GET /api/users/me called");
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).body("Token manquant ou invalide");
-        }
-
-        String token = authHeader.substring(7);
-        if (!jwtUtil.validateToken(token)) {
-            return ResponseEntity.status(401).body("Token invalide ou expiré");
-        }
-
-        String email = jwtUtil.extractUsername(token);
-        System.out.println("🔍 Email extrait du token: " + email);
-
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            System.out.println("❌ Utilisateur introuvable pour l’email: " + email);
-            return ResponseEntity.status(404).body("Utilisateur introuvable");
-        }
-
-        User user = userOpt.get();
+        Long userId = jwtUtil.getUserIdFromHeader(authHeader);
+        User user = userService.getUserById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
         return ResponseEntity.ok(Map.of(
                 "id", user.getId(),
@@ -71,20 +53,9 @@ public class UserController {
     public ResponseEntity<?> updateProfile(@RequestHeader("Authorization") String authHeader,
                                            @RequestBody Map<String, String> updates) {
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).body("Token manquant ou invalide");
-        }
-
-        String token = authHeader.substring(7);
-        if (!jwtUtil.validateToken(token)) {
-            return ResponseEntity.status(401).body("Token invalide ou expiré");
-        }
-
-        String email = jwtUtil.extractUsername(token);
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) return ResponseEntity.status(404).body("Utilisateur introuvable");
-
-        User user = userOpt.get();
+        Long userId = jwtUtil.getUserIdFromHeader(authHeader);
+        User user = userService.getUserById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
         if (updates.containsKey("username")) {
             String newUsername = updates.get("username");
@@ -92,11 +63,8 @@ public class UserController {
                 user.setUsername(newUsername.trim());
             }
         }
-        if (updates.containsKey("avatarUrl")) {
-            user.setAvatarUrl(updates.get("avatarUrl"));
-        }
 
-        userRepository.save(user);
+        userService.saveUser(user);
 
         return ResponseEntity.ok(Map.of(
                 "id", user.getId(),
@@ -109,59 +77,36 @@ public class UserController {
     // ✅ POST /api/users/avatar
     @PostMapping("/avatar")
     public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file,
-                                          @RequestHeader("Authorization") String authHeader) throws IOException {
+                                          @RequestHeader("Authorization") String authHeader) {
 
-        Long userId = jwtUtil.getUserIdFromHeader(authHeader);
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        try {
+            Long userId = jwtUtil.getUserIdFromHeader(authHeader);
 
-        if (file == null || file.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Aucun fichier envoyé"));
+            // ⚡ Utilisation de AvatarService pour sauvegarder
+            String avatarUrl = avatarService.saveAvatar(file, userId);
+
+            // Mettre à jour le user
+            User updatedUser = userService.updateAvatarUrl(userId, avatarUrl);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Avatar mis à jour avec succès",
+                    "avatarUrl", updatedUser.getAvatarUrl()
+            ));
+
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Erreur lors de l'upload de l'avatar"));
         }
-
-        String contentType = file.getContentType();
-        if (contentType == null || !(contentType.equalsIgnoreCase(MediaType.IMAGE_JPEG_VALUE)
-                || contentType.equalsIgnoreCase(MediaType.IMAGE_PNG_VALUE))) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Type de fichier non autorisé (png/jpg/jpeg uniquement)"));
-        }
-
-        long maxBytes = 10L * 1024 * 1024;
-        if (file.getSize() > maxBytes) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Le fichier dépasse la taille maximale (10MB)"));
-        }
-
-        Path uploadPath = Paths.get(UPLOAD_DIR);
-        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
-
-        String ext = FilenameUtils.getExtension(file.getOriginalFilename());
-        String filename = "user_" + userId + "_" + UUID.randomUUID() + "." + ext;
-        Path filePath = uploadPath.resolve(filename);
-
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-        String publicUrl = "/uploads/avatars/" + filename;
-        user.setAvatarUrl(publicUrl);
-        userRepository.save(user);
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Avatar mis à jour avec succès",
-                "avatarUrl", publicUrl
-        ));
     }
-    // 🔹 GET /api/users
+
+    // 🔹 GET /api/users (infos publiques)
     @GetMapping
     public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+
+        if (!jwtUtil.validateTokenFromHeader(authHeader)) {
             return ResponseEntity.status(401).body("Token manquant ou invalide");
         }
 
-        String token = authHeader.substring(7);
-        if (!jwtUtil.validateToken(token)) {
-            return ResponseEntity.status(401).body("Token invalide ou expiré");
-        }
-
-        // ✅ On renvoie uniquement les infos publiques (id, username, avatarUrl)
-        var users = userRepository.findAll().stream()
+        var users = userService.getAllUsers().stream()
                 .map(u -> Map.of(
                         "id", u.getId(),
                         "username", u.getUsername(),
@@ -171,5 +116,4 @@ public class UserController {
 
         return ResponseEntity.ok(users);
     }
-
 }

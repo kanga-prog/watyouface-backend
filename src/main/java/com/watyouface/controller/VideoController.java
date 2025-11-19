@@ -2,7 +2,7 @@ package com.watyouface.controller;
 
 import com.watyouface.entity.Video;
 import com.watyouface.entity.VideoShare;
-import com.watyouface.service.VideoService;
+import com.watyouface.media.VideoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

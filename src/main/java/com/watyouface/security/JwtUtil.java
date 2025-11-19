@@ -90,4 +90,11 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody(); // ✅ ici on retourne bien le corps du JWT
     }
+
+    public boolean validateTokenFromHeader(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) return false;
+        String token = authHeader.substring(7);
+        return validateToken(token);
+    }
+
 }

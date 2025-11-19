@@ -12,6 +12,8 @@ public class MessageDTO {
     private String content;
     private Instant sentAt;
 
+    private Long receiverId;
+
     public MessageDTO() {}
 
     public MessageDTO(Message m) {
@@ -22,6 +24,10 @@ public class MessageDTO {
         this.senderAvatarUrl = m.getSender().getAvatarUrl(); // ✅ ajout ici
         this.content = m.getContent();
         this.sentAt = m.getSentAt();
+
+        if (m.getReceiver() != null) {
+            this.receiverId = m.getReceiver().getId();
+        }
     }
 
     // Getters & Setters
@@ -33,6 +39,9 @@ public class MessageDTO {
 
     public Long getSenderId() { return senderId; }
     public void setSenderId(Long senderId) { this.senderId = senderId; }
+
+    public Long getReceiverId() { return receiverId; }
+    public void setReceiverId(Long senderId) { this.senderId = receiverId; }
 
     public String getSenderUsername() { return senderUsername; }
     public void setSenderUsername(String senderUsername) { this.senderUsername = senderUsername; }

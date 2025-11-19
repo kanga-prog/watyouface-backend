@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "conversations")
 public class Conversation {
@@ -16,6 +18,7 @@ public class Conversation {
     private String title;
     private Instant createdAt = Instant.now();
 
+    @JsonIgnoreProperties("conversation")
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ConversationUser> participants;
 

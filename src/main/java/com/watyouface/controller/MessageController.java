@@ -62,23 +62,32 @@ public class MessageController {
 
     // 🔹 Poster un message dans une conversation avec avatar
     @PostMapping("/conversations/{id}")
-    public ResponseEntity<MessageDTO> postMessage(@PathVariable Long id,
-                                                  @RequestBody Map<String, String> body,
-                                                  @RequestHeader("Authorization") String auth) {
+    public ResponseEntity<MessageDTO> postMessage(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            @RequestHeader("Authorization") String auth
+    ) {
         Long userId = jwtUtil.getUserIdFromHeader(auth);
         Optional<User> uOpt = userRepository.findById(userId);
         if (uOpt.isEmpty()) return ResponseEntity.notFound().build();
 
         User sender = uOpt.get();
-        Message m = messageService.sendMessage(id, userId, body.get("content"));
 
-        MessageDTO dto = new MessageDTO(m);
+        // ⚡ sendMessage retourne maintenant une LISTE (pour groupes)
+        List<Message> messages = messageService.sendMessage(id, userId, body.get("content"));
+
+        // 🔹 On renvoie au REST SEULEMENT le message du sender (le sien)
+        Message senderMessage = messages.get(0);
+
+        MessageDTO dto = new MessageDTO(senderMessage);
         dto.setSenderAvatarUrl(sender.getAvatarUrl());
 
+        // 🔹 WebSocket broadcast
         messagingTemplate.convertAndSend("/topic/conversations/" + id, dto);
 
         return ResponseEntity.ok(dto);
     }
+
 
     // 🔹 Messages d’une conversation (DTO pour React)
     @GetMapping("/conversations/{id}/messages")

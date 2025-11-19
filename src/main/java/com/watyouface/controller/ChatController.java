@@ -10,6 +10,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import java.security.Principal;
+import java.util.List;
 
 @Controller
 public class ChatController {
@@ -21,15 +22,25 @@ public class ChatController {
         this.messagingTemplate = messagingTemplate;
     }
 
-    // payload expected: { conversationId: 1, content: "hi" }
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload MessageDTO incoming, Principal principal) {
+
         if (!(principal instanceof StompPrincipal)) {
-            return; // ou throw
+            return;
         }
+
         Long senderId = ((StompPrincipal) principal).getUserId();
-        Message saved = messageService.sendMessage(incoming.getConversationId(), senderId, incoming.getContent());
-        MessageDTO dto = new MessageDTO(saved);
-        messagingTemplate.convertAndSend("/topic/conversations/" + incoming.getConversationId(), dto);
+
+        List<Message> savedMessages =
+                messageService.sendMessage(incoming.getConversationId(), senderId, incoming.getContent());
+
+        // 🔥 Pour chaque message (privé = 1, groupe = n)
+        for (Message msg : savedMessages) {
+            MessageDTO dto = new MessageDTO(msg);
+            messagingTemplate.convertAndSend(
+                "/topic/conversations/" + incoming.getConversationId(),
+                dto
+            );
+        }
     }
 }

@@ -1,4 +1,3 @@
-// UserService.java
 package com.watyouface.service;
 
 import com.watyouface.entity.User;
@@ -8,23 +7,28 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import com.watyouface.media.AvatarService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.io.IOException;
 
 @Service
 public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
+    @Autowired
+    private AvatarService avatarService;
+
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
-    /**
-     * 🔹 Chargement d’un utilisateur par ID (utilisé dans JwtAuthenticationFilter)
-     */
+    // 🔹 Charger utilisateur pour JWT Authentication
     public UserDetails loadUserById(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException(
@@ -37,24 +41,46 @@ public class UserService implements UserDetailsService {
         );
     }
 
-   @Override
+    @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        Optional<User> userOpt = userRepository.findByEmail(email); // <- email
+        Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
             throw new UsernameNotFoundException("Utilisateur non trouvé: " + email);
         }
 
         User user = userOpt.get();
         return new org.springframework.security.core.userdetails.User(
-                user.getEmail(), // ou username, à toi de décider
+                user.getEmail(),
                 user.getPassword(),
                 Collections.emptyList()
         );
     }
 
-    /**
-     * 🔹 Méthodes utilitaires métiers
-     */
+    // 🔹 Méthodes pour Avatar
+    public User updateAvatar(Long userId, MultipartFile file) throws IOException {
+        Optional<User> optUser = userRepository.findById(userId);
+        if (optUser.isEmpty()) return null;
+
+        User user = optUser.get();
+        String url = avatarService.saveAvatar(file, userId);
+        user.setAvatarUrl(url);
+        return userRepository.save(user);
+    }
+
+    public User updateAvatarUrl(Long userId, String avatarUrl) {
+        Optional<User> optUser = userRepository.findById(userId);
+        if (optUser.isEmpty()) return null;
+
+        User user = optUser.get();
+        user.setAvatarUrl(avatarUrl);
+        return userRepository.save(user);
+    }
+
+    // 🔹 CRUD utilisateurs
+    public User saveUser(User user) {
+        return userRepository.save(user);
+    }
+
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
@@ -73,5 +99,8 @@ public class UserService implements UserDetailsService {
 
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
+    }
+     public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
     }
 }

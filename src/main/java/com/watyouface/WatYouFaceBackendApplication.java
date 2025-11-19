@@ -16,8 +16,15 @@ import java.nio.file.Paths;
 @SpringBootApplication(
     scanBasePackages = {
         "com.watyouface",
+        "com.watyouface.config",
+        "com.watyouface.controller",
+        "com.watyouface.dto",
         "com.watyouface.entity",
-        "com.watyouface.repository"
+        "com.watyouface.media",
+        "com.watyouface.repository",
+        "com.watyouface.security",
+        "com.watyouface.service"
+
     }
 )
 public class WatYouFaceBackendApplication {
