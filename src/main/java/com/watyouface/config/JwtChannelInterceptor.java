@@ -1,3 +1,4 @@
+// src/main/java/com/watyouface/config/JwtChannelInterceptor.java
 package com.watyouface.config;
 
 import com.watyouface.security.JwtUtil;
@@ -26,24 +27,35 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
+        StompHeaderAccessor accessor =
+                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
+        if (accessor == null) return message;
+
+        // 🟢 Intercepte le CONNECT
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-            List<String> auth = accessor.getNativeHeader("Authorization");
-            if (auth == null || auth.isEmpty()) {
-                System.err.println("❌ Aucun token JWT dans l’en-tête STOMP");
+
+            List<String> authHeaders = accessor.getNativeHeader("Authorization");
+
+            if (authHeaders == null || authHeaders.isEmpty()) {
+                System.err.println("❌ Aucun header Authorization envoyé via STOMP");
                 return null;
             }
 
-            String header = auth.get(0);
-            String token = header.replace("Bearer ", "");
+            String raw = authHeaders.get(0);
+            if (!raw.startsWith("Bearer ")) {
+                System.err.println("❌ Format Authorization incorrect");
+                return null;
+            }
+
+            String token = raw.substring(7);
 
             if (!jwtUtil.validateToken(token)) {
                 System.err.println("❌ Token JWT invalide");
                 return null;
             }
 
-            // ✅ On extrait désormais l’ID depuis le token
             Long userId = jwtUtil.extractUserId(token);
             if (userId == null) {
                 System.err.println("❌ Aucun userId dans le token");
@@ -51,13 +63,21 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             }
 
             Optional<User> uOpt = userRepository.findById(userId);
+
             if (uOpt.isEmpty()) {
-                System.err.println("❌ Utilisateur non trouvé pour userId=" + userId);
+                System.err.println("❌ Utilisateur inexistant en base (id=" + userId + ")");
                 return null;
             }
 
             User user = uOpt.get();
-            accessor.setUser(new StompPrincipal(user.getUsername(), user.getId(),user.getAvatarUrl()));
+
+            // 🟢 On construit ton principal custom
+            StompPrincipal principal =
+                    new StompPrincipal(user.getUsername(), user.getId(), user.getAvatarUrl());
+
+            accessor.setUser(principal);
+
+            System.out.println("🔐 WebSocket CONNECT authentifié pour: " + user.getUsername());
         }
 
         return message;

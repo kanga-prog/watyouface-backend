@@ -3,7 +3,6 @@ package com.watyouface.config;
 import com.watyouface.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,6 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import java.util.List;
 
@@ -33,46 +33,48 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // 🔹 Chaîne PUBLIQUE (sans JWT)
     @Bean
-    @Order(1)
-    public SecurityFilterChain publicFilterChain(HttpSecurity http) throws Exception {
-        http
-            .securityMatcher("/uploads/**", "/api/auth/**", "/api/contracts/**", "/ws/**", "/default.png")
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()));
-        System.out.println("➡️ Security: PUBLIC filter chain loaded");
-        return http.build();
-    }
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-    // 🔹 Chaîne SÉCURISÉE (JWT)
-    @Bean
-    @Order(2)
-    public SecurityFilterChain securedFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/api/**")
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/users/**").authenticated()
-                .anyRequest().authenticated()
-            )
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .authorizeHttpRequests(auth -> auth
+
+                // 🔥 Préflight CORS obligatoire
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // 🔥 PUBLIC
+                .requestMatchers(
+                        "/uploads/**",
+                        "/avatars/**", 
+                        "/media/avatars/**",
+                        "/api/auth/**",
+                        "/default.png",
+                        "/ws/**",
+                        "/ws/info/**"
+                ).permitAll()
+
+                // 🔒 Le reste protégé
+                .anyRequest().authenticated()
+            )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        System.out.println("➡️ Security: SECURED filter chain loaded");
         return http.build();
     }
 
+    // 🌍 CORS global (strict, fiable, fonctionne pour frontend + websockets)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+
         config.setAllowedOrigins(List.of(
             "http://localhost:5173",
             "http://localhost:5174",
-            "http://172.28.24.211:5173",
-            "http://172.28.24.211:5174"
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174"
         ));
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
@@ -80,11 +82,13 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
+            throws Exception {
         return config.getAuthenticationManager();
     }
 }

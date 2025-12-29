@@ -25,15 +25,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
     }
-
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getServletPath();
-        boolean skip = path.startsWith("/uploads/") || path.startsWith("/static/") ||
-                       path.startsWith("/api/auth/") || path.startsWith("/ws/");
-        if(skip) System.out.println("➡️ JWT Filter SKIP path=" + path);
+        String path = request.getRequestURI(); // <-- beaucoup plus fiable que getServletPath()
+
+        boolean skip =
+            path.startsWith("/uploads/") ||
+            path.startsWith("/static/") ||
+            path.startsWith("/avatars/") ||          // <---- AJOUT ICI
+            path.startsWith("/media/avatars/") ||    // <---- AJOUT ICI
+            path.startsWith("/api/auth/") ||
+            path.startsWith("/ws") ||
+            path.contains("/websocket") ||
+            path.contains("/xhr") ||
+            path.contains("/info");
+
+
+        if (skip) {
+            System.out.println("➡️ JWT Filter SKIP path=" + path);
+        }
+
         return skip;
     }
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
