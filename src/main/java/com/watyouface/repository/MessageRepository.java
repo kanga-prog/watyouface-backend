@@ -12,5 +12,7 @@ import java.util.List;
 public interface MessageRepository extends JpaRepository<Message, Long> {
     Page<Message> findByConversationIdOrderBySentAtDesc(Long conversationId, Pageable pageable);
 
+    List<Message> findByConversationIdOrderBySentAtDesc(Long conversationId);
+
     List<Message> findByConversationIdOrderBySentAtAsc(Long conversationId);
 }

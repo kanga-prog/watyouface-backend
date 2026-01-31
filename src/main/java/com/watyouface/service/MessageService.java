@@ -86,7 +86,7 @@ public class MessageService {
 
     // 🔹 Nouvelle méthode pour l’API REST front
     public List<MessageDTO> findByConversation(Long conversationId) {
-        return messageRepo.findByConversationIdOrderBySentAtAsc(conversationId)
+        return messageRepo.findByConversationIdOrderBySentAtDesc(conversationId) 
                           .stream()
                           .map(MessageDTO::new)
                           .collect(Collectors.toList());
