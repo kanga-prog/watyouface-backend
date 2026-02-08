@@ -30,6 +30,7 @@ public class UserService implements UserDetailsService {
 
     // 🔹 Charger utilisateur pour JWT Authentication
     public UserDetails loadUserById(Long userId) {
+        @SuppressWarnings("null")
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "Utilisateur non trouvé avec l'id: " + userId));
@@ -58,6 +59,7 @@ public class UserService implements UserDetailsService {
 
     // 🔹 Méthodes pour Avatar
     public User updateAvatar(Long userId, MultipartFile file) throws IOException {
+        @SuppressWarnings("null")
         Optional<User> optUser = userRepository.findById(userId);
         if (optUser.isEmpty()) return null;
 
@@ -68,6 +70,7 @@ public class UserService implements UserDetailsService {
     }
 
     public User updateAvatarUrl(Long userId, String avatarUrl) {
+        @SuppressWarnings("null")
         Optional<User> optUser = userRepository.findById(userId);
         if (optUser.isEmpty()) return null;
 
@@ -77,6 +80,7 @@ public class UserService implements UserDetailsService {
     }
 
     // 🔹 CRUD utilisateurs
+    @SuppressWarnings("null")
     public User saveUser(User user) {
         return userRepository.save(user);
     }
@@ -85,6 +89,7 @@ public class UserService implements UserDetailsService {
         return userRepository.findAll();
     }
 
+    @SuppressWarnings("null")
     public Optional<User> getUserById(Long id) {
         return userRepository.findById(id);
     }
@@ -93,14 +98,17 @@ public class UserService implements UserDetailsService {
         return userRepository.findByUsername(username);
     }
 
+    @SuppressWarnings("null")
     public User createUser(User user) {
         return userRepository.save(user);
     }
 
+    @SuppressWarnings("null")
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
     }
-     public Optional<User> findById(Long id) {
+     @SuppressWarnings("null")
+    public Optional<User> findById(Long id) {
         return userRepository.findById(id);
     }
 }

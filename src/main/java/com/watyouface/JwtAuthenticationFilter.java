@@ -6,6 +6,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,22 +27,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
     }
+
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI(); // <-- beaucoup plus fiable que getServletPath()
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        String path = request.getRequestURI();
 
         boolean skip =
             path.startsWith("/uploads/") ||
             path.startsWith("/static/") ||
-            path.startsWith("/avatars/") ||          // <---- AJOUT ICI
-            path.startsWith("/media/avatars/") ||    // <---- AJOUT ICI
+            path.startsWith("/avatars/") ||
+            path.startsWith("/media/avatars/") ||
             path.startsWith("/api/auth/") ||
+            path.startsWith("/api/contracts/active") ||
             path.startsWith("/ws") ||
             path.contains("/websocket") ||
             path.contains("/xhr") ||
-            path.contains("/info")||
-            path.startsWith("/api/contracts/active") ;
-
+            path.contains("/info");
 
         if (skip) {
             System.out.println("➡️ JWT Filter SKIP path=" + path);
@@ -50,14 +51,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return skip;
     }
 
-
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
-        String path = request.getServletPath();
+        String path = request.getRequestURI();
         String authHeader = request.getHeader("Authorization");
 
         System.out.println("➡️ JWT Filter path=" + path + " authHeader=" + authHeader);
@@ -68,8 +69,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtUtil.validateToken(token)) {
                 Long userId = jwtUtil.extractUserId(token);
                 String username = jwtUtil.extractUsername(token);
-
-                System.out.println("➡️ JWT valid token. userId=" + userId + " username=" + username);
 
                 if (userId != null) {
                     try {
@@ -82,19 +81,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                         var authentication = new UsernamePasswordAuthenticationToken(
                                 userDetails, null, authorities);
-                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                        authentication.setDetails(
+                                new WebAuthenticationDetailsSource().buildDetails(request));
 
                         SecurityContextHolder.getContext().setAuthentication(authentication);
-                        System.out.println("➡️ Authentication set for user=" + username);
                     } catch (Exception e) {
                         System.err.println("⚠️ JWT invalide : utilisateur non trouvé (id=" + userId + ")");
                     }
                 }
-            } else {
-                System.out.println("⚠️ JWT token invalide");
             }
-        } else {
-            System.out.println("⚠️ Pas de JWT dans le header Authorization");
         }
 
         filterChain.doFilter(request, response);
