@@ -42,10 +42,14 @@ public class ConversationController {
     public Conversation createGroup(@RequestBody Map<String, Object> body,
                                     @RequestHeader("Authorization") String auth) {
         String title = (String) body.get("title");
-        List<Integer> ids = (List<Integer>) body.get("participantIds");
-        List<Long> participantIds = ids.stream().map(Long::valueOf).toList();
-        return conversationService.CreateGroup(title, participantIds); // méthode capitalisée
-    }
+         List<?> rawIds = (List<?>) body.get("participantIds");
+
+    List<Long> participantIds = rawIds.stream()
+            .map(id -> Long.valueOf(id.toString()))
+            .toList();
+
+    return conversationService.CreateGroup(title, participantIds);
+}
 
     // 🔹 Créer ou récupérer une conversation avec un autre utilisateur
     @PostMapping("/with/{userId}")

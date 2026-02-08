@@ -51,6 +51,7 @@ public class SecurityConfig {
                         "/media/avatars/**",
                         "/api/auth/**",
                         "/default.png",
+                        "/api/contracts/active",
                         "/ws/**",
                         "/ws/info/**"
                 ).permitAll()

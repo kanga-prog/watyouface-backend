@@ -1,5 +1,6 @@
 package com.watyouface.security;
 
+import com.watyouface.security.JwtUtil;
 import com.watyouface.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -38,7 +39,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             path.startsWith("/ws") ||
             path.contains("/websocket") ||
             path.contains("/xhr") ||
-            path.contains("/info");
+            path.contains("/info")||
+            path.startsWith("/api/contracts/active") ;
 
 
         if (skip) {
