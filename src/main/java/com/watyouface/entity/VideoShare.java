@@ -3,6 +3,7 @@ package com.watyouface.entity;
 import jakarta.persistence.*;
 
 @Entity
+@Table(name="video_share")
 public class VideoShare {
 
     @Id

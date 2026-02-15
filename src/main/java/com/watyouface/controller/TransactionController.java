@@ -1,8 +1,7 @@
 package com.watyouface.controller;
 
 import com.watyouface.repository.TransactionRepository;
-import com.watyouface.security.JwtUtil;
-import jakarta.servlet.http.HttpServletRequest;
+import com.watyouface.security.Authz;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -10,18 +9,17 @@ import org.springframework.web.bind.annotation.*;
 public class TransactionController {
 
     private final TransactionRepository transactionRepository;
-    private final JwtUtil jwtUtil;
+    private final Authz authz;
 
-    public TransactionController(TransactionRepository transactionRepository, JwtUtil jwtUtil) {
+    public TransactionController(TransactionRepository transactionRepository, Authz authz) {
         this.transactionRepository = transactionRepository;
-        this.jwtUtil = jwtUtil;
+        this.authz = authz;
     }
 
     @GetMapping
-    public Object all(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        Long currentUserId = jwtUtil.getUserIdFromHeader(authHeader);
-        boolean isAdmin = "ADMIN".equals(jwtUtil.getRoleFromHeader(authHeader));
+    public Object all() {
+        Long currentUserId = authz.me();
+        boolean isAdmin = authz.isAdmin();
 
         if (isAdmin) {
             return transactionRepository.findAll();

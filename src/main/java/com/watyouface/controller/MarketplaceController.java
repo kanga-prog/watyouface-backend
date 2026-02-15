@@ -1,9 +1,8 @@
 package com.watyouface.controller;
 
 import com.watyouface.dto.ListingDTO;
-import com.watyouface.security.JwtUtil;
+import com.watyouface.security.Authz;
 import com.watyouface.service.MarketplaceService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,107 +15,100 @@ import java.util.Map;
 public class MarketplaceController {
 
     private final MarketplaceService marketplaceService;
-    private final JwtUtil jwtUtil;
+    private final Authz authz;
 
-    public MarketplaceController(MarketplaceService marketplaceService, JwtUtil jwtUtil) {
+    public MarketplaceController(MarketplaceService marketplaceService, Authz authz) {
         this.marketplaceService = marketplaceService;
-        this.jwtUtil = jwtUtil;
+        this.authz = authz;
     }
 
-    private String getAuthHeader(HttpServletRequest request) {
-        return request.getHeader("Authorization");
-    }
-
-    private Long currentUserIdOr401(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) return null;
-        return jwtUtil.getUserIdFromHeader(authHeader);
-    }
-
-    private boolean isAdmin(String authHeader) {
-        return "ADMIN".equals(jwtUtil.getRoleFromHeader(authHeader));
-    }
-
-    // ✅ READ - toutes les annonces (auth requis)
+    // READ - toutes les annonces
     @GetMapping
     public List<ListingDTO> getAll() {
         return marketplaceService.findAll();
     }
 
-    // ✅ READ - une annonce
+    // READ - une annonce
     @GetMapping("/{id}")
     public ListingDTO getOne(@PathVariable Long id) {
         return marketplaceService.findById(id);
     }
 
-    // ✅ CREATE (seller = user courant)
+    // CREATE (seller = currentUser)
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody ListingDTO dto, HttpServletRequest request) {
-        String authHeader = getAuthHeader(request);
-        Long currentUserId = currentUserIdOr401(authHeader);
-        if (currentUserId == null) return ResponseEntity.status(401).body("Token manquant/invalide");
-
-        ListingDTO created = marketplaceService.createAs(dto, currentUserId);
-        return ResponseEntity.ok(created);
+    public ListingDTO create(@RequestBody ListingDTO dto) {
+        Long sellerId = authz.me();
+        return marketplaceService.createAsSeller(dto, sellerId);
     }
 
-    // ✅ UPDATE (owner/admin)
+    // UPDATE (seulement seller ou admin, et seulement états modifiables)
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id,
-                                    @RequestBody ListingDTO dto,
-                                    HttpServletRequest request) {
-        String authHeader = getAuthHeader(request);
-        Long currentUserId = currentUserIdOr401(authHeader);
-        if (currentUserId == null) return ResponseEntity.status(401).body("Token manquant/invalide");
-
-        boolean admin = isAdmin(authHeader);
-
-        try {
-            ListingDTO updated = marketplaceService.updateAs(id, dto, currentUserId, admin);
-            return ResponseEntity.ok(updated);
-        } catch (org.springframework.security.access.AccessDeniedException e) {
-            return ResponseEntity.status(403).body(e.getMessage());
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body(e.getMessage());
-        }
+    public ListingDTO update(@PathVariable Long id, @RequestBody ListingDTO dto) {
+        Long me = authz.me();
+        boolean isAdmin = authz.isAdmin();
+        return marketplaceService.updateSecured(id, dto, me, isAdmin);
     }
 
-    // ✅ DELETE (owner/admin)
+    // DELETE (seller ou admin)
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id, HttpServletRequest request) {
-        String authHeader = getAuthHeader(request);
-        Long currentUserId = currentUserIdOr401(authHeader);
-        if (currentUserId == null) return ResponseEntity.status(401).body("Token manquant/invalide");
-
-        boolean admin = isAdmin(authHeader);
-
-        try {
-            marketplaceService.deleteAs(id, currentUserId, admin);
-            return ResponseEntity.noContent().build();
-        } catch (org.springframework.security.access.AccessDeniedException e) {
-            return ResponseEntity.status(403).body(e.getMessage());
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body(e.getMessage());
-        }
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        Long me = authz.me();
+        boolean isAdmin = authz.isAdmin();
+        marketplaceService.deleteSecured(id, me, isAdmin);
+        return ResponseEntity.ok(Map.of("message", "Annonce supprimée"));
     }
 
-    // ✅ PAY (buyer = user courant) -> on supprime buyerId param
+    // Buyer "demande achat" => PENDING + buyer
+    @PostMapping("/{id}/request")
+    public ResponseEntity<?> requestPurchase(@PathVariable Long id) {
+        Long buyerId = authz.me();
+        boolean isAdmin = authz.isAdmin();
+        marketplaceService.requestPurchase(id, buyerId, isAdmin);
+        return ResponseEntity.ok(Map.of("message", "Demande envoyée"));
+    }
+
+    // Seller accepte => ACCEPTED
+    @PostMapping("/{id}/accept")
+    public ResponseEntity<?> accept(@PathVariable Long id) {
+        Long me = authz.me();
+        boolean isAdmin = authz.isAdmin();
+        marketplaceService.accept(id, me, isAdmin);
+        return ResponseEntity.ok(Map.of("message", "Annonce acceptée"));
+    }
+
+    // Seller refuse => REFUSED
+    @PostMapping("/{id}/refuse")
+    public ResponseEntity<?> refuse(@PathVariable Long id) {
+        Long me = authz.me();
+        boolean isAdmin = authz.isAdmin();
+        marketplaceService.refuse(id, me, isAdmin);
+        return ResponseEntity.ok(Map.of("message", "Annonce refusée"));
+    }
+
+    // Buyer paye => PAID (seulement si ACCEPTED)
     @PostMapping("/{id}/pay")
-    public ResponseEntity<?> pay(@PathVariable Long id, HttpServletRequest request) {
-        String authHeader = getAuthHeader(request);
-        Long currentUserId = currentUserIdOr401(authHeader);
-        if (currentUserId == null) return ResponseEntity.status(401).body("Token manquant/invalide");
+    public ResponseEntity<?> pay(@PathVariable Long id) {
+        Long buyerId = authz.me();
+        boolean isAdmin = authz.isAdmin();
+        marketplaceService.paySecured(id, buyerId, isAdmin);
+        return ResponseEntity.ok(Map.of("message", "Paiement effectué"));
+    }
 
-        boolean admin = isAdmin(authHeader);
+    // (option) Seller ship => SHIPPED
+    @PostMapping("/{id}/ship")
+    public ResponseEntity<?> ship(@PathVariable Long id) {
+        Long me = authz.me();
+        boolean isAdmin = authz.isAdmin();
+        marketplaceService.ship(id, me, isAdmin);
+        return ResponseEntity.ok(Map.of("message", "Expédié"));
+    }
 
-        try {
-            marketplaceService.payAs(id, currentUserId, admin);
-            return ResponseEntity.ok(Map.of("message", "Paiement effectué"));
-        } catch (org.springframework.security.access.AccessDeniedException e) {
-            return ResponseEntity.status(403).body(e.getMessage());
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body(e.getMessage());
-        }
+    // (option) Buyer receive => RECEIVED
+    @PostMapping("/{id}/receive")
+    public ResponseEntity<?> receive(@PathVariable Long id) {
+        Long buyerId = authz.me();
+        boolean isAdmin = authz.isAdmin();
+        marketplaceService.receive(id, buyerId, isAdmin);
+        return ResponseEntity.ok(Map.of("message", "Réception confirmée"));
     }
 }

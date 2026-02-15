@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
+@Table(name="video")
 public class Video {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

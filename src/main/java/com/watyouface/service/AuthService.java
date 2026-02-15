@@ -30,22 +30,21 @@ public class AuthService {
     // ========================
     public String login(String email, String password) {
         Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            return "Email ou mot de passe invalide.";
-        }
+        if (userOpt.isEmpty()) return "Email ou mot de passe invalide.";
 
         User user = userOpt.get();
         if (!passwordEncoder.matches(password, user.getPassword())) {
             return "Email ou mot de passe invalide.";
         }
 
-        // 🔒 Bloquer la connexion si contrat non accepté
         if (!user.isAcceptedContract()) {
             return "Veuillez accepter le contrat WatYouFace pour vous connecter.";
         }
 
-        return jwtUtil.generateToken(user.getId(), user.getUsername());
+        String role = (user.getRole() != null ? user.getRole().name() : "USER");
+        return jwtUtil.generateToken(user.getId(), user.getUsername(), role);
     }
+
 
     // ========================
     // Enregistrement : toujours sauvegarder l'utilisateur

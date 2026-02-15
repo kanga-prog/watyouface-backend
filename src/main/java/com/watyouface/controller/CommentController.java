@@ -4,10 +4,9 @@ import com.watyouface.entity.Comment;
 import com.watyouface.entity.Post;
 import com.watyouface.entity.User;
 import com.watyouface.repository.PostRepository;
-import com.watyouface.security.JwtUtil;
+import com.watyouface.security.Authz;
 import com.watyouface.service.CommentService;
 import com.watyouface.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +30,7 @@ public class CommentController {
     private UserService userService;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private Authz authz;
 
     @GetMapping
     public ResponseEntity<List<Comment>> getAllComments() {
@@ -43,19 +42,11 @@ public class CommentController {
         return ResponseEntity.ok(commentService.getCommentsByPostId(postId));
     }
 
-    // ✅ CREATE : auteur depuis JWT
+    // ✅ CREATE : auteur depuis SecurityContext
     @PostMapping
-    public ResponseEntity<?> addComment(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+    public ResponseEntity<?> addComment(@RequestBody Map<String, Object> body) {
         try {
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Token manquant");
-            }
-
-            Long currentUserId = jwtUtil.getUserIdFromHeader(authHeader);
-            if (currentUserId == null) {
-                return ResponseEntity.status(401).body("Token invalide");
-            }
+            Long currentUserId = authz.me();
 
             Object postIdObj = body.get("postId");
             Object contentObj = body.get("content");
@@ -85,6 +76,8 @@ public class CommentController {
             Comment saved = commentService.createComment(comment);
             return ResponseEntity.ok(saved);
 
+        } catch (SecurityException e) {
+            return ResponseEntity.status(401).body("Non authentifié");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Erreur lors de l’ajout du commentaire : " + e.getMessage());
         }
@@ -93,20 +86,10 @@ public class CommentController {
     // ✅ UPDATE : owner/admin
     @PutMapping("/{id}")
     public ResponseEntity<?> updateComment(@PathVariable Long id,
-                                          @RequestBody Map<String, Object> body,
-                                          HttpServletRequest request) {
+                                          @RequestBody Map<String, Object> body) {
         try {
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Token manquant");
-            }
-
-            Long currentUserId = jwtUtil.getUserIdFromHeader(authHeader);
-            if (currentUserId == null) {
-                return ResponseEntity.status(401).body("Token invalide");
-            }
-
-            boolean isAdmin = "ADMIN".equals(jwtUtil.getRoleFromHeader(authHeader));
+            Long currentUserId = authz.me();
+            boolean isAdmin = authz.isAdmin();
 
             Object contentObj = body.get("content");
             if (contentObj == null) {
@@ -118,6 +101,8 @@ public class CommentController {
 
             return ResponseEntity.ok(updated);
 
+        } catch (SecurityException e) {
+            return ResponseEntity.status(401).body("Non authentifié");
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());
         } catch (IllegalArgumentException e) {
@@ -131,23 +116,16 @@ public class CommentController {
 
     // ✅ DELETE : owner/admin
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteComment(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<?> deleteComment(@PathVariable Long id) {
         try {
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Token manquant");
-            }
-
-            Long currentUserId = jwtUtil.getUserIdFromHeader(authHeader);
-            if (currentUserId == null) {
-                return ResponseEntity.status(401).body("Token invalide");
-            }
-
-            boolean isAdmin = "ADMIN".equals(jwtUtil.getRoleFromHeader(authHeader));
+            Long currentUserId = authz.me();
+            boolean isAdmin = authz.isAdmin();
 
             commentService.deleteCommentAs(id, currentUserId, isAdmin);
             return ResponseEntity.noContent().build();
 
+        } catch (SecurityException e) {
+            return ResponseEntity.status(401).body("Non authentifié");
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());
         } catch (RuntimeException e) {

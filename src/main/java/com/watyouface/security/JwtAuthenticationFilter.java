@@ -30,28 +30,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
         String path = request.getRequestURI();
-
-        boolean skip =
-                path.startsWith("/uploads/") ||
-                path.startsWith("/static/") ||
-                path.startsWith("/avatars/") ||
-                path.startsWith("/media/avatars/") ||
-                path.startsWith("/api/auth/") ||
-                path.startsWith("/api/contracts/active") ||
-                path.startsWith("/ws") ||
-                path.contains("/websocket") ||
-                path.contains("/xhr") ||
-                path.contains("/info");
-
-        return skip;
+        return path.startsWith("/uploads/")
+                || path.startsWith("/static/")
+                || path.startsWith("/avatars/")
+                || path.startsWith("/media/avatars/")
+                || path.startsWith("/api/auth/")
+                || path.startsWith("/api/contracts/active")
+                || path.startsWith("/ws")
+                || path.contains("/websocket")
+                || path.contains("/xhr")
+                || path.contains("/info");
     }
 
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain)
-            throws ServletException, IOException {
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
 
@@ -60,24 +56,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (jwtUtil.validateToken(token)) {
                 Long userId = jwtUtil.extractUserId(token);
+                String role = jwtUtil.extractRole(token);
 
                 if (userId != null) {
                     try {
+                        // (Optionnel mais propre : charger le userDetails)
                         var userDetails = userService.loadUserById(userId);
 
-                        String role = jwtUtil.extractRole(token);
                         var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
+                        // ✅ principal = userId (ownership facile)
                         var authentication = new UsernamePasswordAuthenticationToken(
-                                userDetails, null, authorities);
+                                userId, null, authorities
+                        );
 
                         authentication.setDetails(
-                                new WebAuthenticationDetailsSource().buildDetails(request));
+                                new WebAuthenticationDetailsSource().buildDetails(request)
+                        );
 
                         SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                    } catch (Exception e) {
-                        System.err.println("⚠️ JWT invalide : utilisateur non trouvé (id=" + userId + ")");
+                    } catch (Exception ignored) {
+                        // utilisateur supprimé / incohérent => pas d'auth
+                        SecurityContextHolder.clearContext();
                     }
                 }
             }

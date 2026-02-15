@@ -5,8 +5,8 @@ import com.watyouface.entity.Listing;
 import com.watyouface.entity.User;
 import com.watyouface.entity.enums.ListingStatus;
 import com.watyouface.repository.ListingRepository;
+import com.watyouface.repository.TransactionRepository;
 import com.watyouface.repository.UserRepository;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,31 +17,36 @@ public class MarketplaceService {
 
     private final ListingRepository listingRepository;
     private final UserRepository userRepository;
+    private final TransactionService transactionService;
+    private final TransactionRepository transactionRepository;
 
-    public MarketplaceService(ListingRepository listingRepository, UserRepository userRepository) {
+    public MarketplaceService(
+            ListingRepository listingRepository,
+            UserRepository userRepository,
+            TransactionService transactionService,
+            TransactionRepository transactionRepository
+    ) {
         this.listingRepository = listingRepository;
         this.userRepository = userRepository;
+        this.transactionService = transactionService;
+        this.transactionRepository = transactionRepository;
     }
 
-    // ---------- READ ----------
+    // READ
     public List<ListingDTO> findAll() {
-        return listingRepository.findAll()
-                .stream()
-                .map(this::toDTO)
-                .toList();
+        return listingRepository.findAll().stream().map(this::toDTO).toList();
     }
 
     public ListingDTO findById(Long id) {
         Listing listing = listingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Annonce introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
         return toDTO(listing);
     }
 
-    // ---------- CREATE sécurisé ----------
-    public ListingDTO createAs(ListingDTO dto, Long currentUserId) {
-
-        User seller = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new RuntimeException("Vendeur introuvable"));
+    // CREATE => seller = current user
+    public ListingDTO createAsSeller(ListingDTO dto, Long sellerId) {
+        User seller = userRepository.findById(sellerId)
+                .orElseThrow(() -> new IllegalArgumentException("Vendeur introuvable"));
 
         Listing listing = new Listing();
         listing.setTitle(dto.title);
@@ -54,21 +59,17 @@ public class MarketplaceService {
         return toDTO(listingRepository.save(listing));
     }
 
-    // ---------- UPDATE sécurisé ----------
-    public ListingDTO updateAs(Long id, ListingDTO dto, Long currentUserId, boolean isAdmin) {
+    // UPDATE sécurisé
+    public ListingDTO updateSecured(Long id, ListingDTO dto, Long actorId, boolean admin) {
         Listing listing = listingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Annonce introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
 
-        Long sellerId = listing.getSeller() != null ? listing.getSeller().getId() : null;
-
-        if (!isAdmin) {
-            if (sellerId == null || !sellerId.equals(currentUserId)) {
-                throw new AccessDeniedException("Interdit : vous ne pouvez modifier que vos annonces.");
-            }
+        if (!admin && !listing.getSeller().getId().equals(actorId)) {
+            throw new SecurityException("Interdit");
         }
 
-        if (listing.getStatus() != null && listing.getStatus().isFinal()) {
-            throw new IllegalStateException("Annonce dans un état final");
+        if (listing.getStatus() != ListingStatus.AVAILABLE && listing.getStatus() != ListingStatus.PENDING) {
+            throw new IllegalStateException("Modification impossible dans l'état " + listing.getStatus());
         }
 
         listing.setTitle(dto.title);
@@ -79,49 +80,158 @@ public class MarketplaceService {
         return toDTO(listingRepository.save(listing));
     }
 
-    // ---------- DELETE sécurisé ----------
-    public void deleteAs(Long id, Long currentUserId, boolean isAdmin) {
+    // DELETE sécurisé
+    public void deleteSecured(Long id, Long actorId, boolean admin) {
         Listing listing = listingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Annonce introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
 
-        Long sellerId = listing.getSeller() != null ? listing.getSeller().getId() : null;
-
-        if (!isAdmin) {
-            if (sellerId == null || !sellerId.equals(currentUserId)) {
-                throw new AccessDeniedException("Interdit : vous ne pouvez supprimer que vos annonces.");
-            }
+        if (!admin && !listing.getSeller().getId().equals(actorId)) {
+            throw new SecurityException("Interdit");
         }
 
-        listingRepository.deleteById(id);
+        if (listing.getStatus() == ListingStatus.PAID
+                || listing.getStatus() == ListingStatus.SHIPPED
+                || listing.getStatus() == ListingStatus.RECEIVED) {
+            throw new IllegalStateException("Suppression impossible après paiement/expédition");
+        }
+
+        listingRepository.delete(listing);
     }
 
-    // ---------- PAY sécurisé ----------
+    // Buyer demande achat => PENDING + buyer
     @Transactional
-    public void payAs(Long listingId, Long currentUserId, boolean isAdmin) {
-
+    public void requestPurchase(Long listingId, Long buyerId, boolean admin) {
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new RuntimeException("Annonce introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
 
-        if (!listing.getStatus().canBePaid()) {
-            throw new IllegalStateException("Paiement impossible dans l'état actuel");
+        if (listing.getStatus() != ListingStatus.AVAILABLE) {
+            throw new IllegalStateException("Demande impossible dans l'état " + listing.getStatus());
         }
 
-        // USER ne peut pas payer sa propre annonce
-        Long sellerId = listing.getSeller() != null ? listing.getSeller().getId() : null;
-        if (!isAdmin && sellerId != null && sellerId.equals(currentUserId)) {
-            throw new AccessDeniedException("Interdit : vous ne pouvez pas payer votre propre annonce.");
-        }
+        User buyer = userRepository.findById(buyerId)
+                .orElseThrow(() -> new IllegalArgumentException("Acheteur introuvable"));
 
-        User buyer = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new RuntimeException("Acheteur introuvable"));
+        if (!admin && listing.getSeller().getId().equals(buyerId)) {
+            throw new IllegalStateException("Vous ne pouvez pas acheter votre propre annonce");
+        }
 
         listing.setBuyer(buyer);
-        listing.setStatus(ListingStatus.PAID);
-
+        listing.setStatus(ListingStatus.PENDING);
         listingRepository.save(listing);
     }
 
-    // ---------- MAPPER ----------
+    // Seller accepte => ACCEPTED
+    @Transactional
+    public void accept(Long listingId, Long actorId, boolean admin) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+
+        if (!admin && !listing.getSeller().getId().equals(actorId)) {
+            throw new SecurityException("Interdit");
+        }
+
+        if (listing.getStatus() != ListingStatus.PENDING) {
+            throw new IllegalStateException("Accept impossible dans l'état " + listing.getStatus());
+        }
+
+        if (listing.getBuyer() == null) {
+            throw new IllegalStateException("Aucun acheteur en attente");
+        }
+
+        listing.setStatus(ListingStatus.ACCEPTED);
+        listingRepository.save(listing);
+    }
+
+    // Seller refuse => REFUSED
+    @Transactional
+    public void refuse(Long listingId, Long actorId, boolean admin) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+
+        if (!admin && !listing.getSeller().getId().equals(actorId)) {
+            throw new SecurityException("Interdit");
+        }
+
+        if (listing.getStatus() != ListingStatus.PENDING) {
+            throw new IllegalStateException("Refus impossible dans l'état " + listing.getStatus());
+        }
+
+        listing.setStatus(ListingStatus.REFUSED);
+        listingRepository.save(listing);
+    }
+
+    // Buyer paye => PAID (uniquement ACCEPTED)
+    @Transactional
+    public void paySecured(Long listingId, Long buyerId, boolean admin) {
+
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+
+        if (listing.getStatus() != ListingStatus.ACCEPTED) {
+            throw new IllegalStateException("Paiement impossible dans l'état " + listing.getStatus());
+        }
+
+        if (listing.getBuyer() == null) {
+            throw new IllegalStateException("Aucun acheteur défini");
+        }
+
+        if (!admin && !listing.getBuyer().getId().equals(buyerId)) {
+            throw new SecurityException("Interdit : seul l'acheteur peut payer");
+        }
+
+        // ⚠️ IMPORTANT : à vérifier selon ton Transaction entity
+        // Si Transaction a `Listing listing;` => utiliser existsByListing_Id(listingId)
+        if (transactionRepository.existsByListing_Id(listingId)){
+            throw new IllegalStateException("Paiement déjà effectué");
+        }
+
+        transactionService.transfer(listing.getBuyer(), listing.getSeller(), listing);
+
+        listing.setStatus(ListingStatus.PAID);
+        listingRepository.save(listing);
+    }
+
+    // Seller ship => SHIPPED (uniquement PAID)
+    @Transactional
+    public void ship(Long listingId, Long actorId, boolean admin) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+
+        if (!admin && !listing.getSeller().getId().equals(actorId)) {
+            throw new SecurityException("Interdit");
+        }
+
+        if (listing.getStatus() != ListingStatus.PAID) {
+            throw new IllegalStateException("Expédition impossible dans l'état " + listing.getStatus());
+        }
+
+        listing.setStatus(ListingStatus.SHIPPED);
+        listingRepository.save(listing);
+    }
+
+    // Buyer receive => RECEIVED (uniquement SHIPPED)
+    @Transactional
+    public void receive(Long listingId, Long buyerId, boolean admin) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+
+        if (listing.getStatus() != ListingStatus.SHIPPED) {
+            throw new IllegalStateException("Réception impossible dans l'état " + listing.getStatus());
+        }
+
+        if (listing.getBuyer() == null) {
+            throw new IllegalStateException("Aucun acheteur défini");
+        }
+
+        if (!admin && !listing.getBuyer().getId().equals(buyerId)) {
+            throw new SecurityException("Interdit : seul l'acheteur peut confirmer");
+        }
+
+        listing.setStatus(ListingStatus.RECEIVED);
+        listingRepository.save(listing);
+    }
+
+    // MAPPER
     private ListingDTO toDTO(Listing listing) {
         ListingDTO dto = new ListingDTO();
         dto.id = listing.getId();

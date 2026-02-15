@@ -72,7 +72,7 @@ public class AuthController {
         // ✅ Rôle réel depuis la DB (fallback USER)
         String role = (user.getRole() != null) ? user.getRole().name() : "USER";
 
-        // ✅ Token avec rôle + username
+        // ✅ Token avec rôle + username (pas email)
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), role);
 
         Map<String, Object> response = new HashMap<>();

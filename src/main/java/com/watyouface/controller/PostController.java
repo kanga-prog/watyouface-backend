@@ -2,16 +2,14 @@ package com.watyouface.controller;
 
 import com.watyouface.entity.Post;
 import com.watyouface.entity.User;
+import com.watyouface.security.Authz;
 import com.watyouface.service.PostService;
 import com.watyouface.service.UserService;
-import com.watyouface.security.JwtUtil;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,7 +26,7 @@ public class PostController {
     private UserService userService;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private Authz authz;
 
     // ---------------------------------------------------------
     // GET ALL POSTS
@@ -122,47 +120,30 @@ public class PostController {
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<Map<String, Object>> createPost(
             @RequestPart(required = false) String content,
-            @RequestPart(required = false) MultipartFile file,
-            HttpServletRequest request) {
-
+            @RequestPart(required = false) MultipartFile file
+    ) {
         try {
-            // 1. JWT extraction
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).build();
-            }
-
-            String token = authHeader.substring(7);
-
-            if (!jwtUtil.validateToken(token)) {
-                return ResponseEntity.status(401).build();
-            }
-
-            Long userId = jwtUtil.extractUserId(token);
+            Long userId = authz.me();
 
             User author = userService.getUserById(userId)
                     .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-            // 2. Build post object
             Post post = new Post();
             post.setContent(content);
             post.setAuthor(author);
 
-            // 3. Handle media upload
             if (file != null && !file.isEmpty()) {
                 String filePath = postService.saveMediaFile(file);
 
-                if (file.getContentType().startsWith("image/")) {
+                if (file.getContentType() != null && file.getContentType().startsWith("image/")) {
                     post.setImageUrl(filePath);
-                } else if (file.getContentType().startsWith("video/")) {
+                } else if (file.getContentType() != null && file.getContentType().startsWith("video/")) {
                     post.setVideoUrl(filePath);
                 }
             }
 
-            // 4. Save post
             Post createdPost = postService.createPost(post);
 
-            // 5. Build response DTO
             Map<String, Object> dto = new HashMap<>();
             dto.put("id", createdPost.getId());
             dto.put("content", createdPost.getContent());
@@ -181,6 +162,8 @@ public class PostController {
 
             return ResponseEntity.ok(dto);
 
+        } catch (SecurityException e) {
+            return ResponseEntity.status(401).build();
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).build();
@@ -191,19 +174,16 @@ public class PostController {
     // DELETE POST
     // ---------------------------------------------------------
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deletePost(@PathVariable Long id, HttpServletRequest request) {
+    public ResponseEntity<?> deletePost(@PathVariable Long id) {
         try {
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(401).body("Token manquant");
-            }
-
-            Long currentUserId = jwtUtil.getUserIdFromHeader(authHeader);
-            boolean isAdmin = "ADMIN".equals(jwtUtil.getRoleFromHeader(authHeader));
+            Long currentUserId = authz.me();
+            boolean isAdmin = authz.isAdmin();
 
             postService.deletePostAs(id, currentUserId, isAdmin);
             return ResponseEntity.noContent().build();
 
+        } catch (SecurityException e) {
+            return ResponseEntity.status(401).body("Non authentifié");
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());
         } catch (Exception e) {
@@ -211,5 +191,4 @@ public class PostController {
             return ResponseEntity.status(500).body("Erreur serveur");
         }
     }
-
 }

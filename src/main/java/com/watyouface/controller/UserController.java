@@ -1,18 +1,16 @@
 package com.watyouface.controller;
 
 import com.watyouface.entity.User;
-import com.watyouface.service.UserService;
-import com.watyouface.security.JwtUtil;
 import com.watyouface.media.AvatarService;
+import com.watyouface.security.Authz;
+import com.watyouface.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-
 import java.io.IOException;
 import java.util.Map;
-
 
 @RestController
 @RequestMapping("/api/users")
@@ -23,16 +21,16 @@ public class UserController {
     private UserService userService;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private AvatarService avatarService;
 
     @Autowired
-    private AvatarService avatarService;
+    private Authz authz;
 
     // 🔐 GET /api/users/me
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> getCurrentUser() {
+        Long userId = authz.me();
 
-        Long userId = jwtUtil.getUserIdFromHeader(authHeader);
         User user = userService.getUserById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
@@ -50,10 +48,9 @@ public class UserController {
 
     // ✏️ PUT /api/users/update
     @PutMapping("/update")
-    public ResponseEntity<?> updateProfile(@RequestHeader("Authorization") String authHeader,
-                                           @RequestBody Map<String, String> updates) {
+    public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> updates) {
+        Long userId = authz.me();
 
-        Long userId = jwtUtil.getUserIdFromHeader(authHeader);
         User user = userService.getUserById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
@@ -76,16 +73,11 @@ public class UserController {
 
     // ✅ POST /api/users/avatar
     @PostMapping("/avatar")
-    public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file,
-                                          @RequestHeader("Authorization") String authHeader) {
-
+    public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file) {
         try {
-            Long userId = jwtUtil.getUserIdFromHeader(authHeader);
+            Long userId = authz.me();
 
-            // ⚡ Utilisation de AvatarService pour sauvegarder
             String avatarUrl = avatarService.saveAvatar(file, userId);
-
-            // Mettre à jour le user
             User updatedUser = userService.updateAvatarUrl(userId, avatarUrl);
 
             return ResponseEntity.ok(Map.of(
@@ -93,6 +85,8 @@ public class UserController {
                     "avatarUrl", updatedUser.getAvatarUrl()
             ));
 
+        } catch (SecurityException e) {
+            return ResponseEntity.status(401).body(Map.of("error", "Non authentifié"));
         } catch (IOException e) {
             return ResponseEntity.status(500).body(Map.of("error", "Erreur lors de l'upload de l'avatar"));
         }
@@ -100,11 +94,8 @@ public class UserController {
 
     // 🔹 GET /api/users (infos publiques)
     @GetMapping
-    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String authHeader) {
-
-        if (!jwtUtil.validateTokenFromHeader(authHeader)) {
-            return ResponseEntity.status(401).body("Token manquant ou invalide");
-        }
+    public ResponseEntity<?> getAllUsers() {
+        authz.me(); // juste pour exiger l'auth (comme avant)
 
         var users = userService.getAllUsers().stream()
                 .map(u -> Map.of(
@@ -118,19 +109,11 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(
-        @RequestHeader("Authorization") String authHeader,
-        @PathVariable Long id
-    ) {
-        Long currentUserId = jwtUtil.getUserIdFromHeader(authHeader);
-        boolean isAdmin = "ADMIN".equals(jwtUtil.getRoleFromHeader(authHeader));
-
-        if (!isAdmin && !id.equals(currentUserId)) {
-            return ResponseEntity.status(403).body("Interdit");
-        }
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        // ✅ owner OR admin
+        authz.ownerOrAdmin(id);
 
         userService.deleteUser(id);
         return ResponseEntity.ok(Map.of("message", "Utilisateur supprimé"));
     }
-
 }
