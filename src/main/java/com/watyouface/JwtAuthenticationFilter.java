@@ -1,6 +1,5 @@
 package com.watyouface.security;
 
-import com.watyouface.security.JwtUtil;
 import com.watyouface.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -33,20 +32,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         boolean skip =
-            path.startsWith("/uploads/") ||
-            path.startsWith("/static/") ||
-            path.startsWith("/avatars/") ||
-            path.startsWith("/media/avatars/") ||
-            path.startsWith("/api/auth/") ||
-            path.startsWith("/api/contracts/active") ||
-            path.startsWith("/ws") ||
-            path.contains("/websocket") ||
-            path.contains("/xhr") ||
-            path.contains("/info");
-
-        if (skip) {
-            System.out.println("➡️ JWT Filter SKIP path=" + path);
-        }
+                path.startsWith("/uploads/") ||
+                path.startsWith("/static/") ||
+                path.startsWith("/avatars/") ||
+                path.startsWith("/media/avatars/") ||
+                path.startsWith("/api/auth/") ||
+                path.startsWith("/api/contracts/active") ||
+                path.startsWith("/ws") ||
+                path.contains("/websocket") ||
+                path.contains("/xhr") ||
+                path.contains("/info");
 
         return skip;
     }
@@ -58,26 +53,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
-        String path = request.getRequestURI();
         String authHeader = request.getHeader("Authorization");
-
-        System.out.println("➡️ JWT Filter path=" + path + " authHeader=" + authHeader);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
             if (jwtUtil.validateToken(token)) {
                 Long userId = jwtUtil.extractUserId(token);
-                String username = jwtUtil.extractUsername(token);
 
                 if (userId != null) {
                     try {
                         var userDetails = userService.loadUserById(userId);
 
-                        var authorities = userDetails.getAuthorities();
-                        if (authorities == null || authorities.isEmpty()) {
-                            authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
-                        }
+                        String role = jwtUtil.extractRole(token);
+                        var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
                         var authentication = new UsernamePasswordAuthenticationToken(
                                 userDetails, null, authorities);
@@ -86,6 +75,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 new WebAuthenticationDetailsSource().buildDetails(request));
 
                         SecurityContextHolder.getContext().setAuthentication(authentication);
+
                     } catch (Exception e) {
                         System.err.println("⚠️ JWT invalide : utilisateur non trouvé (id=" + userId + ")");
                     }

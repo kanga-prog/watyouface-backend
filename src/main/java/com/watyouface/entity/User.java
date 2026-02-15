@@ -1,6 +1,7 @@
 package com.watyouface.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.watyouface.entity.enums.Role;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -14,10 +15,12 @@ public class User {
 
     @Column(nullable = false, unique = true)
     private String username;
-
+    
+    @JsonIgnore
     @Column(nullable = false, unique = true)
     private String email;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -26,6 +29,10 @@ public class User {
 
     @Column
     private String avatarUrl; // Ajout du champ avatarUrl
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role = Role.USER;
 
     // Relations
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL)
@@ -98,4 +105,8 @@ public class User {
 
     public Contract getAcceptedContractVersion() { return acceptedContractVersion; }
     public void setAcceptedContractVersion(Contract acceptedContractVersion) { this.acceptedContractVersion = acceptedContractVersion; }
+
+    public Role getRole() { return role; }
+    public void setRole(Role role) { this.role = role; }
 }
+

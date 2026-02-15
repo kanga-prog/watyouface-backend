@@ -19,27 +19,27 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    /**
-     * ✅ Génération du token basé sur userId comme subject
-     * et incluant username dans les claims pour compatibilité.
-     */
-    public String generateToken(Long userId, String username) {
+    // ✅ Version avec rôle (à utiliser)
+    public String generateToken(Long userId, String username, String role) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("username", username); // pour compatibilité
+        claims.put("username", username);
         claims.put("userId", userId);
+        claims.put("role", role);
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(String.valueOf(userId)) // 🔥 le token est basé sur l'id unique
+                .setSubject(String.valueOf(userId))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    /**
-     * 🔹 Extraction de l'userId depuis le subject
-     */
+    // ✅ Compat (si encore utilisé ailleurs)
+    public String generateToken(Long userId, String username) {
+        return generateToken(userId, username, "USER");
+    }
+
     public Long extractUserId(String token) {
         try {
             Claims claims = getAllClaims(token);
@@ -49,30 +49,33 @@ public class JwtUtil {
         }
     }
 
-    /**
-     * 🔹 Extraction du username depuis les claims
-     */
     public String extractUsername(String token) {
         Claims claims = getAllClaims(token);
         Object username = claims.get("username");
         return username != null ? username.toString() : null;
     }
 
-    /**
-     * 🔹 Extraction du userId depuis le header complet "Bearer ..."
-     */
+    public String extractRole(String token) {
+        Claims claims = getAllClaims(token);
+        Object role = claims.get("role");
+        return role != null ? role.toString() : "USER";
+    }
+
     public Long getUserIdFromHeader(String header) {
         if (header == null || !header.startsWith("Bearer ")) return null;
         String token = header.substring(7);
         return extractUserId(token);
     }
 
-    /**
-     * 🔹 Validation de la signature et de la date d’expiration du token
-     */
+    public String getRoleFromHeader(String header) {
+        if (header == null || !header.startsWith("Bearer ")) return "USER";
+        String token = header.substring(7);
+        return extractRole(token);
+    }
+
     public boolean validateToken(String token) {
         try {
-            getAllClaims(token); // si ça échoue → exception
+            getAllClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             System.err.println("❌ JWT invalide : " + e.getMessage());
@@ -80,15 +83,12 @@ public class JwtUtil {
         }
     }
 
-    /**
-     * 🔹 Récupère le corps (Claims) du token
-     */
     private Claims getAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
-                .getBody(); // ✅ ici on retourne bien le corps du JWT
+                .getBody();
     }
 
     public boolean validateTokenFromHeader(String authHeader) {
@@ -96,5 +96,4 @@ public class JwtUtil {
         String token = authHeader.substring(7);
         return validateToken(token);
     }
-
 }

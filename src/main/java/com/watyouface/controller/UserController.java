@@ -116,4 +116,21 @@ public class UserController {
 
         return ResponseEntity.ok(users);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteUser(
+        @RequestHeader("Authorization") String authHeader,
+        @PathVariable Long id
+    ) {
+        Long currentUserId = jwtUtil.getUserIdFromHeader(authHeader);
+        boolean isAdmin = "ADMIN".equals(jwtUtil.getRoleFromHeader(authHeader));
+
+        if (!isAdmin && !id.equals(currentUserId)) {
+            return ResponseEntity.status(403).body("Interdit");
+        }
+
+        userService.deleteUser(id);
+        return ResponseEntity.ok(Map.of("message", "Utilisateur supprimé"));
+    }
+
 }

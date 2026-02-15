@@ -8,6 +8,7 @@ import com.watyouface.repository.PostRepository;
 import com.watyouface.media.ImageService;
 import com.watyouface.media.VideoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -111,5 +112,28 @@ public class PostService {
     /** Récupère tous les posts du plus récent au plus ancien */
     public List<Post> getAllPostsOrderedByDateDesc() {
         return postRepository.findAllOrderedByDateDesc();
+    }
+    public Post getPostOrThrow(Long id) {
+    return postRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Post introuvable"));
+    }
+
+    /**
+     * ✅ Supprimer un post avec contrôle d’accès
+     * - ADMIN peut tout supprimer
+     * - USER peut supprimer uniquement ses posts
+     */
+    public void deletePostAs(Long postId, Long currentUserId, boolean isAdmin) {
+        Post post = getPostOrThrow(postId);
+
+        Long authorId = post.getAuthor() != null ? post.getAuthor().getId() : null;
+
+        if (!isAdmin) {
+            if (authorId == null || !authorId.equals(currentUserId)) {
+                throw new AccessDeniedException("Interdit : vous ne pouvez supprimer que vos posts.");
+            }
+        }
+
+        postRepository.deleteById(postId);
     }
 }

@@ -59,25 +59,27 @@ public class AuthController {
 
     // 🔹 Connexion
     @PostMapping("/login")
-        public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        // 🔹 Authentification standard
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 🔹 Récupération de l’utilisateur à partir de l’email
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // 🔹 Génération du token JWT
-        String token = jwtUtil.generateToken(user.getId(), user.getEmail());
+        // ✅ Rôle réel depuis la DB (fallback USER)
+        String role = (user.getRole() != null) ? user.getRole().name() : "USER";
 
-        // 🔹 Création d’une réponse JSON structurée
+        // ✅ Token avec rôle + username
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(), role);
+
         Map<String, Object> response = new HashMap<>();
         response.put("token", token);
         response.put("username", user.getUsername());
-        response.put("avatarUrl", user.getAvatarUrl()); // ✅ avatar affiché partout
+        response.put("avatarUrl", user.getAvatarUrl());
+        response.put("role", role);
 
         return ResponseEntity.ok(response);
     }

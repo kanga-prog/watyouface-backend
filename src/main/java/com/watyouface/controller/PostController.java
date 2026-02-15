@@ -191,13 +191,25 @@ public class PostController {
     // DELETE POST
     // ---------------------------------------------------------
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable Long id) {
+    public ResponseEntity<?> deletePost(@PathVariable Long id, HttpServletRequest request) {
         try {
-            postService.deletePost(id);
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Token manquant");
+            }
+
+            Long currentUserId = jwtUtil.getUserIdFromHeader(authHeader);
+            boolean isAdmin = "ADMIN".equals(jwtUtil.getRoleFromHeader(authHeader));
+
+            postService.deletePostAs(id, currentUserId, isAdmin);
             return ResponseEntity.noContent().build();
+
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).build();
+            return ResponseEntity.status(500).body("Erreur serveur");
         }
     }
+
 }
