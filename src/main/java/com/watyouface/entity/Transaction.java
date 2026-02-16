@@ -1,17 +1,20 @@
 package com.watyouface.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.watyouface.entity.enums.TransactionStatus;
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name="transaction")
+@Table(name = "transaction")
 public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private Double amount;
 
     @Enumerated(EnumType.STRING)
@@ -20,19 +23,27 @@ public class Transaction {
 
     @ManyToOne
     @JoinColumn(name = "from_user_id", nullable = false)
+    @JsonIgnore
     private User fromUser;
 
     @ManyToOne
     @JoinColumn(name = "to_user_id", nullable = false)
+    @JsonIgnore
     private User toUser;
 
     @ManyToOne
     @JoinColumn(name = "listing_id", nullable = false)
+    @JsonIgnore
     private Listing listing;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
 
-    // getters/setters
+    @PrePersist
+    void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
+
     public Long getId() { return id; }
 
     public Double getAmount() { return amount; }
@@ -49,4 +60,6 @@ public class Transaction {
 
     public Listing getListing() { return listing; }
     public void setListing(Listing listing) { this.listing = listing; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -42,7 +42,7 @@ public class UserController {
                 "contractVersion", user.getAcceptedContractVersion() != null
                         ? user.getAcceptedContractVersion().getVersion()
                         : "N/A",
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "/uploads/avatars/default.png"
+                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "/media/avatars/default.png"
         ));
     }
 
