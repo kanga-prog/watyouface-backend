@@ -1,13 +1,13 @@
 package com.watyouface.media;
 
+import net.coobird.thumbnailator.Thumbnails;
+import net.coobird.thumbnailator.geometry.Positions;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Set;
 import java.util.UUID;
 
@@ -15,6 +15,11 @@ import java.util.UUID;
 public class AvatarService {
 
     private final MediaStorageService storage;
+
+    // tailles “verrouillées”
+    private static final int AVATAR_SIZE = 256; // 256x256 carré
+
+    private static final long MAX_BYTES = 5L * 1024 * 1024; // 5MB
 
     private static final Set<String> ALLOWED = Set.of(
             MediaType.IMAGE_JPEG_VALUE,
@@ -26,10 +31,16 @@ public class AvatarService {
         this.storage = storage;
     }
 
+    /**
+     * Sauvegarde un avatar: crop center + resize 256x256 + sortie JPG (compat max).
+     * Retourne une URL publique "/media/avatars/<file>.jpg".
+     */
     public String saveAvatar(MultipartFile file, Long userId) throws IOException {
-
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Fichier avatar manquant ou vide");
+        }
+        if (file.getSize() > MAX_BYTES) {
+            throw new IllegalArgumentException("Avatar trop volumineux (max 5MB)");
         }
 
         String contentType = file.getContentType();
@@ -37,24 +48,35 @@ public class AvatarService {
             throw new IllegalArgumentException("Type de fichier non autorisé: " + contentType);
         }
 
-        String ext = switch (contentType) {
-            case MediaType.IMAGE_JPEG_VALUE -> ".jpg";
-            case MediaType.IMAGE_PNG_VALUE -> ".png";
-            case "image/webp" -> ".webp";
-            default -> ".bin";
-        };
+        String filename = "avatar_" + userId + "_" + UUID.randomUUID() + ".jpg";
+        String relative = "avatars/" + filename;
+        String outputPath = storage.resolvePath(relative);
 
-        String filename = "avatar_" + userId + "_" + UUID.randomUUID() + ext;
-        String relativePath = "avatars/" + filename;
+        // ✅ crop + resize stable
+        Thumbnails.of(file.getInputStream())
+                .size(AVATAR_SIZE, AVATAR_SIZE)
+                .crop(Positions.CENTER)
+                .outputFormat("jpg")
+                .outputQuality(0.9)
+                .toFile(outputPath);
 
-        // chemin disque absolu (créé si besoin)
-        String outputPath = storage.resolvePath(relativePath);
+        return storage.publicUrl(relative);
+    }
 
-        // copie vers le disque
-        Path target = Paths.get(outputPath).normalize();
-        Files.copy(file.getInputStream(), target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+    /**
+     * Supprime un ancien avatar si c'est un fichier géré par l'app (sous /media/avatars/)
+     */
+    public void deleteIfManaged(String avatarUrl) {
+        if (avatarUrl == null || avatarUrl.isBlank()) return;
+        if (!avatarUrl.startsWith("/media/avatars/")) return;
+        if (avatarUrl.endsWith("/default.png") || avatarUrl.endsWith("/default.jpg")) return;
 
-        // ✅ URL publique unique
-        return storage.publicUrl(relativePath); // "/media/avatars/<filename>"
+        String relative = avatarUrl.replaceFirst("^/media/", "");
+        try {
+            String abs = storage.resolvePath(relative);
+            new File(abs).delete();
+        } catch (Exception ignored) {
+            // pas bloquant
+        }
     }
 }

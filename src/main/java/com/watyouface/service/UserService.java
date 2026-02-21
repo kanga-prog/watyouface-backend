@@ -75,6 +75,8 @@ public class UserService implements UserDetailsService {
         if (optUser.isEmpty()) return null;
 
         User user = optUser.get();
+        // ✅ nettoie l'ancien avatar (si géré par l'app)
+        avatarService.deleteIfManaged(user.getAvatarUrl());
         user.setAvatarUrl(avatarUrl);
         return userRepository.save(user);
     }

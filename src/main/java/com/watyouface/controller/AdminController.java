@@ -5,6 +5,9 @@ import com.watyouface.security.Authz;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.watyouface.entity.enums.Role;
+import com.watyouface.entity.User;
+
 import java.util.Map;
 
 @RestController
@@ -40,6 +43,23 @@ public class AdminController {
     public Object users() {
         requireAdmin();
         return userRepository.findAll();
+    }
+
+    @PutMapping("/users/{id}/role")
+    public ResponseEntity<?> setRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        requireAdmin();
+        String roleStr = body.getOrDefault("role", "USER");
+        Role role;
+        try {
+            role = Role.valueOf(roleStr);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Role invalide"));
+        }
+
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        user.setRole(role);
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("message", "Role mis à jour", "role", user.getRole().name()));
     }
 
     @DeleteMapping("/posts/{id}")

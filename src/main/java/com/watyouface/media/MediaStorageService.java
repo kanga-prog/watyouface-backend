@@ -9,15 +9,13 @@ import java.nio.file.Paths;
 @Service
 public class MediaStorageService {
 
-    // ✅ Root disque unique (absolu) — aligné avec WebConfig
+    // ✅ Root disque unique (absolu) — aligné avec WebConfig (/media/** -> ${user.dir}/media)
     private final Path baseDir = Paths.get(System.getProperty("user.dir"), "media")
             .toAbsolutePath().normalize();
 
     /**
      * Résout un chemin disque complet sous media/ et crée le dossier parent.
-     * Exemple:
-     *  relativePath = "posts/post_12.jpg"
-     *  => "/.../watyouface/media/posts/post_12.jpg"
+     * Exemple: relativePath = "avatars/avatar_1.jpg" => "/.../media/avatars/avatar_1.jpg"
      */
     public String resolvePath(String relativePath) {
         String clean = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
@@ -38,14 +36,14 @@ public class MediaStorageService {
 
     /**
      * Retourne l'URL publique correspondante.
-     * Exemple: "posts/post_12.jpg" => "/media/posts/post_12.jpg"
+     * Exemple: "avatars/avatar_1.jpg" => "/media/avatars/avatar_1.jpg"
      */
     public String publicUrl(String relativePath) {
         String clean = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
         return "/media/" + clean;
     }
 
-    // optionnel (debug)
+    // utile en debug
     public String getBaseDir() {
         return baseDir.toString() + File.separator;
     }
