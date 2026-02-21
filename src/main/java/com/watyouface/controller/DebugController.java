@@ -10,7 +10,7 @@ public class DebugController {
 
     @GetMapping("/test-upload")
     public String testUpload() {
-        String path = System.getProperty("user.dir") + "/uploads";
+        String path = System.getProperty("user.dir") + "/media";
         File dir = new File(path);
         return "Uploads exists: " + dir.exists() + ", files: " + java.util.Arrays.toString(dir.list());
     }

@@ -1,51 +1,60 @@
 package com.watyouface.media;
 
-import net.coobird.thumbnailator.Thumbnails;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.*;
-import java.util.Optional;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class AvatarService {
 
-    private final Path avatarDir;
+    private final MediaStorageService storage;
 
-    public AvatarService() throws IOException {
-        // Dossier absolu : {project_root}/media/avatars/
-        this.avatarDir = Paths.get(System.getProperty("user.dir"), "media", "avatars")
-                              .toAbsolutePath()
-                              .normalize();
+    private static final Set<String> ALLOWED = Set.of(
+            MediaType.IMAGE_JPEG_VALUE,
+            MediaType.IMAGE_PNG_VALUE,
+            "image/webp"
+    );
 
-        Files.createDirectories(avatarDir);
+    public AvatarService(MediaStorageService storage) {
+        this.storage = storage;
     }
 
     public String saveAvatar(MultipartFile file, Long userId) throws IOException {
 
-        if (file.isEmpty()) {
-            throw new IOException("⚠ Le fichier uploadé est vide.");
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Fichier avatar manquant ou vide");
         }
 
-        // Récupérer l’extension réelle
-        String extension = Optional.ofNullable(file.getOriginalFilename())
-                .filter(f -> f.contains("."))
-                .map(f -> f.substring(f.lastIndexOf(".")))
-                .orElse(".jpg");
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED.contains(contentType)) {
+            throw new IllegalArgumentException("Type de fichier non autorisé: " + contentType);
+        }
 
-        // Nom de fichier propre
-        String filename = "avatar_" + userId + "_" + System.currentTimeMillis() + extension;
+        String ext = switch (contentType) {
+            case MediaType.IMAGE_JPEG_VALUE -> ".jpg";
+            case MediaType.IMAGE_PNG_VALUE -> ".png";
+            case "image/webp" -> ".webp";
+            default -> ".bin";
+        };
 
-        Path outputFile = avatarDir.resolve(filename);
+        String filename = "avatar_" + userId + "_" + UUID.randomUUID() + ext;
+        String relativePath = "avatars/" + filename;
 
-        // Resize + conversion Thumbnailator (256x256)
-        Thumbnails.of(file.getInputStream())
-                .size(256, 256)
-                .outputFormat(extension.replace(".", "")) // jpg / png
-                .toFile(outputFile.toFile());
+        // chemin disque absolu (créé si besoin)
+        String outputPath = storage.resolvePath(relativePath);
 
-        // URL publique pour WebConfig (media/**)
-        return "/media/avatars/" + filename;
+        // copie vers le disque
+        Path target = Paths.get(outputPath).normalize();
+        Files.copy(file.getInputStream(), target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+        // ✅ URL publique unique
+        return storage.publicUrl(relativePath); // "/media/avatars/<filename>"
     }
 }

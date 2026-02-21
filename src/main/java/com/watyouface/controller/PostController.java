@@ -132,17 +132,8 @@ public class PostController {
             post.setContent(content);
             post.setAuthor(author);
 
-            if (file != null && !file.isEmpty()) {
-                String filePath = postService.saveMediaFile(file);
-
-                if (file.getContentType() != null && file.getContentType().startsWith("image/")) {
-                    post.setImageUrl(filePath);
-                } else if (file.getContentType() != null && file.getContentType().startsWith("video/")) {
-                    post.setVideoUrl(filePath);
-                }
-            }
-
-            Post createdPost = postService.createPost(post);
+            // ✅ utiliser la logique cohérente (ImageService / VideoService)
+            Post createdPost = postService.createPost(post, file);
 
             Map<String, Object> dto = new HashMap<>();
             dto.put("id", createdPost.getId());

@@ -41,7 +41,7 @@ public class SecurityConfig {
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
         // ✅ PUBLIC MEDIA
-        .requestMatchers(HttpMethod.GET, "/media/**").permitAll()
+        .requestMatchers("/media/**").permitAll()
 
         // ✅ PUBLIC AUTH + WS
         .requestMatchers("/api/auth/**").permitAll()

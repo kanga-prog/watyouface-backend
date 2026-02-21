@@ -29,7 +29,7 @@ public class PostService {
     private VideoService videoService;
 
     // Dossier d'upload par défaut (utilisé pour saveMediaFile)
-    private static final String UPLOAD_DIR = "uploads/";
+    private static final String UPLOAD_DIR = "media/";
 
     public PostService(PostRepository postRepository, UserService userService) {
         this.postRepository = postRepository;

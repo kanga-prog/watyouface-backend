@@ -31,8 +31,8 @@ public class VideoService {
         this.videoShareRepository = videoShareRepository;
     }
 
-    // 🔹 Sauvegarde vidéo du post (convertie 720p + bitrate réduit)
-    public String savePostVideo(MultipartFile file, Long postId) throws IOException, InterruptedException {
+   // 🔹 Sauvegarde vidéo du post (convertie 720p + bitrate réduit)
+   public String savePostVideo(MultipartFile file, Long postId) throws IOException, InterruptedException {
         String rawPath = storage.resolvePath("videos/post_" + postId + "_raw.mp4");
         String outputRelative = "videos/post_" + postId + ".mp4";
         String outputPath = storage.resolvePath(outputRelative);
@@ -40,17 +40,39 @@ public class VideoService {
         File originalFile = new File(rawPath);
         file.transferTo(originalFile);
 
+        // ✅ Resize intelligent :
+        // - garde le ratio
+        // - limite à 720p max
+        // - force dimensions paires (nécessaire pour H.264)
+        String scaleFilter = "scale='min(1280,iw)':'-2'";
+
         ProcessBuilder pb = new ProcessBuilder(
-                "ffmpeg", "-i", originalFile.getAbsolutePath(),
-                "-vf", "scale=720:-1",
-                "-b:v", "1M",
+                "ffmpeg",
                 "-y",
+                "-i", originalFile.getAbsolutePath(),
+                "-vf", scaleFilter,
+                "-c:v", "libx264",
+                "-preset", "veryfast",
+                "-crf", "23",
+                "-c:a", "aac",
+                "-b:a", "128k",
+                "-movflags", "+faststart",
                 outputPath
         );
-        Process process = pb.start();
-        process.waitFor();
 
-        return "/" + outputRelative;
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        String log = new String(process.getInputStream().readAllBytes());
+        int code = process.waitFor();
+
+        if (code != 0) {
+            throw new RuntimeException("ffmpeg a échoué (code " + code + "):\n" + log);
+        }
+
+        // optionnel: supprimer le raw si tout OK
+        // originalFile.delete();
+
+        return storage.publicUrl(outputRelative); // "/media/videos/post_<id>.mp4"
     }
 
     // 🔹 Gestion CRUD vidéo

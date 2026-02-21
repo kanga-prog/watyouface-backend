@@ -67,7 +67,7 @@ public class UserController {
                 "id", user.getId(),
                 "username", user.getUsername(),
                 "email", user.getEmail(),
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "/uploads/avatars/default.png"
+                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "/media/avatars/default.png"
         ));
     }
 
@@ -101,7 +101,7 @@ public class UserController {
                 .map(u -> Map.of(
                         "id", u.getId(),
                         "username", u.getUsername(),
-                        "avatarUrl", u.getAvatarUrl() != null ? u.getAvatarUrl() : "/uploads/avatars/default.png"
+                        "avatarUrl", u.getAvatarUrl() != null ? u.getAvatarUrl() : "/media/avatars/default.png"
                 ))
                 .toList();
 
