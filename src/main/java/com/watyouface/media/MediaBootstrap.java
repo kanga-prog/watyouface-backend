@@ -21,6 +21,7 @@ public class MediaBootstrap {
         storage.resolvePath("avatars/.keep");
         storage.resolvePath("posts/.keep");
         storage.resolvePath("videos/.keep");
+        storage.resolvePath("marketplace/.keep");
 
         // assure un default avatar minimal (1x1 png transparent)
         String defaultPath = storage.resolvePath("avatars/default.png");

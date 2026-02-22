@@ -39,6 +39,7 @@ public class SecurityConfig {
       .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/marketplace/listings/upload").authenticated()
 
         // ✅ PUBLIC MEDIA
         .requestMatchers("/media/**").permitAll()
