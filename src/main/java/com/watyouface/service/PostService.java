@@ -136,4 +136,23 @@ public class PostService {
 
         postRepository.deleteById(postId);
     }
+
+    /**
+     * ✅ Modifier un post (texte uniquement pour l'instant)
+     * - ADMIN peut modifier tout
+     * - USER peut modifier uniquement ses posts
+     */
+    public Post updatePostAs(Long postId, Long currentUserId, boolean isAdmin, String content) {
+        Post post = getPostOrThrow(postId);
+
+        Long authorId = post.getAuthor() != null ? post.getAuthor().getId() : null;
+        if (!isAdmin) {
+            if (authorId == null || !authorId.equals(currentUserId)) {
+                throw new AccessDeniedException("Interdit : vous ne pouvez modifier que vos posts.");
+            }
+        }
+
+        post.setContent(content);
+        return postRepository.save(post);
+    }
 }

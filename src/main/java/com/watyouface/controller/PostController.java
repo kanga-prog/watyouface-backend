@@ -182,4 +182,51 @@ public class PostController {
             return ResponseEntity.status(500).body("Erreur serveur");
         }
     }
+
+    // ---------------------------------------------------------
+    // UPDATE POST (texte uniquement)
+    // ---------------------------------------------------------
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        try {
+            Long currentUserId = authz.me();
+            boolean isAdmin = authz.isAdmin();
+
+            String content = body.get("content") != null ? String.valueOf(body.get("content")) : null;
+
+            Post updated = postService.updatePostAs(id, currentUserId, isAdmin, content);
+
+            Map<String, Object> dto = new HashMap<>();
+            dto.put("id", updated.getId());
+            dto.put("content", updated.getContent());
+            dto.put("imageUrl", updated.getImageUrl());
+            dto.put("videoUrl", updated.getVideoUrl());
+            dto.put("createdAt", updated.getCreatedAt());
+
+            User author = updated.getAuthor();
+            Map<String, Object> authorDto = new HashMap<>();
+            if (author != null) {
+                authorDto.put("id", author.getId());
+                authorDto.put("username", author.getUsername());
+                authorDto.put("avatarUrl", author.getAvatarUrl());
+            } else {
+                authorDto.put("id", 0L);
+                authorDto.put("username", "Anonyme");
+                authorDto.put("avatarUrl", null);
+            }
+            dto.put("author", authorDto);
+
+            dto.put("likeCount", updated.getLikes() != null ? updated.getLikes().size() : 0);
+            dto.put("commentCount", updated.getComments() != null ? updated.getComments().size() : 0);
+
+            return ResponseEntity.ok(dto);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(401).body("Non authentifié");
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur serveur");
+        }
+    }
 }

@@ -4,6 +4,7 @@ import com.watyouface.entity.User;
 import com.watyouface.media.AvatarService;
 import com.watyouface.security.Authz;
 import com.watyouface.service.UserService;
+import com.watyouface.service.WalletService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +15,8 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "http://localhost:5173")
+// ✅ Laisse la config CORS globale (SecurityConfig) faire le travail
+@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
@@ -26,6 +28,9 @@ public class UserController {
     @Autowired
     private Authz authz;
 
+    @Autowired
+    private WalletService walletService;
+
     // 🔐 GET /api/users/me
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser() {
@@ -34,15 +39,19 @@ public class UserController {
         User user = userService.getUserById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
+        Double walletBalance = walletService.getOrCreateWallet(user.getId()).getBalance();
+
         return ResponseEntity.ok(Map.of(
                 "id", user.getId(),
                 "username", user.getUsername(),
                 "email", user.getEmail(),
+                "role", user.getRole() != null ? user.getRole().name() : "USER",
                 "acceptedContract", user.isAcceptedContract(),
                 "contractVersion", user.getAcceptedContractVersion() != null
                         ? user.getAcceptedContractVersion().getVersion()
                         : "N/A",
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "/media/avatars/default.png"
+                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "/media/avatars/default.png",
+                "walletBalance", walletBalance
         ));
     }
 
@@ -63,11 +72,14 @@ public class UserController {
 
         userService.saveUser(user);
 
+        Double walletBalance = walletService.getOrCreateWallet(user.getId()).getBalance();
+
         return ResponseEntity.ok(Map.of(
                 "id", user.getId(),
                 "username", user.getUsername(),
                 "email", user.getEmail(),
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "/media/avatars/default.png"
+                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "/media/avatars/default.png",
+                "walletBalance", walletBalance
         ));
     }
 

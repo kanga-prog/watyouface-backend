@@ -43,4 +43,15 @@ public class WalletService {
         sellerWallet.credit(amount);
         // Pas besoin de save() : managed entities + transaction => flush auto
     }
+
+    /**
+     * ✅ Créditer le wallet (mode démo / tests). Dans un vrai produit,
+     * ce serait branché à un PSP (Stripe/PayPal/etc.)
+     */
+    @Transactional
+    public Wallet credit(Long userId, Double amount) {
+        Wallet w = getOrCreateWallet(userId);
+        w.credit(amount);
+        return w;
+    }
 }
