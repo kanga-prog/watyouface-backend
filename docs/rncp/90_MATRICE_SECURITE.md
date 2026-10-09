@@ -23,6 +23,8 @@
 
 Le JWT n'est plus stocké dans `localStorage` par le frontend. Il est remis dans `WATYOUFACE_AUTH` HttpOnly; `Secure` est configurable et activé par défaut en production; `SameSite=Lax` par défaut; `Path=/`; durée alignée sur le JWT. Les mutations utilisent un token CSRF distinct. Les preuves automatisées figurent dans `evidence/security/phase11c-*`. Le risque de lecture du JWT par XSS est réduit, pas la possibilité qu'une XSS effectue des actions au nom de la session. La vérification manuelle des cookies et du rechargement dans un navigateur reste à faire.
 
+Réaudit du 09/10/2026 : frontend statique confirme l'absence d'usage d'un JWT d'auth dans local/sessionStorage et l'absence de header Bearer construit par l'application; les écritures username/avatar sont non-authentification. La suite backend complète (60 comptabilisés, 5 PostgreSQL conditionnels ignorés), PostgreSQL (5/5), frontend (16/16, lint sans erreur, build) et audit npm runtime (0 vulnérabilité) sont PASS. Le parcours DevTools/refresh/logout reste MANUEL À FAIRE, le navigateur n'étant pas disponible. La checklist rotation historiques reste À CONFIRMER.
+
 ## Évolution Phase 11B
 
 | ID | Avant | Mesure 11B | Après vérification | Risque résiduel | Preuve |

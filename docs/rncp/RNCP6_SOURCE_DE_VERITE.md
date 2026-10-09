@@ -323,27 +323,31 @@ La preuve est matérielle mais bornée : les tests d'intercepteur STOMP ne valen
 | Git / C4 | Worktrees frontend/backend déjà mélangés; pas de commit, PR ou mise à jour d'issue dans ce lot. |
 | Preuves | `evidence/security/phase11c-cookie-auth-tests.txt`, `phase11c-postgres-tests.txt`, `phase11c-backend-suite.txt`, `phase11c-frontend-tests.txt`, `phase11c-frontend-token-search.txt`; décision `93_DECISION_STOCKAGE_JWT.md`. |
 
-## État Git et livrables — consolidation du 09/10/2026
+## État Git et livrables — réaudit du 09/10/2026
 
-| Dépôt | Branche | Commits locaux créés | Worktree |
+| Dépôt | Branche | PR | Worktree local |
 |---|---|---|---|
-| Backend / RNCP | `rncp6/fix-dev-start` | `041868f` code; `9145871` tests; `eb1e697` ignore local; `4f5870d` documentation/preuves; `5aa4280` livrables | Propre |
-| Frontend | `rncp6/responsive-accessibility` | `f1703f3` interfaces; `1bc16f1` auth cookie; `fc1306e` tests; `fcf40de` dépendances/audits; `e0fb23e` retrait `.env` | Modifié uniquement par `updateAvatars.js`, laissé non committé car hors périmètre isolé |
+| Backend / RNCP | `rncp6/fix-dev-start` | [#28 — Backend, sécurité et preuves projet](https://github.com/kanga-prog/watyouface-backend/pull/28) | Propre au dernier contrôle |
+| Frontend | `rncp6/responsive-accessibility` | [#5 — Frontend, responsive et auth sécurisée](https://github.com/kanga-prog/watyouface-frontend/pull/5) | `updateAvatars.js` laissé local, non committé |
 
-Les branches de travail n'ont pas d'upstream configuré; aucun merge ni historique n'a été réécrit. Les commits sont locaux et distincts par sujet. Aucun push ni PR n'a été créé.
+Les PR #28 et #5 ainsi que l'état poussé sont ceux fournis dans le contexte de réaudit. La vérification directe avec GitHub CLI n'a pas été possible pendant cette passe, l'authentification locale étant invalide; aucune modification distante n'a été faite.
+
+### Commits de consolidation
+
+Backend : `041868f` code; `9145871` tests; `eb1e697` ignore local; `4f5870d` documentation/preuves; `5aa4280` livrables; `87af7cd` source de vérité. Frontend : `f1703f3` interfaces; `1bc16f1` auth cookie; `fc1306e` tests; `fcf40de` dépendances/audits; `e0fb23e` retrait `.env`.
 
 ### Livrables V0.2
 
-Les trois fichiers fournis depuis le dossier Windows ont été copiés, vérifiés par SHA-256 identique source/destination et versionnés dans `docs/rncp/livrables/` par le commit dédié `5aa4280` : dossier projet, dossier professionnel et support de présentation (3/3, V0.2).
+Les trois fichiers fournis depuis le dossier Windows sont versionnés dans `docs/rncp/livrables/` (3/3, V0.2); leurs SHA-256 source/destination concordaient au contrôle.
 
 ### Configuration locale et secrets historiques
 
-Dans le frontend, `.env` était suivi dans le HEAD et son retrait est désormais committé (`e0fb23e`); son contenu n'a pas été lu. `.gitignore` exclut `.env` et `.env.*`, avec exception pour `.env.example`; ce dernier ne contient que l'URL locale fictive `http://localhost:8080`. Les valeurs historiques éventuelles sont classées potentiellement compromises. La checklist `evidence/security/secret-rotation-checklist.md` marque la rotation du JWT, du mot de passe BDD et du secret SMTP « À CONFIRMER ». Aucun secret n'est reproduit ici. Aucun historique Git n'a été réécrit.
+Dans le frontend, `.env` est désormais non suivi depuis `e0fb23e`; son contenu historique n'a pas été lu. `.gitignore` exclut `.env` et `.env.*`, avec exception `.env.example`, qui ne contient qu'une URL locale fictive. Les secrets runtime backend sont externalisés par variables d'environnement. Les valeurs historiques éventuelles restent potentiellement compromises; la checklist `evidence/security/secret-rotation-checklist.md` maintient JWT, DB password et SMTP « À CONFIRMER ». Aucun historique n'a été réécrit.
 
-### Validations après commits
+### Validations réexécutées — audit final Phase 11C
 
-Backend : `./mvnw clean test` **PASS**, 60 comptabilisés, 0 échec/erreur, 5 tests PostgreSQL conditionnels ignorés. Suite réelle PostgreSQL dédiée **PASS 5/5**. Frontend : `npm run lint` **PASS**, 0 erreur et 1 avertissement Hook préexistant dans `Admin.jsx`; `npm test -- --run` **PASS 16/16** (7 fichiers); `npm run build` **PASS**; `npm audit --omit=dev` **0 vulnérabilité**. L'audit npm a dû être relancé hors sandbox après une erreur DNS EAI_AGAIN.
+Backend : `./mvnw clean test` PASS, 60 comptabilisés, 0 échec/erreur, 5 tests PostgreSQL conditionnels ignorés; PostgreSQL réel dédié PASS 5/5. Frontend : lint PASS (0 erreur, 1 avertissement Hook dans `Admin.jsx`), tests PASS 16/16, build PASS, audit runtime npm 0 vulnérabilité. Aucun navigateur n'est installé : recette DevTools, refresh de session et logout visuel restent MANUEL À FAIRE.
 
-### Authentification distante et décision de push
+### Phase 11C — résultat
 
-`gh auth status` indique que l'authentification du compte `kanga-prog` est invalide. Aucun push ni aucune PR ne seront tentés avant rétablissement de l'authentification. En outre, ne pas pousser le dépôt frontend avant confirmation de révocation/rotation des anciennes valeurs potentiellement présentes dans l'historique `.env`. Les commits backend sont prêts localement; le frontend conserve le changement non committé `updateAvatars.js`. L'état global n'est donc pas prêt à pousser.
+JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: include`; cookie HttpOnly; CSRF actif via token distinct; CORS credentials avec origines explicites; logout expire le cookie. L'impact du vol de JWT via XSS est fortement réduit, sans déclarer les XSS corrigées. Clôture code/tests Phase 11C : OUI; preuve navigateur réelle : MANUEL À FAIRE. PR backend : #28; PR frontend : #5; livrables V0.2 : versionnés; `updateAvatars.js` reste local; rotation historique : À CONFIRMER.
