@@ -325,21 +325,25 @@ La preuve est matérielle mais bornée : les tests d'intercepteur STOMP ne valen
 
 ## État Git et livrables — consolidation du 09/10/2026
 
-| Dépôt | Branche | Commits locaux créés | État push / PR |
+| Dépôt | Branche | Commits locaux créés | Worktree |
 |---|---|---|---|
-| Backend / RNCP | `rncp6/fix-dev-start` | `041868f` code backend sécurité/métier; `9145871` tests backend/PostgreSQL | Non poussé; PR non créée |
-| Frontend | `rncp6/responsive-accessibility` | Aucun à la dernière vérification | Non poussé; PR non créée |
+| Backend / RNCP | `rncp6/fix-dev-start` | `041868f` code; `9145871` tests; `eb1e697` ignore local; `4f5870d` documentation/preuves; `5aa4280` livrables | Propre |
+| Frontend | `rncp6/responsive-accessibility` | `f1703f3` interfaces; `1bc16f1` auth cookie; `fc1306e` tests; `fcf40de` dépendances/audits; `e0fb23e` retrait `.env` | Modifié uniquement par `updateAvatars.js`, laissé non committé car hors périmètre isolé |
 
-Les commits backend suivants sont organisés en lots distincts : code, tests, documentation/preuves, livrables binaires, puis métadonnées de consolidation. L'ajout séparé des règles `.gitignore` locales est également à traiter. Les commits frontend restent à préparer par UI, auth, tests, dépendances et retrait de `.env`. Les branches de travail n'ont pas d'upstream configuré; aucun merge ni historique n'a été réécrit.
+Les branches de travail n'ont pas d'upstream configuré; aucun merge ni historique n'a été réécrit. Les commits sont locaux et distincts par sujet. Aucun push ni PR n'a été créé.
 
 ### Livrables V0.2
 
-Les trois fichiers fournis depuis le dossier Windows ont été copiés et vérifiés dans `docs/rncp/livrables/` : dossier projet, dossier professionnel et support de présentation. Leur intégrité est contrôlée par comparaison de taille et de sommes SHA-256 source/destination. Ils sont prêts pour un commit dédié, pas encore déclarés versionnés avant ce commit.
+Les trois fichiers fournis depuis le dossier Windows ont été copiés, vérifiés par SHA-256 identique source/destination et versionnés dans `docs/rncp/livrables/` par le commit dédié `5aa4280` : dossier projet, dossier professionnel et support de présentation (3/3, V0.2).
 
 ### Configuration locale et secrets historiques
 
-Dans le frontend, `.env` était suivi dans le HEAD (`git ls-files .env`) et sa suppression était staged; son contenu n'a pas été lu. `.gitignore` exclut `.env` et `.env.*`, avec exception pour `.env.example`; ce dernier ne contient que l'URL locale fictive `http://localhost:8080`. Les valeurs historiques éventuelles sont classées potentiellement compromises. La checklist `evidence/security/secret-rotation-checklist.md` marque la rotation du JWT, du mot de passe BDD et du secret SMTP « À CONFIRMER ». Aucun secret n'est reproduit ici. Aucun historique Git n'a été réécrit.
+Dans le frontend, `.env` était suivi dans le HEAD et son retrait est désormais committé (`e0fb23e`); son contenu n'a pas été lu. `.gitignore` exclut `.env` et `.env.*`, avec exception pour `.env.example`; ce dernier ne contient que l'URL locale fictive `http://localhost:8080`. Les valeurs historiques éventuelles sont classées potentiellement compromises. La checklist `evidence/security/secret-rotation-checklist.md` marque la rotation du JWT, du mot de passe BDD et du secret SMTP « À CONFIRMER ». Aucun secret n'est reproduit ici. Aucun historique Git n'a été réécrit.
+
+### Validations après commits
+
+Backend : `./mvnw clean test` **PASS**, 60 comptabilisés, 0 échec/erreur, 5 tests PostgreSQL conditionnels ignorés. Suite réelle PostgreSQL dédiée **PASS 5/5**. Frontend : `npm run lint` **PASS**, 0 erreur et 1 avertissement Hook préexistant dans `Admin.jsx`; `npm test -- --run` **PASS 16/16** (7 fichiers); `npm run build` **PASS**; `npm audit --omit=dev` **0 vulnérabilité**. L'audit npm a dû être relancé hors sandbox après une erreur DNS EAI_AGAIN.
 
 ### Authentification distante et décision de push
 
-`gh auth status` n'est pas valide pour le compte GitHub attendu. Aucun push ni aucune PR ne seront tentés avant rétablissement de l'authentification. En outre, ne pas pousser le dépôt frontend avant confirmation de révocation/rotation des anciennes valeurs potentiellement présentes dans l'historique `.env`. Les commits locaux peuvent être préparés, mais l'état n'est pas encore prêt à pousser.
+`gh auth status` indique que l'authentification du compte `kanga-prog` est invalide. Aucun push ni aucune PR ne seront tentés avant rétablissement de l'authentification. En outre, ne pas pousser le dépôt frontend avant confirmation de révocation/rotation des anciennes valeurs potentiellement présentes dans l'historique `.env`. Les commits backend sont prêts localement; le frontend conserve le changement non committé `updateAvatars.js`. L'état global n'est donc pas prêt à pousser.
