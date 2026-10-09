@@ -37,12 +37,22 @@ public class AuthService {
             return "Email ou mot de passe invalide.";
         }
 
-        if (!user.isAcceptedContract()) {
-            return "Veuillez accepter le contrat WatYouFace pour vous connecter.";
-        }
+        ensureActiveContractAccepted(user);
 
         String role = (user.getRole() != null ? user.getRole().name() : "USER");
         return jwtUtil.generateToken(user.getId(), user.getUsername(), role);
+    }
+
+    /** The authenticated account must have accepted the currently active contract. */
+    public void ensureActiveContractAccepted(User user) {
+        Contract activeContract = contractService.getActiveContract()
+                .orElseThrow(() -> new IllegalStateException("Aucun contrat actif n’est disponible."));
+
+        if (!user.isAcceptedContract()
+                || user.getAcceptedContractVersion() == null
+                || !activeContract.getId().equals(user.getAcceptedContractVersion().getId())) {
+            throw new SecurityException("Veuillez accepter le contrat WatYouFace en vigueur pour vous connecter.");
+        }
     }
 
 

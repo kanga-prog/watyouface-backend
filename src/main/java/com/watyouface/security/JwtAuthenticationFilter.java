@@ -1,30 +1,33 @@
 package com.watyouface.security;
 
 import com.watyouface.service.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
+import jakarta.servlet.http.Cookie;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserService userService;
+    private final boolean allowBearerFallback;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserService userService) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserService userService,
+                                   @Value("${app.security.jwt.allow-bearer-fallback:false}") boolean allowBearerFallback) {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
+        this.allowBearerFallback = allowBearerFallback;
     }
 
     @Override
@@ -47,25 +50,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (AuthCookieFactory.COOKIE_NAME.equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+        // Transitional compatibility only; production profile disables Bearer fallback.
+        if (token == null && allowBearerFallback) {
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) token = authHeader.substring(7);
+        }
+
+        if (token != null) {
 
             if (jwtUtil.validateToken(token)) {
                 Long userId = jwtUtil.extractUserId(token);
-                String role = jwtUtil.extractRole(token);
-
                 if (userId != null) {
                     try {
-                        // (Optionnel mais propre : charger le userDetails)
                         var userDetails = userService.loadUserById(userId);
 
-                        var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
-
-                        // ✅ principal = userId (ownership facile)
                         var authentication = new UsernamePasswordAuthenticationToken(
-                                userId, null, authorities
+                                userId, null, userDetails.getAuthorities()
                         );
 
                         authentication.setDetails(

@@ -1,5 +1,12 @@
 HELP.md
 target/
+.env
+.env.*
+!.env.example
+login.json
+wallet_before.json
+media/
+uploads/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

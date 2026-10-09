@@ -7,6 +7,7 @@ import com.watyouface.entity.enums.ListingStatus;
 import com.watyouface.repository.ListingRepository;
 import com.watyouface.repository.TransactionRepository;
 import com.watyouface.repository.UserRepository;
+import com.watyouface.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,14 +40,14 @@ public class MarketplaceService {
 
     public ListingDTO findById(Long id) {
         Listing listing = listingRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
         return toDTO(listing);
     }
 
     // CREATE => seller = current user
     public ListingDTO createAsSeller(ListingDTO dto, Long sellerId) {
         User seller = userRepository.findById(sellerId)
-                .orElseThrow(() -> new IllegalArgumentException("Vendeur introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Vendeur introuvable"));
 
         Listing listing = new Listing();
         listing.setTitle(dto.title);
@@ -62,7 +63,7 @@ public class MarketplaceService {
     // UPDATE sécurisé
     public ListingDTO updateSecured(Long id, ListingDTO dto, Long actorId, boolean admin) {
         Listing listing = listingRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (!admin && !listing.getSeller().getId().equals(actorId)) {
             throw new SecurityException("Interdit");
@@ -83,7 +84,7 @@ public class MarketplaceService {
     // DELETE sécurisé
     public void deleteSecured(Long id, Long actorId, boolean admin) {
         Listing listing = listingRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (!admin && !listing.getSeller().getId().equals(actorId)) {
             throw new SecurityException("Interdit");
@@ -102,14 +103,14 @@ public class MarketplaceService {
     @Transactional
     public void requestPurchase(Long listingId, Long buyerId, boolean admin) {
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (listing.getStatus() != ListingStatus.AVAILABLE) {
             throw new IllegalStateException("Demande impossible dans l'état " + listing.getStatus());
         }
 
         User buyer = userRepository.findById(buyerId)
-                .orElseThrow(() -> new IllegalArgumentException("Acheteur introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Acheteur introuvable"));
 
         if (!admin && listing.getSeller().getId().equals(buyerId)) {
             throw new IllegalStateException("Vous ne pouvez pas acheter votre propre annonce");
@@ -124,7 +125,7 @@ public class MarketplaceService {
     @Transactional
     public void accept(Long listingId, Long actorId, boolean admin) {
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (!admin && !listing.getSeller().getId().equals(actorId)) {
             throw new SecurityException("Interdit");
@@ -146,7 +147,7 @@ public class MarketplaceService {
     @Transactional
     public void refuse(Long listingId, Long actorId, boolean admin) {
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (!admin && !listing.getSeller().getId().equals(actorId)) {
             throw new SecurityException("Interdit");
@@ -165,7 +166,7 @@ public class MarketplaceService {
     public void paySecured(Long listingId, Long buyerId, boolean admin) {
 
         Listing listing = listingRepository.findByIdForUpdate(listingId)
-                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (listing.getStatus() != ListingStatus.ACCEPTED) {
             throw new IllegalStateException("Paiement impossible dans l'état " + listing.getStatus());
@@ -195,7 +196,7 @@ public class MarketplaceService {
     @Transactional
     public void ship(Long listingId, Long actorId, boolean admin) {
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (!admin && !listing.getSeller().getId().equals(actorId)) {
             throw new SecurityException("Interdit");
@@ -213,7 +214,7 @@ public class MarketplaceService {
     @Transactional
     public void receive(Long listingId, Long buyerId, boolean admin) {
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new IllegalArgumentException("Annonce introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (listing.getStatus() != ListingStatus.SHIPPED) {
             throw new IllegalStateException("Réception impossible dans l'état " + listing.getStatus());

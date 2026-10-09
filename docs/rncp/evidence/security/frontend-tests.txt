@@ -1,0 +1,8 @@
+RNCP6 Phase 11 — preuves frontend (08/10/2026)
+
+npm run lint: PASS
+npm test -- --run: PASS — 14 tests dans 6 fichiers
+npm run build: PASS — Vite 7.3.7.
+npm audit: PASS — 0 vulnérabilité après correctifs compatibles, sans --force.
+npm audit --omit=dev: PASS — 0 vulnérabilité runtime.
+Le registre/advisory database était accessible lors des audits finaux du 08/10/2026. Voir aussi le détail avant/après dans le dépôt frontend, docs/rncp/evidence/security/.

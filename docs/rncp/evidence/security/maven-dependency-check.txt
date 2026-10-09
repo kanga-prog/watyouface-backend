@@ -1,0 +1,6 @@
+OWASP Dependency-Check Maven — 2026-10-08
+Command: ./mvnw org.owasp:dependency-check-maven:check
+Plugin: org.owasp:dependency-check-maven:13.0.0 (invocation ponctuelle; pom.xml non modifié)
+Result: BLOCKED before dependency analysis; no vulnerability count/CVE result produced.
+Cause: NVD update failed because no NVD API key was supplied (NvdApiException: Invalid API Key, length of 0 too short), followed by NoDataException: No documents exist. The plugin also reported one or more cached web data sources could not update and local data might be stale.
+Interpretation: this is a scanner/data-feed configuration blocker, not a vulnerability finding. Maven dependency exposure remains unevaluated; rerun with a valid NVD API key configured outside the repository.

@@ -14,11 +14,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/comments")
-@CrossOrigin(origins = "*")
 public class CommentController {
+
+    private static final Logger log = LoggerFactory.getLogger(CommentController.class);
 
     @Autowired
     private CommentService commentService;
@@ -79,7 +82,8 @@ public class CommentController {
         } catch (SecurityException e) {
             return ResponseEntity.status(401).body("Non authentifié");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Erreur lors de l’ajout du commentaire : " + e.getMessage());
+            log.error("Comment creation failed ({})", e.getClass().getSimpleName());
+            return ResponseEntity.status(500).body("Erreur interne");
         }
     }
 

@@ -8,11 +8,13 @@ import com.watyouface.repository.ConversationRepository;
 import com.watyouface.repository.UserRepository;
 import com.watyouface.security.Authz;
 import com.watyouface.service.MessageService;
+import com.watyouface.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -53,8 +55,11 @@ public class MessageController {
                                      @RequestParam(defaultValue = "0") int page,
                                      @RequestParam(defaultValue = "50") int size) {
         Long userId = authz.me();
+        if (!conversationRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Conversation introuvable");
+        }
         if (!conversationRepository.existsByIdAndParticipants_User_Id(id, userId)) {
-            throw new RuntimeException("Utilisateur non autorisé");
+            throw new SecurityException("Interdit");
         }
         return messageService.fetchMessages(id, page, size);
     }
@@ -63,9 +68,12 @@ public class MessageController {
     @PostMapping("/conversations/{id}")
     public ResponseEntity<MessageDTO> postMessage(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body
+            @Valid @RequestBody MessageDTO body
     ) {
         Long userId = authz.me();
+        if (!conversationRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Conversation introuvable");
+        }
 
         Optional<User> uOpt = userRepository.findById(userId);
         if (uOpt.isEmpty()) return ResponseEntity.notFound().build();
@@ -77,7 +85,7 @@ public class MessageController {
         }
 
         // ⚡ sendMessage retourne maintenant une LISTE (pour groupes)
-        List<Message> messages = messageService.sendMessage(id, userId, body.get("content"));
+        List<Message> messages = messageService.sendMessage(id, userId, body.getContent());
 
         // 🔹 On renvoie au REST SEULEMENT le message du sender (le sien)
         Message senderMessage = messages.get(0);
@@ -95,6 +103,9 @@ public class MessageController {
     @GetMapping("/conversations/{id}/messages")
     public ResponseEntity<List<MessageDTO>> getMessagesByConversation(@PathVariable Long id) {
         Long userId = authz.me();
+        if (!conversationRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Conversation introuvable");
+        }
         if (!conversationRepository.existsByIdAndParticipants_User_Id(id, userId)) {
             return ResponseEntity.status(403).build();
         }
@@ -106,8 +117,14 @@ public class MessageController {
     // 🔹 Endpoint debug / récupération complète
     @GetMapping("/{conversationId}/all")
     public ResponseEntity<List<MessageDTO>> getMessagesRest(@PathVariable Long conversationId) {
+        Long userId = authz.me();
+        if (!conversationRepository.existsById(conversationId)) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!conversationRepository.existsByIdAndParticipants_User_Id(conversationId, userId)) {
+            return ResponseEntity.status(403).build();
+        }
         List<MessageDTO> list = messageService.findByConversation(conversationId);
-        System.out.println("DEBUG messages: " + list);
         return ResponseEntity.ok(list);
     }
 }

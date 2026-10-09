@@ -1,0 +1,10 @@
+RNCP WatYouFace — résultats de tests backend
+Date : 08/10/2026
+
+Baseline avant Phase 10B : ./mvnw clean test — 23 tests PASS.
+
+Suite générale finale : ./mvnw clean test — BUILD SUCCESS, 35 tests, 30 PASS, 0 FAIL, 0 ERROR, 5 SKIP. Les 5 ignorés sont les tests PostgreSQL conditionnels, car cette suite garde les tests MockMvc sous H2.
+
+Suite PostgreSQL dédiée : ./mvnw -Dtest=PostgresPaymentIntegrationTests test — BUILD SUCCESS, 5 tests, 5 PASS, 0 FAIL, 0 ERROR, 0 SKIP; PostgreSQL local 16.15.
+
+La variable de connexion et le secret de test ne sont pas consignés. Les résultats H2 et PostgreSQL sont distincts; les scénarios STOMP sont des tests composant sans broker E2E.

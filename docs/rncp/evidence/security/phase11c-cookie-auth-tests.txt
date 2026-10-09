@@ -1,0 +1,23 @@
+RNCP6 Phase 11C — preuve tests auth cookie/CSRF
+Date : 2026-10-09
+
+Commande : ./mvnw -Dtest=CookieAuthenticationIntegrationTests,AuthCookieFactoryTests,CookieJwtHandshakeTests,SecurityApiIntegrationTests,StompAuthorizationTests test
+Résultat : BUILD SUCCESS
+Tests : 35 exécutés, 0 échec, 0 erreur, 0 ignoré.
+
+CookieAuthenticationIntegrationTests : 10/10
+- Set-Cookie au login, absence de JWT dans le JSON, HttpOnly, Path, SameSite et durée cohérente.
+- Authentification d'une route protégée via cookie; absence, valeur invalide et JWT expiré refusés.
+- Logout expire le cookie; préflight CORS credentials; CSRF absent refusé et CSRF présent accepté.
+- Bearer refusé lorsque le fallback est désactivé.
+
+AuthCookieFactoryTests : 2/2
+- Attributs locaux et Secure; rejet de SameSite=None sans Secure.
+
+CookieJwtHandshakeTests : 1/1
+- Le cookie du handshake établit un principal à partir de l'identité chargée depuis la base.
+
+SecurityApiIntegrationTests : 18/18; StompAuthorizationTests : 4/4.
+
+Limite : tests automatisés backend; ils ne remplacent pas l'inspection DevTools d'un navigateur réel.
+Cette preuve ne contient aucun JWT, secret, mot de passe ou donnée personnelle réelle.

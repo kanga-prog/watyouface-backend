@@ -1,0 +1,9 @@
+RNCP6 — démarrage backend dev
+Date : 08/10/2026
+Profil : dev (H2 mémoire)
+Port : 8081
+Résultat : Spring Boot a démarré, Tomcat a écouté sur 8081 et le broker STOMP a démarré.
+Vérification : GET /api/contracts/active → HTTP 200.
+Source d'exécution : démarrage autorisé hors sandbox après que le sandbox eut refusé le bind TCP.
+Le secret JWT de démonstration utilisé pour ce lancement n'est pas consigné.
+Le processus a été arrêté proprement après vérification.

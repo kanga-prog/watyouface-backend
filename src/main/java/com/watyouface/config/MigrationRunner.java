@@ -8,9 +8,13 @@ import org.springframework.stereotype.Component;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class MigrationRunner implements CommandLineRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(MigrationRunner.class);
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -20,11 +24,11 @@ public class MigrationRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        System.out.println("✅ Vérification de la migration des entités dans PostgreSQL...");
+        log.info("Checking JPA entity mappings");
 
         // Lister toutes les entités détectées par JPA
         entityManager.getEntityManagerFactory().getMetamodel().getEntities()
-                .forEach(entity -> System.out.println("📦 Entité détectée : " + entity.getName()));
+                .forEach(entity -> log.debug("JPA entity detected: {}", entity.getName()));
 
         // Vérifier si un contrat actif existe déjà
         if (contractRepository.findByActiveTrue().isEmpty()) {
@@ -35,9 +39,9 @@ public class MigrationRunner implements CommandLineRunner {
             contract.setActive(true);
 
             contractRepository.save(contract);
-            System.out.println("✅ Contrat initial créé et actif !");
+            log.info("Initial active contract created");
         } else {
-            System.out.println("ℹ️ Un contrat actif existe déjà, aucune création nécessaire.");
+            log.info("An active contract already exists");
         }
     }
 }
