@@ -1,6 +1,8 @@
 package com.watyouface.dto;
 
 import com.watyouface.entity.Message;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
 
 public class MessageDTO {
@@ -9,6 +11,8 @@ public class MessageDTO {
     private Long senderId;
     private String senderUsername;
     private String senderAvatarUrl; // ✅ nouvel attribut
+    @NotBlank(message = "Le message ne peut pas être vide")
+    @Size(max = 2000, message = "Le message ne peut pas dépasser 2000 caractères")
     private String content;
     private Instant sentAt;
 

@@ -1,12 +1,12 @@
 package com.watyouface.controller;
 
 import com.watyouface.dto.WalletDTO;
+import com.watyouface.dto.WalletCreditRequest;
 import com.watyouface.entity.Wallet;
 import com.watyouface.security.Authz;
 import com.watyouface.service.WalletService;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/wallet")
@@ -37,18 +37,15 @@ public class WalletController {
     }
 
     /**
-     * ✅ Recharge wallet (mode démo)
+     * Recharge wallet réservée aux administrateurs en environnement de démonstration.
      * Body: {"amount": 100}
      */
     @PostMapping("/me/credit")
-    public WalletDTO creditMe(@RequestBody Map<String, Object> body) {
+    public WalletDTO creditMe(@Valid @RequestBody WalletCreditRequest body) {
         Long me = authz.me();
-        Double amount = null;
-        Object v = body.get("amount");
-        if (v instanceof Number n) amount = n.doubleValue();
-        if (amount == null) throw new IllegalArgumentException("amount requis");
+        if (!authz.isAdmin()) throw new SecurityException("Admin only");
 
-        Wallet w = walletService.credit(me, amount);
+        Wallet w = walletService.credit(me, body.getAmount());
         return new WalletDTO(me, w.getBalance());
     }
 }

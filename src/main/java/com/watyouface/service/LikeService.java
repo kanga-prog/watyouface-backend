@@ -22,13 +22,16 @@ public class LikeService {
         this.userRepository = userRepository;
     }
 
-    public boolean toggleLike(Post post, Video video, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+    public boolean toggleLike(Post post, Video video, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
 
         Optional<Like> existingLike;
 
         if (post != null) {
+            if (post.getAuthor() != null && post.getAuthor().getId().equals(user.getId())) {
+                throw new SecurityException("Vous ne pouvez pas aimer votre propre publication");
+            }
             existingLike = likeRepository.findByPostAndUser(post, user);
         } else if (video != null) {
             existingLike = likeRepository.findByVideoAndUser(video, user);
@@ -54,10 +57,10 @@ public class LikeService {
     }
 
     public Like createLike(Like like) {
-        return likeRepository.save(like);
+        throw new UnsupportedOperationException("Endpoint legacy Like désactivé");
     }
 
     public void deleteLike(Long id) {
-        likeRepository.deleteById(id);
+        throw new UnsupportedOperationException("Endpoint legacy Like désactivé");
     }
 }

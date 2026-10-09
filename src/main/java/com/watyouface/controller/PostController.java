@@ -13,11 +13,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/posts")
-@CrossOrigin(origins = "*")
 public class PostController {
+
+    private static final Logger log = LoggerFactory.getLogger(PostController.class);
 
     @Autowired
     private PostService postService;
@@ -65,7 +68,7 @@ public class PostController {
             }).collect(Collectors.toList());
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Post feed request failed ({})", e.getClass().getSimpleName());
             return new ArrayList<>();
         }
     }
@@ -109,7 +112,7 @@ public class PostController {
             return ResponseEntity.ok(dto);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Post lookup failed ({})", e.getClass().getSimpleName());
             return ResponseEntity.status(500).build();
         }
     }
@@ -155,8 +158,10 @@ public class PostController {
 
         } catch (SecurityException e) {
             return ResponseEntity.status(401).build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Post creation failed ({})", e.getClass().getSimpleName());
             return ResponseEntity.status(500).build();
         }
     }
@@ -178,7 +183,7 @@ public class PostController {
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Post deletion failed ({})", e.getClass().getSimpleName());
             return ResponseEntity.status(500).body("Erreur serveur");
         }
     }
@@ -225,7 +230,7 @@ public class PostController {
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Post update failed ({})", e.getClass().getSimpleName());
             return ResponseEntity.status(500).body("Erreur serveur");
         }
     }

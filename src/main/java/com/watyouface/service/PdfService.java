@@ -9,6 +9,8 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -18,6 +20,8 @@ import java.util.List;
 
 @Service
 public class PdfService {
+
+    private static final Logger log = LoggerFactory.getLogger(PdfService.class);
 
     private static final float MARGIN = 50;
     private static final float FONT_SIZE = 12;
@@ -96,7 +100,7 @@ public class PdfService {
             return new ByteArrayInputStream(out.toByteArray());
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Contract PDF generation failed ({})", e.getClass().getSimpleName());
             return null;
         }
     }

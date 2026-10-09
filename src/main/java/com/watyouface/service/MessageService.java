@@ -7,6 +7,7 @@ import com.watyouface.repository.MessageRepository;
 import com.watyouface.repository.ConversationRepository;
 import com.watyouface.repository.UserRepository;
 import com.watyouface.dto.MessageDTO;
+import com.watyouface.exception.ResourceNotFoundException;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +34,23 @@ public class MessageService {
 
     @Transactional
     public List<Message> sendMessage(Long conversationId, Long senderId, String content) {
+
+        if (conversationId == null) {
+            throw new IllegalArgumentException("La conversation est obligatoire");
+        }
+        if (content == null || content.isBlank()) {
+            throw new IllegalArgumentException("Le message ne peut pas être vide");
+        }
+        if (content.length() > 2000) {
+            throw new IllegalArgumentException("Le message ne peut pas dépasser 2000 caractères");
+        }
+
+        if (!convRepo.existsById(conversationId)) {
+            throw new ResourceNotFoundException("Conversation introuvable");
+        }
+        if (!convRepo.existsByIdAndParticipants_User_Id(conversationId, senderId)) {
+            throw new SecurityException("Interdit");
+        }
 
         Conversation conv = convRepo.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));

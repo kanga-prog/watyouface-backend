@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.validation.Valid;
 
 import java.io.IOException;
 import java.util.List;
@@ -15,7 +16,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/marketplace/listings")
-@CrossOrigin(origins = "*")
 public class MarketplaceController {
 
     private final MarketplaceService marketplaceService;
@@ -41,13 +41,13 @@ public class MarketplaceController {
     }
 
     @PostMapping
-    public ListingDTO create(@RequestBody ListingDTO dto) {
+    public ListingDTO create(@Valid @RequestBody ListingDTO dto) {
         Long sellerId = authz.me();
         return marketplaceService.createAsSeller(dto, sellerId);
     }
 
     @PutMapping("/{id}")
-    public ListingDTO update(@PathVariable Long id, @RequestBody ListingDTO dto) {
+    public ListingDTO update(@PathVariable Long id, @Valid @RequestBody ListingDTO dto) {
         Long me = authz.me();
         boolean isAdmin = authz.isAdmin();
         return marketplaceService.updateSecured(id, dto, me, isAdmin);

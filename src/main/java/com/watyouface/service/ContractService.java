@@ -37,7 +37,7 @@ public class ContractService {
 
     /** 🔹 Accepter ou refuser un contrat */
     @Transactional
-    public String acceptContract(Long userId, Long contractId, boolean accepted) {
+    public String acceptContractForUser(Long userId, Long contractId, boolean accepted) {
         Optional<User> userOpt = userRepository.findById(userId);
         Optional<Contract> contractOpt = contractRepository.findById(contractId);
 

@@ -9,10 +9,13 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.List;
 
 @Controller
+@Validated
 public class ChatController {
     private final MessageService messageService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -23,7 +26,7 @@ public class ChatController {
     }
 
     @MessageMapping("/chat.sendMessage")
-    public void sendMessage(@Payload MessageDTO incoming, Principal principal) {
+    public void sendMessage(@Valid @Payload MessageDTO incoming, Principal principal) {
 
         if (!(principal instanceof StompPrincipal)) {
             return;

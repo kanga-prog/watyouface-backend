@@ -4,8 +4,10 @@ import com.watyouface.entity.Video;
 import com.watyouface.entity.VideoShare;
 import com.watyouface.media.VideoService;
 import com.watyouface.security.Authz;
+import com.watyouface.dto.VideoTitleUpdateRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -25,8 +27,7 @@ public class VideoController {
     // 🔹 Créer une vidéo
     @PostMapping
     public ResponseEntity<Video> createVideo(@RequestBody Video video) {
-        authz.me(); // exiger auth (si voulu)
-        return ResponseEntity.ok(videoService.createVideo(video));
+        return ResponseEntity.ok(videoService.createVideoAs(video, authz.me()));
     }
 
     // 🔹 Récupérer toutes les vidéos
@@ -48,9 +49,8 @@ public class VideoController {
     // 🔹 Supprimer une vidéo
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteVideo(@PathVariable Long id) {
-        authz.me(); // ou owner/admin si tu as un owner sur Video (idéalement à faire côté service)
-        videoService.deleteVideo(id);
-        return ResponseEntity.ok().build();
+        videoService.deleteVideoAs(id, authz.me(), authz.isAdmin());
+        return ResponseEntity.noContent().build();
     }
 
     // 🔹 Partager une vidéo (sender = user connecté)
@@ -80,17 +80,9 @@ public class VideoController {
 
     // 🔹 Mettre à jour le titre d'une vidéo
     @PatchMapping("/{id}")
-    public ResponseEntity<Video> updateVideoTitle(@PathVariable Long id, @RequestBody Map<String, String> request) {
-        authz.me(); // ou owner/admin si tu as un owner sur Video (à faire côté service)
-        String newTitle = request.get("title");
-
-        Video video = videoService.getAllVideos().stream()
-                .filter(v -> v.getId().equals(id))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Vidéo non trouvée"));
-
-        video.setTitle(newTitle);
-        return ResponseEntity.ok(videoService.createVideo(video));
+    public ResponseEntity<Video> updateVideoTitle(@PathVariable Long id, @Valid @RequestBody VideoTitleUpdateRequest request) {
+        return ResponseEntity.ok(videoService.updateTitleAs(
+                id, request.getTitle(), authz.me(), authz.isAdmin()));
     }
 
     // 🔹 Rechercher par titre (partiel)

@@ -2,9 +2,11 @@ package com.watyouface.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,11 +14,22 @@ import java.util.Map;
 @Component
 public class JwtUtil {
 
-    private static final String SECRET_KEY = "MySuperSecretKeyForJWTsThatIsVeryLong12345!";
     private static final long EXPIRATION_TIME = 86400000; // 1 jour
+    private final String secretKey;
+
+    public JwtUtil(@Value("${app.jwt.secret:}") String secretKey) {
+        if (secretKey == null || secretKey.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalArgumentException("JWT_SECRET must contain at least 32 bytes");
+        }
+        this.secretKey = secretKey;
+    }
+
+    public java.time.Duration getExpirationDuration() {
+        return java.time.Duration.ofMillis(EXPIRATION_TIME);
+    }
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(Long userId, String username, String role) {

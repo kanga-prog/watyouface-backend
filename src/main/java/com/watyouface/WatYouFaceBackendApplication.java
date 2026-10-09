@@ -3,6 +3,8 @@ package com.watyouface;
 import jakarta.annotation.PostConstruct;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,6 +27,8 @@ import java.nio.file.Paths;
 )
 public class WatYouFaceBackendApplication {
 
+    private static final Logger log = LoggerFactory.getLogger(WatYouFaceBackendApplication.class);
+
     public static void main(String[] args) {
         SpringApplication.run(WatYouFaceBackendApplication.class, args);
     }
@@ -46,8 +50,7 @@ public class WatYouFaceBackendApplication {
             Files.createDirectories(avatarsDir);
         }
 
-        System.out.println("📁 Dossier media/avatars résolu : " + avatarsDir);
-        System.out.println("📂 Existe ? " + Files.exists(avatarsDir));
+        log.info("Media avatar directory initialized (exists={})", Files.exists(avatarsDir));
 
         // Crée / copie le default.png si absent
         Path defaultAvatar = avatarsDir.resolve("default.png");
@@ -59,12 +62,12 @@ public class WatYouFaceBackendApplication {
 
                 if (Files.exists(packaged)) {
                     Files.copy(packaged, defaultAvatar);
-                    System.out.println("✅ default.png copié dans media/avatars");
+                    log.info("Default avatar initialized");
                 } else {
-                    System.out.println("ℹ️ default.png introuvable dans resources/static — ajoute une image par défaut si tu veux.");
+                    log.warn("Default avatar resource is not available");
                 }
             } catch (Exception e) {
-                System.out.println("Erreur lors de la copie du default avatar: " + e.getMessage());
+                log.error("Default avatar initialization failed ({})", e.getClass().getSimpleName());
             }
         }
     }

@@ -8,6 +8,7 @@ import com.watyouface.repository.VideoRepository;
 import com.watyouface.service.LikeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -56,32 +57,32 @@ public class LikeController {
             return ResponseEntity.badRequest().body("postId ou videoId manquant");
         }
 
-        String username = principal != null ? principal.getName() : "anonymous";
-        boolean liked = likeService.toggleLike(post, video, username);
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        Long userId;
+        try {
+            userId = Long.valueOf(principal.getName());
+        } catch (NumberFormatException invalidPrincipal) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        boolean liked = likeService.toggleLike(post, video, userId);
 
         if (liked) {
-            return ResponseEntity.ok("✅ Liked by " + username);
+            return ResponseEntity.ok("Like ajouté");
         } else {
-            return ResponseEntity.ok("❌ Like removed by " + username);
+            return ResponseEntity.ok("Like retiré");
         }
     }
 
-    // Ancien endpoint pour ajouter like directement (optionnel)
+    // Legacy routes are intentionally disabled: they accepted a client-controlled Like body.
     @PostMapping("/post/{postId}")
-    public ResponseEntity<?> addLikeToPost(@PathVariable Long postId, @RequestBody Like like) {
-        Optional<Post> postOpt = postRepository.findById(postId);
-        if (postOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        like.setPost(postOpt.get());
-        Like savedLike = likeService.createLike(like);
-        return ResponseEntity.ok(savedLike);
+    public ResponseEntity<?> addLikeToPost(@PathVariable Long postId) {
+        return ResponseEntity.status(HttpStatus.GONE).body(Map.of("error", "Endpoint legacy désactivé ; utilisez /api/likes/toggle"));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteLike(@PathVariable Long id) {
-        likeService.deleteLike(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.status(HttpStatus.GONE).build();
     }
 }

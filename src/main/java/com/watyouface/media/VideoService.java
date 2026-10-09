@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class VideoService {
@@ -60,17 +61,23 @@ public class VideoService {
                 outputPath
         );
 
-        pb.redirectErrorStream(true);
+        pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+        pb.redirectError(ProcessBuilder.Redirect.DISCARD);
         Process process = pb.start();
-        String log = new String(process.getInputStream().readAllBytes());
-        int code = process.waitFor();
+        boolean completed = process.waitFor(120, TimeUnit.SECONDS);
+        if (!completed) {
+            process.destroyForcibly();
+            originalFile.delete();
+            throw new IllegalArgumentException("Traitement vidéo interrompu (délai dépassé)");
+        }
+        int code = process.exitValue();
 
         if (code != 0) {
-            throw new RuntimeException("ffmpeg a échoué (code " + code + "):\n" + log);
+            originalFile.delete();
+            throw new IllegalArgumentException("Vidéo invalide ou transcodage impossible");
         }
 
-        // optionnel: supprimer le raw si tout OK
-        // originalFile.delete();
+        originalFile.delete();
 
         return storage.publicUrl(outputRelative); // "/media/videos/post_<id>.mp4"
     }
@@ -84,8 +91,36 @@ public class VideoService {
         return videoRepository.save(video); 
     }
 
-    public void deleteVideo(Long id) { 
-        videoRepository.deleteById(id); 
+    public Video createVideoAs(Video video, Long uploaderId) {
+        User uploader = userRepository.findById(uploaderId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+        video.setUploader(uploader);
+        return videoRepository.save(video);
+    }
+
+    public Video getVideoOrThrow(Long id) {
+        return videoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vidéo non trouvée"));
+    }
+
+    public Video updateTitleAs(Long id, String title, Long actorId, boolean isAdmin) {
+        Video video = getVideoOrThrow(id);
+        assertOwnerOrAdmin(video, actorId, isAdmin);
+        video.setTitle(title.trim());
+        return videoRepository.save(video);
+    }
+
+    public void deleteVideoAs(Long id, Long actorId, boolean isAdmin) {
+        Video video = getVideoOrThrow(id);
+        assertOwnerOrAdmin(video, actorId, isAdmin);
+        videoRepository.delete(video);
+    }
+
+    private void assertOwnerOrAdmin(Video video, Long actorId, boolean isAdmin) {
+        Long uploaderId = video.getUploader() != null ? video.getUploader().getId() : null;
+        if (!isAdmin && (uploaderId == null || !uploaderId.equals(actorId))) {
+            throw new SecurityException("Interdit");
+        }
     }
 
     // 🔹 Partage réel d'une vidéo

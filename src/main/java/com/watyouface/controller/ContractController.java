@@ -7,15 +7,16 @@ import com.watyouface.entity.User;
 import com.watyouface.service.ContractService;
 import com.watyouface.service.PdfService;
 import com.watyouface.service.UserService;
-import com.watyouface.security.JwtUtil;
+import com.watyouface.security.Authz;
+import com.watyouface.dto.ContractAcceptanceRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.Optional;
@@ -34,7 +35,7 @@ public class ContractController {
     private UserService userService;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private Authz authz;
 
     /** 🔹 Voir le contrat actif (public) */
     @GetMapping("/active")
@@ -52,50 +53,22 @@ public class ContractController {
         ));
     }
 
-    /** 🔹 Accepter ou refuser le contrat (public) */
+    /** Accepter ou refuser le contrat de l'utilisateur authentifié. */
     @PostMapping("/accept")
-    public ResponseEntity<String> acceptContract(@RequestBody Map<String, Object> req) {
+    public ResponseEntity<String> acceptContract(@Valid @RequestBody ContractAcceptanceRequest req) {
         try {
-            Long userId = Long.valueOf(req.get("userId").toString());
-            Long contractId = Long.valueOf(req.get("contractId").toString());
-            boolean accepted = Boolean.parseBoolean(req.get("accepted").toString());
-
-            String result = contractService.acceptContract(userId, contractId, accepted);
+            Long userId = authz.me();
+            String result = contractService.acceptContractForUser(userId, req.getContractId(), req.isAccepted());
             return ResponseEntity.ok(result);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.status(400).body("Erreur lors de la validation du contrat : " + e.getMessage());
         }
     }
     /** 🔹 Télécharger le contrat actif en PDF (sécurisé) */
     @GetMapping("/{id}/download")
-    public ResponseEntity<InputStreamResource> downloadContract(
-            @PathVariable Long id,
-            HttpServletRequest request) {
-
-        // 🔐 1. Extraire le token depuis l'header Authorization
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).build();
-        }
-        String token = bearerToken.substring(7); // Supprime "Bearer "
-
-        // 🔐 2. Valider le token
-        if (!jwtUtil.validateToken(token)) {
-            return ResponseEntity.status(401).build();
-        }
-
-        // 👤 3. Extraire le userId du token
-        Long userId;
-        try {
-            userId = jwtUtil.extractUserId(token);
-            if (userId == null) {
-                return ResponseEntity.status(401).build();
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(401).build();
-        }
-
-        // 👤 4. Trouver l'utilisateur par ID
+    public ResponseEntity<InputStreamResource> downloadContract(@PathVariable Long id) {
+        // Identity is derived from the authenticated cookie/bearer filter principal.
+        Long userId = authz.me();
         Optional<User> userOpt = userService.findById(userId);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404).build();
