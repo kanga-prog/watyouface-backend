@@ -89,6 +89,32 @@ class CookieAuthenticationIntegrationTests {
     }
 
     @Test
+    void loginCookiePersistsAcrossRequestsAndClearedCookieIsRejectedAfterLogout() throws Exception {
+        MvcResult login = loginWithCsrf();
+        Cookie auth = cookieFromSetCookie(login.getResponse().getHeader("Set-Cookie"), AuthCookieFactory.COOKIE_NAME);
+
+        mvc.perform(get("/api/users/me").cookie(auth))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(user.getUsername()));
+        mvc.perform(get("/api/users/me").cookie(auth))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(user.getUsername()));
+
+        MvcResult csrf = csrfToken();
+        MvcResult logout = mvc.perform(post("/api/auth/logout")
+                        .cookie(csrfCookie(csrf))
+                        .header("X-XSRF-TOKEN", csrfValue(csrf)))
+                .andExpect(status().isNoContent())
+                .andReturn();
+        String clearedSetCookie = logout.getResponse().getHeader("Set-Cookie");
+        assertThat(clearedSetCookie).contains("WATYOUFACE_AUTH=", "Max-Age=0", "Path=/", "HttpOnly", "SameSite=Lax");
+
+        Cookie clearedAuth = cookieFromSetCookie(clearedSetCookie, AuthCookieFactory.COOKIE_NAME);
+        mvc.perform(get("/api/users/me").cookie(clearedAuth))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void protectedRouteWithoutCookieReturnsUnauthorized() throws Exception {
         mvc.perform(get("/api/users/me")).andExpect(status().isUnauthorized());
     }
