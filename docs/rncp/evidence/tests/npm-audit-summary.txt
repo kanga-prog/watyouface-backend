@@ -1,0 +1,5 @@
+RNCP6 Phase 12 — résumé audit dépendances runtime
+Date : 09/10/2026
+Commande : npm audit --omit=dev
+Résultat : 0 vulnérabilité.
+Le premier essai sandbox n’a pas résolu le registry; le rejeu avec accès réseau autorisé a abouti au résultat ci-dessus.

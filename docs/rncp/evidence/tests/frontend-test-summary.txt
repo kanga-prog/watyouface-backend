@@ -1,0 +1,8 @@
+RNCP6 Phase 12 — résumé tests frontend
+Date : 09/10/2026
+Commande : npm test -- --run
+Résultat : PASS
+Fichiers de test : 7 passed
+Tests : 16 passed
+Framework : Vitest avec jsdom
+Limite : tests composants/transport; aucun E2E navigateur automatisé recensé.
