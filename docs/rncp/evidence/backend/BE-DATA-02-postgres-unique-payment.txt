@@ -1,0 +1,11 @@
+RNCP WatYouFace — preuve contrainte PostgreSQL anti-double-paiement
+Date : 08/10/2026
+Base : watyouface_db (PostgreSQL 16.15)
+Migration : src/main/resources/db/manual/V1__unique_transaction_listing.sql
+
+Précontrôle avant application : 11 lignes transaction; 11 listing_id distincts; aucun doublon.
+Résultat catalogue : contrainte uq_transaction_listing_id de type UNIQUE sur listing_id présente.
+Test contrôlé : tentative d'une deuxième transaction pour le même listing rejetée par PostgreSQL, SQLSTATE 23505; aucune ligne supplémentaire persistée.
+Résultat test d'intégration : postgresUniqueConstraintRejectsDuplicatePaymentRows PASS.
+
+La vérification de doublon a été exécutée dans un scénario contrôlé puis annulé/nettoyé. Aucun secret n'est consigné.

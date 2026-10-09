@@ -1,0 +1,16 @@
+RNCP WatYouFace — preuve tests paiement PostgreSQL
+Date : 08/10/2026
+Base : watyouface_db (PostgreSQL 16.15), profil local
+Commande : ./mvnw -Dtest=PostgresPaymentIntegrationTests test
+Résultat : BUILD SUCCESS — 5 tests, 5 réussis, 0 échec, 0 erreur, 0 ignoré.
+
+Scénarios :
+- paymentCommitsWalletsTransactionAndListingStateInPostgres : PASS
+- paymentFailureAfterTransferRollsBackAllPostgresWrites : PASS
+- postgresUniqueConstraintRejectsDuplicatePaymentRows : PASS
+- concurrentPaymentAttemptsProduceExactlyOneCommittedPayment : PASS
+- insufficientBalanceLeavesPostgresPaymentUnchanged : PASS
+
+Le test concurrent observe une seule opération gagnante. Après commit : listing PAID, acheteur débité une fois, vendeur crédité une fois, une transaction liée. Le test de rollback injecte une erreur après le transfert puis vérifie l'état ACCEPTED, les soldes initiaux et l'absence de transaction. Le solde insuffisant est persisté avant le test; le paiement est rejeté et aucun état n'est modifié.
+
+Fixtures à noms aléatoires supprimées après chaque scénario. Aucun identifiant de compte de démonstration, mot de passe, jeton ou secret n'est consigné.

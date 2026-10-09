@@ -1,0 +1,7 @@
+RNCP6 — intégrité paiement démo
+Date : 08/10/2026
+Test : `SecurityApiIntegrationTests.databaseRejectsMoreThanOneTransactionForAListing`
+Base : H2 mémoire créée par le profil dev/test.
+Résultat : une première transaction est insérée; la seconde pour le même listing est rejetée par la contrainte unique (SQLState 23505).
+Limite : ce résultat ne prouve pas l'application de la migration sur PostgreSQL. Le serveur PostgreSQL local n'était pas joignable.
+Migration manuelle fournie : `src/main/resources/db/manual/V1__unique_transaction_listing.sql`.

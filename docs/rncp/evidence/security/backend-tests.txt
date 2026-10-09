@@ -1,0 +1,14 @@
+RNCP6 Phase 11 — preuves backend (08/10/2026)
+
+Commande finale Phase 11B: ./mvnw clean test
+Résultat: BUILD SUCCESS
+Tests comptabilisés: 47; 0 échec; 0 erreur; 5 ignorés (tests PostgreSQL conditionnels hors exécution dédiée).
+Tests effectivement exécutés/passés: 42.
+Couverture: services, MockMvc/JWT, CORS/headers, transitions, validation, autorisations et intercepteur STOMP.
+
+Commande PostgreSQL dédiée: ./mvnw -Dtest=PostgresPaymentIntegrationTests test avec variables de connexion de test définies dans l'environnement du processus (aucune valeur archivée).
+Profil local; aucune valeur sensible archivée.
+Résultat Phase 11B: BUILD SUCCESS — PostgreSQL 16, 5 tests, 0 échec, 0 erreur, 0 ignoré.
+Couverture: commit paiement, rollback après échec forcé, solde insuffisant, contrainte unique, paiements concurrents (un seul succès).
+
+Fixtures suffixées aléatoirement puis nettoyées par chaque test. Aucun secret/JWT archivé.

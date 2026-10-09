@@ -1,0 +1,10 @@
+RNCP6 Phase 11C — preuve frontend
+Date : 2026-10-09
+
+Projet : /home/kanga_prog_unix/watyouface-frontend
+
+`npm run lint` : exit 0; 0 erreur, 1 avertissement `react-hooks/exhaustive-deps` préexistant dans `src/pages/Admin.jsx`.
+`npm test -- --run` : exit 0; 7 fichiers de test, 16 tests PASS.
+`npm run build` : exit 0; Vite build réussi (1900 modules transformés).
+
+La validation automatique ne constitue pas une recette navigateur réelle.

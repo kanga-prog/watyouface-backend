@@ -1,0 +1,16 @@
+RNCP6 Phase 11C — preuve tests PostgreSQL
+Date : 2026-10-09
+
+Commande : ./mvnw -Dtest=PostgresPaymentIntegrationTests test
+Profil : local
+Résultat : BUILD SUCCESS
+Tests : 5 exécutés, 0 échec, 0 erreur, 0 ignoré.
+
+Les tests ont utilisé la base locale watyouface_db et des fixtures uniques `example.test`, supprimées par le nettoyage du test.
+- paiement validé et état/solde persistés;
+- rollback après erreur forcée;
+- solde insuffisant sans mutation partielle;
+- contrainte unique PostgreSQL contre une seconde transaction de paiement;
+- deux paiements concurrents : une seule réussite et état/solde cohérents.
+
+Aucune valeur de connexion, clé JWT, donnée réelle ou jeton n'est consignée ici.

@@ -1,0 +1,9 @@
+RNCP WatYouFace — preuve autorisation/validation STOMP au niveau composant
+Date : 08/10/2026
+Test : StompAuthorizationTests — 3 tests, 3 PASS.
+
+- subscriptionInterceptorAllowsMembersAndRejectsNonMembers : le vrai intercepteur autorise le participant et bloque le non-membre.
+- stompHandlerUsesAuthenticatedPrincipalRatherThanPayloadSenderId : le handler réel passe l'ID du principal au service et ignore senderId falsifié.
+- stompHandlerRejectsBlankAndOverlongMessageThroughSharedServiceGuard : vide et >2000 caractères rejetés par la garde partagée.
+
+Limite : test unitaire/composant, sans client STOMP ni broker connecté; aucun résultat de transport end-to-end revendiqué.

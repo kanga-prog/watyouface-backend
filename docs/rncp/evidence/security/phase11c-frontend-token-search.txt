@@ -1,0 +1,9 @@
+RNCP6 Phase 11C — recherche statique du token frontend
+Date : 2026-10-09
+
+Commande dans le dépôt frontend :
+`rg -n 'localStorage\.(setItem|getItem|removeItem).*token|Authorization.{0,20}Bearer|getToken\(|jwtToken' src --glob '!**/*.test.*'`
+
+Résultat : aucune correspondance.
+
+Le frontend conserve encore des métadonnées d'interface non sensibles (username/avatar) dans localStorage. Le token CSRF est obtenu séparément pour être renvoyé dans `X-XSRF-TOKEN`; il ne s'agit pas du JWT d'authentification.

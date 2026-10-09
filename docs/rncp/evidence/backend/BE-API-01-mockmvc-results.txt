@@ -1,0 +1,13 @@
+RNCP WatYouFace — preuve API MockMvc/H2
+Date : 08/10/2026
+Commande suite générale : ./mvnw clean test
+Résultat : BUILD SUCCESS — 35 tests découverts, 30 réussis, 0 échec, 0 erreur; 5 tests PostgreSQL conditionnels ignorés dans cette commande.
+
+SecurityApiIntegrationTests : 12 tests PASS, dont :
+- inscription/login valide, identifiants invalides et contrat requis;
+- création post, update/delete owner, refus non-owner;
+- like d'un autre USER, self-like 403, routes Like legacy 410;
+- lecture/envoi chat membre, refus non-membre;
+- statuts 400/401/403/404/409 sur scénarios couverts.
+
+Niveau : MockMvc contre contexte Spring et base H2 mémoire; aucune prétention de test HTTP socket.

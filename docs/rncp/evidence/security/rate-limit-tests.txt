@@ -1,0 +1,13 @@
+Login throttling test evidence — 2026-10-08
+Implementation: LoginRateLimiter (per-instance, fixed window, 5 failed attempts / 60 seconds / remote IP).
+Automated coverage:
+- under threshold remains available;
+- threshold returns HTTP 429 and Retry-After;
+- expired window resets using an injected clock (no real-time wait);
+- a distinct client key is unaffected;
+- response does not echo credential/token sentinel values.
+
+Command: ./mvnw -Dtest=LoginRateLimiterTests,SecurityApiIntegrationTests test
+Result: BUILD SUCCESS; 21 tests, 0 failures, 0 errors, 0 skipped. This run includes 3 LoginRateLimiter unit tests and 18 SecurityApiIntegrationTests, including 3 rate-limit API scenarios.
+
+No passwords, access tokens, or secret values are included in this evidence.

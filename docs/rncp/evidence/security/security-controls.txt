@@ -1,0 +1,12 @@
+RNCP6 Phase 11 — contrôles observés (08/10/2026)
+
+JWT : HS256 fixe; clé externalisée, seuil 32 octets; expiration 24 h; signature et expiration vérifiées; tests token absent/altéré/expiré et rôle DB obsolète.
+CORS : origins configurables; wildcard rejeté; méthodes/headers explicites; tests preflight local et origine tierce.
+CSRF : désactivé car API stateless et bearer explicite via Authorization; à réévaluer avec cookies.
+Headers : nosniff, X-Frame-Options DENY, Referrer-Policy strict-origin-when-cross-origin; HSTS opt-in.
+WebSocket : CONNECT bearer; SUBSCRIBE exact topic + membership; SEND limité à /app/chat.sendMessage. Test au niveau intercepteur, pas E2E.
+Upload : images JPEG/PNG/WebP max 20 MiB; vidéos MP4/WebM/QuickTime max 200 MiB; chemins normalisés sous media; timeout ffmpeg 120 s. /media/** reste public.
+SQL : repositories inspectés en JPA/JPQL paramétré; aucune concaténation SQL native observée.
+Frontend : aucun dangerouslySetInnerHTML détecté; token localStorage = risque résiduel XSS.
+Rate limit : aucun mécanisme identifié.
+

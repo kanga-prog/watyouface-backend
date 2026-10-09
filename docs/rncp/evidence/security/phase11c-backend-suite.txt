@@ -1,0 +1,10 @@
+RNCP6 Phase 11C — preuve suite backend complète
+Date : 2026-10-09
+
+Commande : `./mvnw clean test`
+Résultat : BUILD SUCCESS (58.957 s)
+Surefire : 60 tests comptabilisés, 0 échec, 0 erreur, 5 ignorés.
+
+Les 5 tests ignorés sont les tests PostgreSQL conditionnels sans variables DB dans cette commande. Ils ont été exécutés séparément contre PostgreSQL local : 5/5 PASS, voir `phase11c-postgres-tests.txt`.
+
+Le groupe ciblé cookie/CSRF/CORS/handshake a également été lancé séparément : 35/35 PASS, voir `phase11c-cookie-auth-tests.txt`.
