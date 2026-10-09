@@ -56,6 +56,6 @@ Utilisés : Maven/Surefire/JUnit 5, Spring Boot Test/MockMvc, Mockito, tests Pos
 
 ## 13. Conclusion et limites
 
-Les suites backend/frontend courantes sont vertes. L’exécution PostgreSQL réelle et la recette navigateur ne sont pas rejouées; la couverture chiffrée et les E2E sont absents. Aucun de ces éléments n’est transformé en PASS par extrapolation. La Phase 12 est clôturable pour le périmètre de tests automatisés exécutables ici, avec ces limites explicites.
+Les suites backend/frontend courantes sont vertes. L’exécution PostgreSQL réelle et la recette navigateur ne sont pas rejouées; la couverture chiffrée et les E2E sont absents. Aucun de ces éléments n’est transformé en PASS par extrapolation. La Phase 12 est clôturable pour le périmètre de tests automatisés exécutables ici, avec ces limites explicites. Branche poussée `rncp6/tests-quality`; PR #29 vers `main`, ouverte et non fusionnée.
 
 Étape suivante : PHASE 13 — DÉPLOIEMENT.

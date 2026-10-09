@@ -356,7 +356,7 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 
 | Champ | Résultat vérifié au 09/10/2026 |
 |---|---|
-| Branche | `rncp6/tests-quality`, créée depuis `main` à jour après fusion PR #28; PR de Phase 12 à créer |
+| Branche | `rncp6/tests-quality`, poussée et à jour avec `origin`; PR #29 ouverte vers `main` |
 | Backend | `./mvnw clean test`: BUILD SUCCESS, 61 comptabilisés, 56 réussis, 0 échec, 0 erreur, 5 ignorés (tests PostgreSQL conditionnels) |
 | PostgreSQL | NON REJOUÉ: `pg_isready` sans serveur local et variables DB/JWT absentes; dernier résultat réel connu 5/5 PASS sur PostgreSQL 16.15 le 08/10/2026 (`evidence/backend/BE-PAY-01-postgres-integration.txt`) |
 | Frontend | ESLint PASS (0 erreur, avertissement Hook `Admin.jsx`); Vitest 7 fichiers/16 tests PASS; Vite build PASS; `npm audit --omit=dev`: 0 vulnérabilité runtime |
