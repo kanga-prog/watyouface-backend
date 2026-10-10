@@ -1,0 +1,11 @@
+RNCP6 Phase 13 — preuve de build frontend
+Date : 2026-10-10
+Commandes : npm ci; npm run build
+Installation : PASS; 373 packages installés, 374 audités, 0 vulnérabilité connue au résultat npm ci.
+Build : PASS — Vite 7.3.7, 1900 modules transformés.
+Répertoire produit : dist/
+Tailles rapportées : index.html 0.47 kB; CSS 43.10 kB (8.40 kB gzip); JS 441.52 kB (137.75 kB gzip).
+Configuration effective du build de preuve : valeurs par défaut du projet (`http://localhost:8080` pour API et SockJS); ce n'est pas un bundle de production. Pour déployer, fournir `VITE_API_BASE` et `VITE_WS_URL` avant le build.
+Remarque : les valeurs VITE_* sont de configuration publique compilée dans le bundle, pas des secrets.
+Limite : cible API/WS de production et navigateur hébergé non configurés/testés; npm ci a signalé 4 scripts d'installation non approuvés par la politique locale, sans bloquer le build.
+Aucun secret consigné.

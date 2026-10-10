@@ -1,0 +1,18 @@
+RNCP6 Phase 13 — architecture de déploiement cible (non déployée)
+
+Utilisateur
+  -> HTTPS : https://<domaine>
+  -> Nginx : fichiers frontend dist/ + reverse proxy
+       /api/**, /media/**, /ws/**
+  -> Spring Boot prod : 127.0.0.1:9090 (port interne)
+       -> PostgreSQL : loopback / réseau privé, rôle applicatif minimal
+       -> media/ : volume persistant sous le WorkingDirectory du service
+
+REST : HTTPS; même origine publique recommandée pour credentials cookie/CSRF.
+Cookie auth : HttpOnly + Secure + SameSite=Lax en HTTPS.
+CSRF : XSRF-TOKEN distinct + header X-XSRF-TOKEN.
+WebSocket : navigateur démarre SockJS sur HTTPS /ws; négociation WSS via proxy Upgrade.
+CORS : origine HTTPS exacte; pas de wildcard avec credentials.
+Ports publics visés : 80 (redirection) et 443; backend/DB non exposés publiquement.
+
+Statut : schéma cible recommandé. Domaine, fournisseur, TLS, Nginx, PostgreSQL de production, persistent volume et observabilité ne sont pas présents/configurés dans le dépôt. Aucun déploiement réel n'a été effectué.
