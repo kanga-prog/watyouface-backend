@@ -1,0 +1,5 @@
+RNCP6 Phase 12 — résumé lint frontend
+Date : 09/10/2026
+Commande : npm run lint
+Résultat : exit 0 — PASS, 0 erreur.
+Avertissement : React Hook useEffect dépendance query manquante dans src/pages/Admin.jsx (avertissement existant, non corrigé dans cette phase).

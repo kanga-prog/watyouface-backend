@@ -1,0 +1,8 @@
+RNCP6 Phase 12 — résumé PostgreSQL
+Date : 09/10/2026
+Résultat courant : NON REJOUÉ
+Vérification service : pg_isready — aucun serveur local ne répond sur le socket PostgreSQL.
+Configuration : DB_URL, DB_USERNAME, DB_PASSWORD et JWT_SECRET absents de l’environnement courant.
+La suite PostgresPaymentIntegrationTests a donc été ignorée (5 tests skipped) dans ./mvnw clean test; aucun PASS courant n’est revendiqué.
+Dernier résultat réel connu : 5/5 PASS sur PostgreSQL 16.15 le 08/10/2026, documenté dans evidence/backend/BE-PAY-01-postgres-integration.txt.
+Aucune valeur de connexion consignée.

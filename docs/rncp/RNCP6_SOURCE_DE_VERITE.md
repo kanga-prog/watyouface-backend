@@ -351,3 +351,18 @@ Backend : `./mvnw clean test` PASS, 61 tests comptabilisés, 0 échec/erreur, 5 
 ### Phase 11C — résultat
 
 JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: include`; cookie HttpOnly; CSRF actif via token distinct; CORS credentials avec origines explicites; logout expire le cookie. L'impact du vol de JWT via XSS est fortement réduit, sans déclarer les XSS corrigées. Clôture technique Phase 11C : OUI; preuve navigateur réelle : MANUEL À FAIRE (`94_RECETTE_MANUELLE_AUTH_COOKIE.md`). PR backend : #28; PR frontend : #5; livrables V0.2 : versionnés; `updateAvatars.js` reste local; rotation historique : À CONFIRMER.
+
+## PHASE 12 — TESTS ET QUALITÉ
+
+| Champ | Résultat vérifié au 09/10/2026 |
+|---|---|
+| Branche | `rncp6/tests-quality`, poussée et à jour avec `origin`; PR #29 ouverte vers `main` |
+| Backend | `./mvnw clean test`: BUILD SUCCESS, 61 comptabilisés, 56 réussis, 0 échec, 0 erreur, 5 ignorés (tests PostgreSQL conditionnels) |
+| PostgreSQL | NON REJOUÉ: `pg_isready` sans serveur local et variables DB/JWT absentes; dernier résultat réel connu 5/5 PASS sur PostgreSQL 16.15 le 08/10/2026 (`evidence/backend/BE-PAY-01-postgres-integration.txt`) |
+| Frontend | ESLint PASS (0 erreur, avertissement Hook `Admin.jsx`); Vitest 7 fichiers/16 tests PASS; Vite build PASS; `npm audit --omit=dev`: 0 vulnérabilité runtime |
+| Couverture chiffrée | NON MESURÉE; JaCoCo/Vitest coverage non configurés |
+| E2E / manuel | aucun E2E navigateur automatisé recensé; captures UI Phase 9 antérieures; Auth Cookie DevTools reste À FAIRE MANUELLEMENT |
+| Documents / preuves | `95_MATRICE_EXIGENCES_TESTS.md`, `96_STRATEGIE_TESTS_QUALITE.md`, `RNCP6_PHASE12_TESTS_QUALITE_REPORT.md`, `evidence/tests/*-summary.txt` |
+| Mapping | C9 renforcée par suites exécutées et traçabilité; C3/C7/C8 appuyées par tests métier/BDD (BDD courant non rejoué); C10 documentation; C11 qualité partielle |
+| Limites | parcours E2E et couverture chiffrée absents; PostgreSQL et recette navigateur non rejoués dans cette passe |
+| Étape suivante | PHASE 13 — déploiement après revue/validation de la PR Phase 12 |

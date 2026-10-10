@@ -1,3 +1,3 @@
-# Preuves de tests
+# Evidence Phase 12
 
-Déposer ici les résultats de tests automatisés ou de recette, nettoyés de tout secret, jeton et donnée personnelle réelle. Les preuves backend, frontend et sécurité restent dans leurs sous-dossiers dédiés.
+Les fichiers `*-summary.txt` rapportent les exécutions du 09/10/2026. La preuve PostgreSQL de cette passe distingue explicitement le non-rejeu du dernier résultat réel connu (5/5, preuve détaillée sous `evidence/backend/`). Aucun secret, JWT ou identifiant de connexion n’est stocké ici.

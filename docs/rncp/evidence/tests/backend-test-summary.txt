@@ -1,0 +1,12 @@
+RNCP6 Phase 12 — résumé suite backend
+Date : 09/10/2026
+Commande : ./mvnw clean test
+Résultat : BUILD SUCCESS
+Tests comptabilisés : 61
+Réussis : 56
+Échecs : 0
+Erreurs : 0
+Ignorés : 5
+Motif des ignorés : les 5 tests de PostgresPaymentIntegrationTests sont conditionnels à une configuration PostgreSQL locale absente lors de cette exécution.
+Périmètre : tests unitaires/service, intégration Spring/MockMvc, sécurité, STOMP composant et autres tests listés dans docs/rncp/96_STRATEGIE_TESTS_QUALITE.md.
+Aucun secret ni jeton inclus.
