@@ -61,8 +61,9 @@ public class MarketplaceService {
     }
 
     // UPDATE sécurisé
+    @Transactional
     public ListingDTO updateSecured(Long id, ListingDTO dto, Long actorId, boolean admin) {
-        Listing listing = listingRepository.findById(id)
+        Listing listing = listingRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (!admin && !listing.getSeller().getId().equals(actorId)) {
@@ -82,8 +83,9 @@ public class MarketplaceService {
     }
 
     // DELETE sécurisé
+    @Transactional
     public void deleteSecured(Long id, Long actorId, boolean admin) {
-        Listing listing = listingRepository.findById(id)
+        Listing listing = listingRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (!admin && !listing.getSeller().getId().equals(actorId)) {
@@ -102,7 +104,7 @@ public class MarketplaceService {
     // Buyer demande achat => PENDING + buyer
     @Transactional
     public void requestPurchase(Long listingId, Long buyerId, boolean admin) {
-        Listing listing = listingRepository.findById(listingId)
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (listing.getStatus() != ListingStatus.AVAILABLE) {
@@ -124,7 +126,7 @@ public class MarketplaceService {
     // Seller accepte => ACCEPTED
     @Transactional
     public void accept(Long listingId, Long actorId, boolean admin) {
-        Listing listing = listingRepository.findById(listingId)
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (!admin && !listing.getSeller().getId().equals(actorId)) {
@@ -146,7 +148,7 @@ public class MarketplaceService {
     // Seller refuse => REFUSED
     @Transactional
     public void refuse(Long listingId, Long actorId, boolean admin) {
-        Listing listing = listingRepository.findById(listingId)
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (!admin && !listing.getSeller().getId().equals(actorId)) {
@@ -195,7 +197,7 @@ public class MarketplaceService {
     // Seller ship => SHIPPED (uniquement PAID)
     @Transactional
     public void ship(Long listingId, Long actorId, boolean admin) {
-        Listing listing = listingRepository.findById(listingId)
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (!admin && !listing.getSeller().getId().equals(actorId)) {
@@ -213,7 +215,7 @@ public class MarketplaceService {
     // Buyer receive => RECEIVED (uniquement SHIPPED)
     @Transactional
     public void receive(Long listingId, Long buyerId, boolean admin) {
-        Listing listing = listingRepository.findById(listingId)
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
         if (listing.getStatus() != ListingStatus.SHIPPED) {

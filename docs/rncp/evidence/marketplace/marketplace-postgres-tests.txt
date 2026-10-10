@@ -1,0 +1,8 @@
+WatYouFace Marketplace — PostgreSQL réel
+Date de tentative : 2026-10-10
+Commande de disponibilité : pg_isready
+Résultat courant : NON REJOUE — /var/run/postgresql:5432 no response.
+Les tests PostgresPaymentIntegrationTests ont été détectés dans ./mvnw clean test mais 5 sont ignorés faute de serveur/configuration DB.
+
+Dernier résultat réellement enregistré avant cette passe : 5/5 PASS sur PostgreSQL local 16.15, voir docs/rncp/evidence/backend/test-results.txt et les rapports précédents RNCP Phase 10/11.
+Ce résultat historique ne prouve pas la disponibilité ni un nouvel essai PostgreSQL au 2026-10-10.

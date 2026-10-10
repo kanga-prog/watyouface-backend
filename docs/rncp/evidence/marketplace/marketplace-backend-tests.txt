@@ -1,0 +1,11 @@
+WatYouFace Marketplace — exécution backend
+Date : 2026-10-10
+Branche : fix/marketplace-final-validation
+Commande : ./mvnw clean test
+Résultat : BUILD SUCCESS
+Surefire global : 73 tests, 0 failure, 0 error, 5 skipped (68 exécutés avec succès)
+Suite PostgreSQL dédiée : PostgresPaymentIntegrationTests — 5 skipped dans cette exécution, car le serveur local n'est pas joignable.
+H2/MockMvc : tests d'intégration exécutés, dont création/list/detail, validation, ownership vendeur, refus, auto-achat interdit, scénario complet à deux identités, transferts wallets démo, paiement répété et rollback solde insuffisant.
+Dernière preuve PostgreSQL réelle enregistrée avant cette passe : 5/5 PASS sur PostgreSQL 16.15 (historique RNCP; pas rejoué le 2026-10-10).
+Les 5 tests PostgreSQL historiques couvrent commit, contrainte, rollback, solde insuffisant et concurrence de paiement.
+Ne pas confondre le résultat H2/MockMvc courant avec une preuve PostgreSQL courante.
