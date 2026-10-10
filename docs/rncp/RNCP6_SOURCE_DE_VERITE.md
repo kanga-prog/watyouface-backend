@@ -351,3 +351,17 @@ Backend : `./mvnw clean test` PASS, 61 tests comptabilisés, 0 échec/erreur, 5 
 ### Phase 11C — résultat
 
 JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: include`; cookie HttpOnly; CSRF actif via token distinct; CORS credentials avec origines explicites; logout expire le cookie. L'impact du vol de JWT via XSS est fortement réduit, sans déclarer les XSS corrigées. Clôture technique Phase 11C : OUI; preuve navigateur réelle : MANUEL À FAIRE (`94_RECETTE_MANUELLE_AUTH_COOKIE.md`). PR backend : #28; PR frontend : #5; livrables V0.2 : versionnés; `updateAvatars.js` reste local; rotation historique : À CONFIRMER.
+
+## PHASE 13 — DÉPLOIEMENT (audit documentaire du 10/10/2026)
+
+| Élément | Résultat vérifié |
+|---|---|
+| Git | Backend `main` et frontend `main` observés alignés avec `origin/main`; backend propre. `updateAvatars.js` reste une modification locale frontend, non touchée/non incluse. Branche de documentation backend `rncp6/deployment`. |
+| Infrastructure | Aucun Docker/Compose, reverse proxy, service systemd, CI/CD, domaine, fournisseur ou environnement hébergé identifié. Aucun déploiement réel. |
+| Builds | `./mvnw clean package` PASS, JAR ~69 MB; 65 tests dont 60 PASS et 5 tests PostgreSQL ignorés faute de configuration DB lors de cette commande. `npm ci` PASS, 373 paquets; `npm run build` PASS, sortie `dist/`; le build de preuve utilise les défauts localhost, pas une configuration de production. |
+| Cible | Proposition: VPS unique avec Nginx HTTPS, frontend statique, proxy `/api`, `/media`, `/ws`, Spring sur loopback 9090, PostgreSQL privée et dossier `media/` persistant. Architecture proposée, non installée. |
+| Variables / sécurité | `97_VARIABLES_ENVIRONNEMENT.md`; profil prod requiert DB vars/JWT secret, Secure cookie vrai par défaut, SameSite=Lax, fallback Bearer interdit; CORS allowlist doit être configurée; HSTS est opt-in. |
+| Base / médias | Preuve PostgreSQL locale historique 16.15 / 5 tests documentée; suite PostgreSQL ignorée dans le package actuel. Profil prod `ddl-auto=validate`; migrations complètes absentes, baseline DB bloquant. Médias disque `${user.dir}/media`, publics via `/media/**`, pas de variable `UPLOAD_DIR`. |
+| Documents / preuves | `97_VARIABLES_ENVIRONNEMENT.md`, `98_PROCEDURE_DEPLOIEMENT.md`, `99_CHECKLIST_POST_DEPLOIEMENT.md`, rapport Phase 13 et `evidence/deployment/`. Checklist réelle non exécutée. |
+| RNCP | C6/C7/C10/C11 préparées par architecture, builds et procédure; aucune compétence de mise en production réelle n’est revendiquée. |
+| Statut | Préparation documentaire produite; déploiement réel NON. Mise en service bloquée jusqu’au choix de l’infrastructure et à la stratégie complète de création/migration/sauvegarde du schéma. |
