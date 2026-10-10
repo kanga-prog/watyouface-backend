@@ -403,6 +403,230 @@ class SecurityApiIntegrationTests {
     }
 
     @Test
+    void marketplaceListingApiPersistsAuthenticatedSellerAndAvailableState() throws Exception {
+        User seller = saveUser("market-create-seller", Role.USER);
+
+        var created = mvc.perform(post("/api/marketplace/listings").with(csrf())
+                        .header("Authorization", bearer(seller))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Casque démo\",\"description\":\"En bon état\",\"price\":25,"
+                                + "\"status\":\"PAID\",\"sellerId\":9999,\"buyerId\":9998}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.sellerId").value(seller.getId()))
+                .andExpect(jsonPath("$.buyerId").doesNotExist())
+                .andReturn();
+
+        long listingId = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+        mvc.perform(get("/api/marketplace/listings/{id}", listingId)
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Casque démo"))
+                .andExpect(jsonPath("$.status").value("AVAILABLE"));
+    }
+
+    @Test
+    void marketplaceListingCreationRequiresAuthenticationAndValidFields() throws Exception {
+        String validPayload = "{\"title\":\"Objet démo\",\"description\":\"Description\",\"price\":10}";
+        mvc.perform(post("/api/marketplace/listings").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(validPayload))
+                .andExpect(status().isUnauthorized());
+
+        User seller = saveUser("market-invalid-seller", Role.USER);
+        mvc.perform(post("/api/marketplace/listings").with(csrf()).header("Authorization", bearer(seller))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"   \",\"description\":\"Description\",\"price\":10}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/marketplace/listings").with(csrf()).header("Authorization", bearer(seller))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Objet démo\",\"description\":\"Description\",\"price\":0}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void marketplaceSellerCannotRequestPurchaseOfOwnListing() throws Exception {
+        User seller = saveUser("market-self-buyer", Role.USER);
+        Listing listing = new Listing();
+        listing.setTitle("Annonce propriétaire");
+        listing.setPrice(10.0);
+        listing.setSeller(seller);
+        listing.setStatus(com.watyouface.entity.enums.ListingStatus.AVAILABLE);
+        listing = listingRepository.saveAndFlush(listing);
+
+        mvc.perform(post("/api/marketplace/listings/{id}/request", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isConflict());
+        assertThat(listingRepository.findById(listing.getId()).orElseThrow().getStatus())
+                .isEqualTo(com.watyouface.entity.enums.ListingStatus.AVAILABLE);
+    }
+
+    @Test
+    void marketplaceOnlySellerCanAcceptPendingRequestAndInvalidStateConflicts() throws Exception {
+        User seller = saveUser("market-transition-seller", Role.USER);
+        User buyer = saveUser("market-transition-buyer", Role.USER);
+        User outsider = saveUser("market-transition-outsider", Role.USER);
+        Listing listing = new Listing();
+        listing.setTitle("Objet démo");
+        listing.setPrice(12.0);
+        listing.setSeller(seller);
+        listing.setBuyer(buyer);
+        listing.setStatus(com.watyouface.entity.enums.ListingStatus.PENDING);
+        listing = listingRepository.saveAndFlush(listing);
+
+        mvc.perform(post("/api/marketplace/listings/{id}/accept", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(outsider)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/marketplace/listings/{id}/accept", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/marketplace/listings/{id}/accept", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isConflict());
+        assertThat(listingRepository.findById(listing.getId()).orElseThrow().getStatus())
+                .isEqualTo(com.watyouface.entity.enums.ListingStatus.ACCEPTED);
+    }
+
+    @Test
+    void marketplaceRefusalIsSellerOnlyAndCannotBeRepeated() throws Exception {
+        User seller = saveUser("market-refuse-seller", Role.USER);
+        User buyer = saveUser("market-refuse-buyer", Role.USER);
+        User outsider = saveUser("market-refuse-outsider", Role.USER);
+        Listing listing = new Listing();
+        listing.setTitle("Objet refusé");
+        listing.setPrice(12.0);
+        listing.setSeller(seller);
+        listing.setBuyer(buyer);
+        listing.setStatus(com.watyouface.entity.enums.ListingStatus.PENDING);
+        listing = listingRepository.saveAndFlush(listing);
+
+        mvc.perform(post("/api/marketplace/listings/{id}/refuse", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(outsider)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/marketplace/listings/{id}/refuse", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/marketplace/listings/{id}/refuse", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isConflict());
+        assertThat(listingRepository.findById(listing.getId()).orElseThrow().getStatus())
+                .isEqualTo(com.watyouface.entity.enums.ListingStatus.REFUSED);
+    }
+
+    @Test
+    void marketplaceListingUpdateAndDeleteAreOwnerOnly() throws Exception {
+        User seller = saveUser("market-edit-seller", Role.USER);
+        User outsider = saveUser("market-edit-outsider", Role.USER);
+        Listing listing = new Listing();
+        listing.setTitle("Objet modifiable");
+        listing.setPrice(10.0);
+        listing.setSeller(seller);
+        listing.setStatus(com.watyouface.entity.enums.ListingStatus.AVAILABLE);
+        listing = listingRepository.saveAndFlush(listing);
+        String payload = "{\"title\":\"Objet modifié\",\"description\":\"Fictif\",\"price\":11}";
+
+        mvc.perform(put("/api/marketplace/listings/{id}", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(outsider)).contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/api/marketplace/listings/{id}", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(seller)).contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+        mvc.perform(delete("/api/marketplace/listings/{id}", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(outsider)))
+                .andExpect(status().isForbidden());
+        mvc.perform(delete("/api/marketplace/listings/{id}", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void twoUsersCanCompleteMarketplaceLifecycleThroughApiAndPersistDemoTransfer() throws Exception {
+        User seller = saveUser("market-e2e-seller", Role.USER);
+        User buyer = saveUser("market-e2e-buyer", Role.USER);
+        com.watyouface.entity.Wallet buyerWallet = new com.watyouface.entity.Wallet();
+        buyerWallet.setUser(buyer);
+        buyerWallet.setBalance(50.0);
+        walletRepository.saveAndFlush(buyerWallet);
+        com.watyouface.entity.Wallet sellerWallet = new com.watyouface.entity.Wallet();
+        sellerWallet.setUser(seller);
+        sellerWallet.setBalance(0.0);
+        walletRepository.saveAndFlush(sellerWallet);
+
+        var response = mvc.perform(post("/api/marketplace/listings").with(csrf())
+                        .header("Authorization", bearer(seller))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Objet de test\",\"description\":\"Fictif\",\"price\":20}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        long id = objectMapper.readTree(response.getResponse().getContentAsString()).get("id").asLong();
+        assertThat(listingRepository.findById(id).orElseThrow().getStatus())
+                .isEqualTo(com.watyouface.entity.enums.ListingStatus.AVAILABLE);
+
+        mvc.perform(post("/api/marketplace/listings/{id}/request", id).with(csrf())
+                        .header("Authorization", bearer(buyer)))
+                .andExpect(status().isOk());
+        assertThat(listingRepository.findById(id).orElseThrow().getStatus())
+                .isEqualTo(com.watyouface.entity.enums.ListingStatus.PENDING);
+
+        mvc.perform(post("/api/marketplace/listings/{id}/accept", id).with(csrf())
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/marketplace/listings/{id}/pay", id).with(csrf())
+                        .header("Authorization", bearer(buyer)))
+                .andExpect(status().isOk());
+        assertThat(listingRepository.findById(id).orElseThrow().getStatus())
+                .isEqualTo(com.watyouface.entity.enums.ListingStatus.PAID);
+        assertThat(transactionRepository.existsByListing_Id(id)).isTrue();
+        assertThat(walletRepository.findByUser_Id(buyer.getId()).orElseThrow().getBalance()).isEqualTo(30.0);
+        assertThat(walletRepository.findByUser_Id(seller.getId()).orElseThrow().getBalance()).isEqualTo(20.0);
+        mvc.perform(post("/api/marketplace/listings/{id}/pay", id).with(csrf())
+                        .header("Authorization", bearer(buyer)))
+                .andExpect(status().isConflict());
+        assertThat(walletRepository.findByUser_Id(buyer.getId()).orElseThrow().getBalance()).isEqualTo(30.0);
+
+        mvc.perform(post("/api/marketplace/listings/{id}/ship", id).with(csrf())
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/marketplace/listings/{id}/receive", id).with(csrf())
+                        .header("Authorization", bearer(buyer)))
+                .andExpect(status().isOk());
+        assertThat(listingRepository.findById(id).orElseThrow().getStatus())
+                .isEqualTo(com.watyouface.entity.enums.ListingStatus.RECEIVED);
+    }
+
+    @Test
+    void insufficientDemoWalletLeavesListingAndTransactionUnchanged() throws Exception {
+        User seller = saveUser("market-poor-seller", Role.USER);
+        User buyer = saveUser("market-poor-buyer", Role.USER);
+        com.watyouface.entity.Wallet buyerWallet = new com.watyouface.entity.Wallet();
+        buyerWallet.setUser(buyer);
+        buyerWallet.setBalance(5.0);
+        walletRepository.saveAndFlush(buyerWallet);
+        com.watyouface.entity.Wallet sellerWallet = new com.watyouface.entity.Wallet();
+        sellerWallet.setUser(seller);
+        sellerWallet.setBalance(0.0);
+        walletRepository.saveAndFlush(sellerWallet);
+        Listing listing = new Listing();
+        listing.setTitle("Objet à payer");
+        listing.setPrice(20.0);
+        listing.setSeller(seller);
+        listing.setBuyer(buyer);
+        listing.setStatus(com.watyouface.entity.enums.ListingStatus.ACCEPTED);
+        listing = listingRepository.saveAndFlush(listing);
+
+        mvc.perform(post("/api/marketplace/listings/{id}/pay", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(buyer)))
+                .andExpect(status().isConflict());
+
+        assertThat(transactionRepository.existsByListing_Id(listing.getId())).isFalse();
+        assertThat(walletRepository.findByUser_Id(buyer.getId()).orElseThrow().getBalance()).isEqualTo(5.0);
+        assertThat(walletRepository.findByUser_Id(seller.getId()).orElseThrow().getBalance()).isEqualTo(0.0);
+        assertThat(listingRepository.findById(listing.getId()).orElseThrow().getStatus())
+                .isEqualTo(com.watyouface.entity.enums.ListingStatus.ACCEPTED);
+    }
+
+    @Test
     void postApiEnforcesAuthenticatedCreationAndOwnerOnlyUpdateDelete() throws Exception {
         User owner = saveUser("post-api-owner", Role.USER);
         User outsider = saveUser("post-api-outsider", Role.USER);
