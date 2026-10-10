@@ -1,0 +1,15 @@
+WatYouFace — préparation Hostinger
+Date d'audit : 2026-10-10
+Hébergeur cible déclaré par le porteur : Hostinger.
+Offre effectivement active dans hPanel : NON CONFIRMÉE (aucune session hPanel ni preuve d'abonnement disponible dans les dépôts).
+Recommandation technique : VPS Hostinger si le backend Spring Boot, PostgreSQL et WebSocket doivent tous rester chez Hostinger.
+Fondement vérifié auprès des pages officielles Hostinger : Java est réservé au VPS/root; PostgreSQL et reverse proxy sont gérables sur VPS. Web/Cloud Node.js prend en charge React/Vite et ses frameworks JavaScript, pas Spring Boot.
+Domaines frontend/API : non communiqués.
+DNS/TLS/Nginx/systemd/PostgreSQL Hostinger/volume media : non configurés et non testés.
+
+Configuration frontend observée : VITE_API_BASE et VITE_WS_URL. Build Vite de contrôle PASS avec valeurs réservées `https://api.example.invalid` et `https://api.example.invalid/ws`; `localhost:8080` absent des assets. Ces valeurs ne sont pas des domaines de production et aucun bundle Hostinger n'a été généré.
+
+Backend prod : profil `prod`, port interne 9090 par défaut; DB_URL/DB_USERNAME/DB_PASSWORD/JWT_SECRET externes; AUTH_COOKIE_SECURE=true; CORS_ALLOWED_ORIGINS exacte à fournir; SameSite=Lax par défaut; CSRF actif. Aucune valeur secrète consignée.
+
+Blocages avant déploiement : confirmer offre/domaine; créer et tester un baseline/mécanisme migrations PostgreSQL complet (prod ddl-auto=validate ne crée pas le schéma); exécuter la validation Marketplace PostgreSQL et recette UI; configurer TLS, proxy HTTPS/WSS, service backend et stockage media persistant; tester backups/restauration et smoke tests.
+Déploiement réel : NON.

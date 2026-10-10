@@ -1,8 +1,10 @@
 RNCP6 Phase 13 — état de checklist post-déploiement
 Date d'audit : 2026-10-10
+Hébergeur cible : Hostinger. Offre active et domaine non confirmés; aucune connexion à hPanel ni serveur Hostinger disponible à l'audit.
 DEP-01 frontend HTTPS : NON EXÉCUTÉ — aucun domaine/déploiement.
 DEP-02 backend health : NON EXÉCUTÉ — pas d'endpoint de déploiement ni serveur cible identifié.
 DEP-03..DEP-20 : NON EXÉCUTÉS — checklist opérationnelle disponible dans ../../99_CHECKLIST_POST_DEPLOIEMENT.md.
 
 Pré-requis bloquant : créer et valider un baseline/mécanisme de migration complet. Le profil prod utilise ddl-auto=validate et ne crée pas le schéma.
+Aucune preuve de provisionnement Hostinger, Nginx, systemd, TLS, WSS ou de stockage media persistant n'est disponible.
 Aucun faux résultat de smoke test n'est revendiqué.

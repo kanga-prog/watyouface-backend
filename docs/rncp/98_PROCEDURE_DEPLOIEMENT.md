@@ -1,22 +1,26 @@
-# 98 — Procédure de déploiement cible
+# 98 — Procédure de déploiement Hostinger (préparation)
 
-> Procédure préparatoire, non exécutée sur une infrastructure réelle. Aucun fournisseur, domaine ou serveur n’est actuellement configuré/versionné. Les valeurs entre chevrons sont des paramètres à choisir; ne pas les copier comme secrets.
+> Procédure préparatoire, non exécutée sur une infrastructure réelle. L’hébergeur cible est Hostinger, mais l’offre réellement souscrite dans le compte (VPS ou Web/Cloud), le domaine et le serveur disponibles ne sont pas confirmés. Les valeurs entre chevrons sont des paramètres à choisir; ne pas les copier comme secrets.
 
 ## Architecture retenue
 
-Pour une première démonstration hébergée, cible **un VPS Linux unique** : Nginx termine HTTPS et sert le build React; il reverse-proxy `/api`, `/media` et `/ws` vers Spring Boot sur `127.0.0.1:9090`; PostgreSQL est accessible uniquement par loopback/réseau privé. Le frontend et l’API partagent une origine HTTPS, ce qui simplifie cookies, CSRF et CORS. Le répertoire persistant des médias est `${user.dir}/media` du processus Java.
+Pour une première démonstration hébergée entièrement chez Hostinger, cible conditionnelle **Hostinger VPS Linux** : Nginx termine HTTPS et sert le build React; il reverse-proxy `/api`, `/media` et `/ws` vers Spring Boot sur `127.0.0.1:9090`; PostgreSQL est accessible uniquement par loopback/réseau privé. Le frontend et l’API partagent une origine HTTPS, ce qui simplifie cookies, CSRF et CORS. Le répertoire persistant des médias est `${user.dir}/media` du processus Java. Cela ne confirme pas qu’un abonnement VPS est disponible dans le compte.
+
+Hostinger documente Java (qui requiert le contrôle root) comme technologie VPS; PostgreSQL et les reverse proxies sont aussi présentés pour VPS auto-géré. Ses offres Web/Cloud Node.js prennent en charge React/Vite pour frontend mais listent des frameworks backend JavaScript, pas Spring Boot/Java. Si le compte ne possède qu’une offre Web/Cloud, héberger l’application entière sur cette seule offre n’est pas validé : confirmer un VPS Hostinger ou prévoir un backend Java hébergé ailleurs.
+
+Références officielles consultées le 10/10/2026 : [langages/frameworks Hostinger](https://www.hostinger.com/support/which-programming-languages-and-frameworks-are-supported-at-hostinger/), [VPS Hostinger auto-géré](https://www.hostinger.com/support/8852150-what-is-a-self-managed-vps-at-hostinger/), [Web Apps Node.js Hostinger](https://www.hostinger.com/support/how-to-deploy-a-nodejs-website-in-hostinger/).
 
 | Option | Simplicité | Coût | Maintenance | Sécurité | Reproductibilité |
 |---|---|---|---|---|---|
 | A — frontend, backend et PostgreSQL gérés séparément | Déploiement applicatif simple | variable, dépend des offres | faible à moyenne | bonne si réseau privé, domaines same-site et secrets gérés | bonne; volumes médias à traiter |
-| **B — VPS unique + reverse proxy (retenue)** | architecture directe, origine unique | VPS + domaine + sauvegardes | plus forte, OS/patchs à gérer | dépend du durcissement; DB non exposée, pare-feu et TLS impératifs | bonne avec artefacts versionnés et procédure |
+| **B — Hostinger VPS unique + reverse proxy (recommandée, offre à confirmer)** | architecture directe, origine unique | VPS + domaine + sauvegardes à confirmer | plus forte, OS/patchs à gérer soi-même | dépend du durcissement; DB non exposée, pare-feu et TLS impératifs | bonne avec artefacts versionnés et procédure |
 | C — conteneurs | actuellement non prête | variable | orchestration à maintenir | bonne si images/config durcies | potentiellement forte |
 
-La cible B est choisie pour le MVP/jury car elle correspond au stockage média local et à une origine unique. C’est un choix de conception et non la preuve qu’un VPS existe. Le nom de domaine, fournisseur, certificat, taille de machine et politique de coût restent à décider. Docker/Compose, Nginx et systemd ne sont pas présents comme configurations projet.
+La cible B est retenue comme recommandation pour le MVP/jury car l’application a backend Java, PostgreSQL, WebSocket et stockage média local; elle correspond aux possibilités VPS décrites par Hostinger. L’offre active, ressources, domaine, certificat et budget restent à confirmer dans le compte Hostinger. Docker/Compose, Nginx et systemd ne sont pas présents comme configurations projet.
 
 ## Pré-requis et décision de blocage DB
 
-1. Choisir domaine, fournisseur/VPS, région, propriétaire d’exploitation et budget; réserver un nom DNS.
+1. Dans le compte Hostinger, confirmer l’offre réelle. Pour héberger Spring Boot + PostgreSQL + WebSocket sur Hostinger, confirmer un VPS avec ressources suffisantes; relever région, accès SSH/root, stockage/sauvegardes disponibles, responsable d’exploitation et budget. Confirmer/réserver domaine et DNS.
 2. Préparer une machine Linux supportée, accès SSH par clé, comptes nominatifs, mises à jour de sécurité, pare-feu entrant limité à SSH administré et ports 80/443.
 3. Installer une version PostgreSQL supportée; la dernière preuve de test locale RNCP indique PostgreSQL 16.15, pas la version d’un futur serveur.
 4. Créer DB et rôle d’application non superuser; limiter les connexions à localhost/réseau privé; n’utiliser TLS si connexion distante.
@@ -98,4 +102,4 @@ Superviser au minimum espace disque (médias/logs), mémoire, CPU, disponibilit�
 
 ## État réel
 
-Déploiement réel : **NON**. Aucun DNS, VPS, certificat HTTPS, proxy, service, base production, pipeline de release ou endpoint health de déploiement n’a été constaté. Cette procédure décrit la cible; la base sans baseline/migrations et les médias publics locaux sont des limites à traiter avant une ouverture réelle.
+Déploiement réel : **NON**. Hostinger est l’hébergeur cible déclaré, mais l’offre souscrite n’est pas confirmée; aucun accès compte, DNS, VPS, certificat HTTPS, proxy, service, base production, pipeline de release ou endpoint health n’a été constaté. Cette procédure décrit une cible conditionnée à un VPS Hostinger; la base sans baseline/migrations et les médias publics locaux sont des limites à traiter avant une ouverture réelle.

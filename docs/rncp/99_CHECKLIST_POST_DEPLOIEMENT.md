@@ -1,6 +1,14 @@
-# 99 — Checklist post-déploiement
+# 99 — Checklist post-déploiement Hostinger
 
-Statut à la création : **NON EXÉCUTÉE — aucun déploiement réel**. Compléter date, commit, environnement, URL non sensible, résultat et preuve seulement après exécution.
+Statut : **NON EXÉCUTÉE — aucun déploiement réel**. Hébergeur cible : Hostinger; offre (VPS ou Web/Cloud) et domaine à confirmer dans le compte. Compléter date, commit, environnement, URL non sensible, résultat et preuve seulement après exécution.
+
+## Pré-vol Hostinger (bloquant avant provisionnement)
+
+- [ ] Confirmer dans hPanel l’offre active et les ressources. Pour déployer l’ensemble React + Spring Boot/Java + PostgreSQL + WebSocket sous Hostinger, cible recommandée : VPS; une offre Web/Cloud Node.js seule n’établit pas la capacité à exécuter Spring Boot.
+- [ ] Confirmer domaine/DNS, accès SSH, région, stockage persistant, sauvegarde incluse et propriétaire de l’exploitation.
+- [ ] Mettre en place une chaîne reproductible de baseline/migrations PostgreSQL; à ce jour le profil `prod` valide seulement un schéma existant (`ddl-auto=validate`).
+- [ ] Préparer les valeurs d’environnement et le build frontend avec les vrais domaines Hostinger; ne pas utiliser les valeurs de test `example.invalid`.
+- [ ] Confirmer Nginx, systemd, TLS et répertoire `media/` persistant. Rien de cela n’est installé par cette recette.
 
 | ID | Vérification | Attendu | Résultat initial |
 |---|---|---|---|
@@ -24,5 +32,10 @@ Statut à la création : **NON EXÉCUTÉE — aucun déploiement réel**. Compl�
 | DEP-18 | DB | connexion privée, sauvegarde et restauration testées | À FAIRE |
 | DEP-19 | Logs | pas de JWT, cookie, password ou secret; rotation/rétention | À FAIRE |
 | DEP-20 | Rollback | procédure version précédente testée | À FAIRE |
+| DEP-21 | Offre Hostinger | offre/ressources confirmées, VPS compatible Java/PostgreSQL si tout hébergé chez Hostinger | À FAIRE |
+| DEP-22 | Build Vite Hostinger | VITE_API_BASE/VITE_WS_URL vrais, aucun localhost dans dist | À FAIRE |
+| DEP-23 | Nginx + systemd | service persistant, proxy REST/media/SockJS/WSS, headers vérifiés | À FAIRE |
+| DEP-24 | Persistance médias | répertoire hors release, redémarrage sans perte et sauvegarde vérifiée | À FAIRE |
+| DEP-25 | Schéma PostgreSQL | base vide provisionnée depuis baseline/migrations versionnées | BLOQUÉ — baseline complète absente |
 
 Conserver preuves anonymisées dans `docs/rncp/evidence/deployment/`; ne pas inclure cookies, identifiants ni données de personnes réelles.

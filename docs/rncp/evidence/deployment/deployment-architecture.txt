@@ -1,8 +1,9 @@
-RNCP6 Phase 13 — architecture de déploiement cible (non déployée)
+RNCP6 Phase 13 — cible Hostinger (non déployée; offre à confirmer)
 
 Utilisateur
   -> HTTPS : https://<domaine>
-  -> Nginx : fichiers frontend dist/ + reverse proxy
+  -> Hostinger VPS Linux recommandé (si cette offre est disponible)
+     Nginx : fichiers frontend dist/ + reverse proxy
        /api/**, /media/**, /ws/**
   -> Spring Boot prod : 127.0.0.1:9090 (port interne)
        -> PostgreSQL : loopback / réseau privé, rôle applicatif minimal
@@ -15,4 +16,5 @@ WebSocket : navigateur démarre SockJS sur HTTPS /ws; négociation WSS via proxy
 CORS : origine HTTPS exacte; pas de wildcard avec credentials.
 Ports publics visés : 80 (redirection) et 443; backend/DB non exposés publiquement.
 
-Statut : schéma cible recommandé. Domaine, fournisseur, TLS, Nginx, PostgreSQL de production, persistent volume et observabilité ne sont pas présents/configurés dans le dépôt. Aucun déploiement réel n'a été effectué.
+Statut : schéma cible conditionnel. Hostinger est la cible déclarée mais l’offre souscrite n’est pas connue. La documentation officielle Hostinger indique Java comme nécessitant un VPS/root et PostgreSQL comme technologie gérable sur VPS; Web/Cloud Node.js seul n’est pas une cible backend Spring Boot vérifiée. Domaine, TLS, Nginx, PostgreSQL de production, volume persistant et observabilité ne sont pas présents/configurés. Aucun déploiement réel n’a été effectué.
+Références : https://www.hostinger.com/support/which-programming-languages-and-frameworks-are-supported-at-hostinger/ ; https://www.hostinger.com/support/8852150-what-is-a-self-managed-vps-at-hostinger/ ; https://www.hostinger.com/support/how-to-deploy-a-nodejs-website-in-hostinger/
