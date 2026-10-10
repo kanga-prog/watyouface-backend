@@ -1,0 +1,17 @@
+Matrice technique observée — Marketplace
+
+AVAILABLE -> PENDING : requestPurchase; compte utilisateur authentifié, non vendeur; statut initial AVAILABLE.
+PENDING -> ACCEPTED : accept; vendeur ou ADMIN; buyer requis.
+PENDING -> REFUSED : refuse; vendeur ou ADMIN.
+ACCEPTED -> PAID : paySecured; buyer attaché ou ADMIN; une transaction par listing; wallet démo; transaction et état dans la transaction DB.
+PAID -> SHIPPED : ship; vendeur ou ADMIN.
+SHIPPED -> RECEIVED : receive; buyer attaché ou ADMIN.
+
+Tout état source qui ne correspond pas à la transition est rejeté par IllegalStateException, convertie par ApiExceptionHandler en HTTP 409.
+Sécurité vendeur/acheteur : SecurityException, convertie en HTTP 403.
+Identité du vendeur lors de la création : Authz.me(), pas sellerId du JSON.
+Création : HTTP 200, statut AVAILABLE; ListingDTO valide titre non blanc (max 120), description max 2000, prix > 0.
+
+Concurrency note : les écritures/modifications de listing prennent maintenant findByIdForUpdate sous @Transactional sur la branche d'audit. PostgreSQL réel non disponible à la date de cette preuve; aucun résultat de concurrence pour les transitions générales n'est revendiqué.
+
+Relations non implémentées : aucun listing_id dans Conversation, aucune conversation de négociation liée à l'annonce, aucun contrat de vente lié au listing. Le contrat existant est le contrat général de la plateforme. Le chat contact vendeur utilise la conversation générique.

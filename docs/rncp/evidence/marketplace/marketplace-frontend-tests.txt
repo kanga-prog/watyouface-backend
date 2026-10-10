@@ -1,0 +1,14 @@
+WatYouFace Marketplace — validation frontend
+Date : 2026-10-10
+Branche : fix/marketplace-final-validation
+Commande : npm run lint
+Résultat : PASS, 0 erreur; 1 avertissement préexistant dans src/pages/Admin.jsx (dépendance query de useEffect).
+
+Commande : npm test -- --run
+Résultat : PASS, 9 fichiers de test et 22 tests.
+Le test ajouté ListingCard.test.jsx vérifie que l'erreur métier renvoyée par l'API est rendue dans une alerte accessible.
+
+Commande : npm run build
+Résultat : PASS, Vite a transformé 1900 modules. Bundle JS 441.55 kB (137.77 kB gzip), CSS 43.10 kB (8.40 kB gzip), HTML 0.47 kB.
+
+Recette graphique navigateur : non exécutée; aucune capture réelle n'est produite par cette preuve.
