@@ -356,7 +356,7 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 
 | Élément | Résultat vérifié |
 |---|---|
-| Git | Backend `main` et frontend `main` observés alignés avec `origin/main`; backend propre. `updateAvatars.js` reste une modification locale frontend, non touchée/non incluse. Branche de documentation backend `rncp6/deployment`. |
+| Git / PR | Branche documentaire backend `rncp6/deployment` poussée; PR #31 OPEN vers `main` (https://github.com/kanga-prog/watyouface-backend/pull/31), mise à jour par les commits `86d16ac` et `08615d7`. Corrections Marketplace séparées: backend PR #32 et frontend PR #7, OPEN, non fusionnées. `updateAvatars.js` reste local et non inclus. |
 | Infrastructure | Hébergeur cible déclaré: Hostinger. Offre souscrite (VPS ou Web/Cloud), domaine et accès hPanel non confirmés; aucun reverse proxy, systemd, CI/CD ou environnement hébergé configuré. Aucun déploiement réel. |
 | Compatibilité Hostinger | Documentation officielle consultée: Java/root est pris en charge sur VPS; PostgreSQL et reverse proxy possibles en VPS auto-géré. Web/Cloud Node.js propose React/Vite et backends JavaScript, pas Spring Boot. VPS Hostinger recommandé sous réserve de confirmer l’offre réelle. |
 | Builds | `./mvnw clean package` PASS, JAR 69 MB; 65 tests, 60 réussis, 0 échec/erreur, 5 tests PostgreSQL ignorés. Audit `npm audit --omit=dev`: 0 vulnérabilité. Build frontend Vite PASS; build de contrôle avec URL réservées `api.example.invalid`, `localhost:8080` absent du bundle. Ce n’est pas le vrai domaine Hostinger. |
