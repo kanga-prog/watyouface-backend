@@ -1,0 +1,9 @@
+RNCP6 Phase 13 — preuve de build backend
+Date : 2026-10-10
+Commande : ./mvnw clean package
+Résultat : BUILD SUCCESS
+Artefact : target/watyouface-0.0.1-SNAPSHOT.jar (~69 MB)
+Tests rapportés : 65; 0 échec; 0 erreur; 5 ignorés (tests PostgreSQL conditionnels, environnement DB non configuré lors de cette commande).
+Profil de test observé : dev / H2 mémoire pour les tests d'intégration MockMvc.
+Limite : ne prouve ni démarrage sur serveur cible, ni connexion PostgreSQL au moment de ce build, ni déploiement réel.
+Aucun secret consigné.
