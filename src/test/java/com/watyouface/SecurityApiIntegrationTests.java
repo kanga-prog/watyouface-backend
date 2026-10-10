@@ -217,6 +217,81 @@ class SecurityApiIntegrationTests {
         mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("email", email, "password", "WrongPassword123!"))))
                 .andExpect(status().isUnauthorized());
+
+        mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "email", "missing-" + System.nanoTime() + "@example.test",
+                                "password", "SecurePassword123!"))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void registrationRejectsEachInvalidFieldWithAUsefulValidationMessage() throws Exception {
+        mvc.perform(post("/api/auth/register").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "username", "ab", "email", "username-invalid@example.test",
+                                "password", "SecurePassword123!", "acceptTerms", true))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("username:")));
+
+        mvc.perform(post("/api/auth/register").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "username", "invalid-email", "email", "not-an-email",
+                                "password", "SecurePassword123!", "acceptTerms", true))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("email:")));
+
+        mvc.perform(post("/api/auth/register").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "username", "short-password", "email", "short-password@example.test",
+                                "password", "short", "acceptTerms", true))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("password:")));
+    }
+
+    @Test
+    void registrationDuplicatesReturnConflictForEmailAndUsername() throws Exception {
+        String email = "duplicate-" + System.nanoTime() + "@example.test";
+        String username = "duplicate-" + System.nanoTime();
+        mvc.perform(post("/api/auth/register").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "username", username, "email", email,
+                                "password", "SecurePassword123!", "acceptTerms", true))))
+                .andExpect(status().isOk());
+
+        mvc.perform(post("/api/auth/register").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "username", username + "-other", "email", email,
+                                "password", "SecurePassword123!", "acceptTerms", true))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("Cette adresse e-mail est déjà utilisée."));
+
+        mvc.perform(post("/api/auth/register").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "username", username, "email", "other-" + System.nanoTime() + "@example.test",
+                                "password", "SecurePassword123!", "acceptTerms", true))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("Ce nom d'utilisateur est déjà pris."));
+    }
+
+    @Test
+    void registrationRequiresCsrfAndAcceptsTheFrontendPayloadWhenTokenIsValid() throws Exception {
+        String email = "csrf-register-" + System.nanoTime() + "@example.test";
+        String payload = objectMapper.writeValueAsString(Map.of(
+                "username", "csrf-register-" + System.nanoTime(),
+                "email", email,
+                "password", "SecurePassword123!",
+                "acceptTerms", true));
+
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(payload))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post("/api/auth/register").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").exists())
+                .andExpect(jsonPath("$.needsContractAcceptance").value(false));
     }
 
     @Test

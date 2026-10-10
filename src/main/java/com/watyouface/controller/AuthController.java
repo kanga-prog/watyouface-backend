@@ -54,24 +54,20 @@ public class AuthController {
     // 🔹 Enregistrement
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        try {
-            User user = authService.register(
-                    request.getUsername(),
-                    request.getEmail(),
-                    request.getPassword(),
-                    request.isAcceptTerms()
-            );
+        User user = authService.register(
+                request.getUsername(),
+                request.getEmail(),
+                request.getPassword(),
+                request.isAcceptTerms()
+        );
 
-            return ResponseEntity.ok(Map.of(
-                    "userId", user.getId(),
-                    "needsContractAcceptance", !request.isAcceptTerms(),
-                    "message", request.isAcceptTerms()
-                            ? "Inscription réussie et contrat accepté."
-                            : "Compte créé. Veuillez accepter le contrat pour finaliser."
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(Map.of(
+                "userId", user.getId(),
+                "needsContractAcceptance", !request.isAcceptTerms(),
+                "message", request.isAcceptTerms()
+                        ? "Inscription réussie et contrat accepté."
+                        : "Compte créé. Veuillez accepter le contrat pour finaliser."
+        ));
     }
 
     // 🔹 Connexion

@@ -62,10 +62,10 @@ public class AuthService {
     public User register(String username, String email, String password, boolean acceptedContract) {
         // Vérifications
         if (userRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("Email déjà utilisé.");
+            throw new IllegalStateException("Cette adresse e-mail est déjà utilisée.");
         }
         if (userRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("Nom d'utilisateur déjà pris.");
+            throw new IllegalStateException("Ce nom d'utilisateur est déjà pris.");
         }
 
         User user = new User();
@@ -78,7 +78,7 @@ public class AuthService {
         if (acceptedContract) {
             Optional<Contract> activeContractOpt = contractService.getActiveContract();
             if (activeContractOpt.isEmpty()) {
-                throw new RuntimeException("Aucun contrat actif n’est disponible.");
+                throw new IllegalStateException("Aucun contrat actif n’est disponible.");
             }
             user.setAcceptedContractVersion(activeContractOpt.get());
         }
