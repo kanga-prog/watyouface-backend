@@ -181,6 +181,43 @@ class CookieAuthenticationIntegrationTests {
     }
 
     @Test
+    void registrationThenLoginCreatesCookieAndAuthenticatesTheNewAccount() throws Exception {
+        String suffix = Long.toString(System.nanoTime());
+        String username = "new-user-" + suffix;
+        String email = "new-user-" + suffix + "@example.test";
+        String password = "NewUserPassword!123";
+        String registration = objectMapper.writeValueAsString(Map.of(
+                "username", username,
+                "email", email,
+                "password", password,
+                "acceptTerms", true));
+
+        MvcResult registerCsrf = csrfToken();
+        mvc.perform(post("/api/auth/register")
+                        .cookie(csrfCookie(registerCsrf))
+                        .header("X-XSRF-TOKEN", csrfValue(registerCsrf))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registration))
+                .andExpect(status().isOk());
+
+        MvcResult loginCsrf = csrfToken();
+        MvcResult login = mvc.perform(post("/api/auth/login")
+                        .cookie(csrfCookie(loginCsrf))
+                        .header("X-XSRF-TOKEN", csrfValue(loginCsrf))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("email", email, "password", password))))
+                .andExpect(status().isOk())
+                .andExpect(result -> assertThat(result.getResponse().getHeader("Set-Cookie"))
+                        .contains("WATYOUFACE_AUTH=", "HttpOnly"))
+                .andReturn();
+
+        Cookie auth = cookieFromSetCookie(login.getResponse().getHeader("Set-Cookie"), AuthCookieFactory.COOKIE_NAME);
+        mvc.perform(get("/api/users/me").cookie(auth))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(username));
+    }
+
+    @Test
     void bearerHeaderIsRejectedWhenCookieMigrationModeIsStrict() throws Exception {
         mvc.perform(get("/api/users/me").header("Authorization", "Bearer " + validToken()))
                 .andExpect(status().isUnauthorized());
