@@ -6,31 +6,31 @@ Objectif: préparer un déploiement reproductible sans publier l’application a
 
 ## 2. État initial et traces existantes
 
-Backend et frontend étaient sur `main`, à jour avec `origin/main`. Backend worktree propre. Frontend contient le changement local préexistant `updateAvatars.js`, laissé intact et non inclus. Aucun Dockerfile/Compose, Nginx/Apache, systemd, PM2, Procfile, manifeste Render/Railway/Vercel/Netlify ou workflow GitHub Actions de déploiement n’est suivi. Aucun fournisseur, domaine ou serveur hébergé n’est documenté.
+Au début de l’audit, backend et frontend étaient sur `main`, alignés avec `origin/main`. Le backend est ensuite passé sur sa branche d’audit Marketplace puis sur `rncp6/deployment` pour cette documentation. Le frontend conserve le changement local préexistant `updateAvatars.js`, laissé intact et non inclus. Aucun Dockerfile/Compose, Nginx/Apache, systemd, PM2, Procfile ou workflow de déploiement n’est suivi. L’hébergeur cible déclaré est Hostinger; l’offre souscrite, les domaines et le serveur restent à confirmer.
 
 Profils backend observés: `dev` (H2 mémoire par défaut, port 8081, console H2/SQL visibles, cookie non Secure et fallback Bearer permis: développement uniquement); `local` (PostgreSQL, port 8080, validation de schéma); `prod` (PostgreSQL obligatoire, `ddl-auto=validate`, erreurs sans message interne, cookie Secure, fallback Bearer désactivé, port 9090 par défaut). Aucun endpoint health spécifique de production n’a été identifié.
 
-## 3. Architecture cible
+## 3. Architecture cible Hostinger
 
 Utilisateur → HTTPS → Nginx (statique React/Vite + reverse proxy) → Spring Boot → PostgreSQL et répertoire `media/` persistant. Nginx route `/api`, `/media` et `/ws`; le backend reste sur loopback `9090`; PostgreSQL n’est pas exposé publiquement. WebSocket/SockJS traverse TLS et utilise l’upgrade WSS. Cookies d’auth HttpOnly/Secure; cookie CSRF séparé; allowlist CORS explicite.
 
-Les noms de domaine restent à choisir. Une origine publique unique est recommandée pour réduire la complexité cookie/CSRF/CORS. Diagramme détaillé: `docs/rncp/evidence/deployment/deployment-architecture.txt`.
+Architecture conditionnelle à un VPS Hostinger. Une origine publique unique est recommandée pour réduire la complexité cookie/CSRF/CORS. Hostinger documente Java comme technologie nécessitant l’accès root/VPS et PostgreSQL parmi les technologies gérables sur VPS. Ses offres Web/Cloud Node.js listent React/Vite au frontend mais des backends JavaScript; un plan Web/Cloud seul n’est donc pas validé pour Spring Boot. Le titulaire doit confirmer l’offre dans hPanel. Références : [langages/frameworks Hostinger](https://www.hostinger.com/support/which-programming-languages-and-frameworks-are-supported-at-hostinger/), [VPS auto-géré](https://www.hostinger.com/support/8852150-what-is-a-self-managed-vps-at-hostinger/), [Web Apps Node.js](https://www.hostinger.com/support/how-to-deploy-a-nodejs-website-in-hostinger/). Diagramme : `docs/rncp/evidence/deployment/deployment-architecture.txt`.
 
 ## 4. Environnements
 
-`LOCAL`: profil `local` avec PostgreSQL local (ou `dev` H2 pour développement isolé), frontend Vite localhost; secrets locaux externes. `DEVELOPPEMENT`: données non réelles, H2 ou PostgreSQL dédiée, ports locaux, jamais de secret partagé. `STAGING`: environnement à provisionner avec PostgreSQL isolée, HTTPS, domaines de test et secrets distincts. `PRODUCTION`: profil `prod`, PostgreSQL persistante et privée, HTTPS obligatoire, cookie Secure, origine CORS exacte, sauvegardes/restauration testées.
+`LOCAL`: profil `local` avec PostgreSQL locale (ou `dev` H2 pour développement isolé), frontend Vite localhost; secrets locaux externes. `DEVELOPPEMENT`: données non réelles, H2 ou PostgreSQL dédiée, ports locaux, jamais de secret partagé. `STAGING`: à provisionner sur Hostinger après confirmation de l’offre, avec PostgreSQL isolée, HTTPS, domaine de test et secrets distincts. `PRODUCTION`: cible Hostinger à confirmer (VPS recommandé pour héberger Spring/DB); profil `prod`, PostgreSQL persistante et privée, HTTPS obligatoire, cookie Secure, origine CORS exacte, sauvegardes/restauration testées.
 
-Les URLs staging/production ne sont pas connues; elles sont des placeholders, pas des endpoints existants. Variables recensées dans `docs/rncp/97_VARIABLES_ENVIRONNEMENT.md`.
+Les URLs staging/production et le domaine Hostinger ne sont pas connus; ce sont des placeholders, pas des endpoints existants. Variables recensées dans `docs/rncp/97_VARIABLES_ENVIRONNEMENT.md`.
 
 ## 5. Stratégie retenue
 
-Comparaison A (services gérés séparés), B (VPS unique + reverse proxy), C (containers). La cible choisie pour le MVP est B: origine unique, contrôle des chemins `/media` actuels et proxy WebSocket explicite; contrepartie: patchs OS, sauvegardes, supervision, TLS et accès au VPS à administrer. Docker/Compose n’existe pas dans le dépôt et n’est pas introduit ici. Ce choix est une proposition documentée; aucun VPS ou fournisseur n’est réservé.
+Comparaison A (services gérés séparés), B (Hostinger VPS unique + reverse proxy), C (containers). B est recommandé sous réserve d’avoir réellement un VPS Hostinger; origine unique, chemins `/media` et proxy WebSocket explicite; contrepartie: patchs OS, sauvegardes, supervision, TLS et administration. Docker/Compose n’existe pas dans le dépôt. Il s’agit d’une proposition documentée; aucun VPS n’est confirmé/réservé.
 
 ## 6. Builds
 
-`./mvnw clean package`: PASS, JAR exécutable `target/watyouface-0.0.1-SNAPSHOT.jar`, environ 69 MB. 65 tests rapportés: 60 passés, 0 failure/error, 5 tests PostgreSQL ignorés car l’environnement DB n’était pas configuré pour cette commande. `npm ci`: PASS; 373 packages installés, audit de l’installation sans vulnérabilité rapportée. `npm run build`: PASS; Vite 7.3.7, dist produit, JS 441.52 kB (137.75 gzip), CSS 43.10 kB (8.40 gzip), HTML 0.47 kB. Détails: `docs/rncp/evidence/deployment/*-build-summary.txt`.
+`./mvnw clean package`: PASS, JAR exécutable `target/watyouface-0.0.1-SNAPSHOT.jar`, 69 MB. 65 tests comptabilisés: 60 réussis, 0 échec/erreur, 5 PostgreSQL conditionnels ignorés. `npm ci`: preuve antérieure PASS; `npm audit --omit=dev` rejoué: 0 vulnérabilité. Build Vite 7.3.7 PASS, `dist/`, 1900 modules, JS 441.57 kB (137.78 gzip), CSS 43.10 kB (8.40 gzip), HTML 0.47 kB.
 
-Le build frontend de preuve a utilisé les valeurs locales par défaut (`localhost:8080`), et **n’est pas** un bundle de production. Un build de déploiement doit recevoir `VITE_API_BASE` et `VITE_WS_URL` avant compilation; aucune de ces variables ne doit contenir de secret.
+Un build de contrôle supplémentaire a fourni `VITE_API_BASE=https://api.example.invalid` et `VITE_WS_URL=https://api.example.invalid/ws`; Vite PASS et `localhost:8080` est absent du bundle. `.invalid` est une valeur réservée de test, pas une URL Hostinger déployable. Le domaine réel étant inconnu, un build production réel reste à faire avec les deux variables; aucune ne doit contenir de secret.
 
 ## 7. Sécurité de configuration
 
@@ -52,7 +52,7 @@ La procédure pas-à-pas et la stratégie de rollback se trouvent dans `docs/rnc
 
 ## 11. Preuves et limites
 
-Les preuves de build et diagramme sont dans `docs/rncp/evidence/deployment/`. La checklist post-déploiement reste non exécutée; aucune capture/URL live n’est ajoutée. Les limites majeures: domaine/hébergeur non choisis, pas d’infrastructure versionnée, pas de migration de schéma complète, pas de média externe, pas de smoke test HTTPS/WebSocket/cookie dans un environnement hébergé, pas de backup/restore réalisé.
+Les preuves de build et diagramme sont dans `docs/rncp/evidence/deployment/`. La checklist post-déploiement reste non exécutée; aucune capture/URL live n’est ajoutée. Les limites majeures: offre Hostinger et domaine non confirmés, pas d’infrastructure versionnée, pas de migration de schéma complète, pas de média externe, pas de smoke test HTTPS/WebSocket/cookie dans un environnement hébergé, pas de backup/restore réalisé. L’audit Marketplace est consigné dans `docs/rncp/100_RECETTE_MARKETPLACE_COMPLETE.md` et `101_MATRICE_VALIDATION_MARKETPLACE.md`: plusieurs parcours API/H2 PASS, mais PostgreSQL courant, recette UI et E2E navigateur restent absents. Aucune mise en production ne doit précéder cette validation.
 
 ## 12. Mapping RNCP
 
@@ -65,4 +65,4 @@ Les preuves de build et diagramme sont dans `docs/rncp/evidence/deployment/`. La
 
 ## 13. Conclusion
 
-**Déploiement réel: NON. Phase 13 documentaire: livrables créés et builds locaux réussis. Phase 13 entièrement clôturable: NON**, car le schéma initial/migrations restent un prérequis de mise en service et la procédure n’a pas été répétée sur une infrastructure staging. La prochaine phase proposée est Phase 14 DevOps/CI-CD, en gardant les prérequis de base et de déploiement identifiés.
+**Déploiement réel: NON. Phase 13 documentaire: préparation Hostinger mise à jour, builds locaux réussis. Phase 13 clôturable: NON.** Blocages: offre Hostinger/domaine à confirmer; baseline/migrations PostgreSQL complètes absentes; Marketplace non recetté sur PostgreSQL courant ni dans un navigateur; aucune infrastructure staging, TLS, Nginx/systemd ou smoke test réel. La Phase 14 n’est pas déclarée prête avant levée de ces prérequis.
