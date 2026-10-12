@@ -13,6 +13,7 @@ import com.watyouface.entity.enums.Role;
 import com.watyouface.entity.enums.TransactionStatus;
 import com.watyouface.repository.ContractRepository;
 import com.watyouface.repository.ConversationRepository;
+import com.watyouface.repository.ConversationUserRepository;
 import com.watyouface.repository.ListingRepository;
 import com.watyouface.repository.LikeRepository;
 import com.watyouface.repository.MessageRepository;
@@ -22,11 +23,13 @@ import com.watyouface.repository.UserRepository;
 import com.watyouface.repository.UserContractRepository;
 import com.watyouface.repository.WalletRepository;
 import com.watyouface.security.JwtUtil;
+import com.watyouface.security.AuthCookieFactory;
 import com.watyouface.security.LoginRateLimiter;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -35,11 +38,21 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockPart;
+import org.springframework.mock.web.MockMultipartFile;
+import jakarta.servlet.http.Cookie;
 
 import java.util.Map;
 import java.util.Set;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import javax.imageio.ImageIO;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -71,6 +84,7 @@ class SecurityApiIntegrationTests {
     @Autowired private WalletRepository walletRepository;
     @Autowired private ContractRepository contractRepository;
     @Autowired private ConversationRepository conversationRepository;
+    @Autowired private ConversationUserRepository conversationUserRepository;
     @Autowired private ListingRepository listingRepository;
     @Autowired private MessageRepository messageRepository;
     @Autowired private TransactionRepository transactionRepository;
@@ -78,6 +92,7 @@ class SecurityApiIntegrationTests {
     @Autowired private LikeRepository likeRepository;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private LoginRateLimiter loginRateLimiter;
+    private final List<Path> uploadedMarketplaceFiles = new ArrayList<>();
 
     @BeforeEach
     void cleanUsers() {
@@ -91,6 +106,14 @@ class SecurityApiIntegrationTests {
         userContractRepository.deleteAll();
         walletRepository.deleteAll();
         userRepository.deleteAll();
+    }
+
+    @AfterEach
+    void removeUploadedMarketplaceFiles() {
+        uploadedMarketplaceFiles.forEach(path -> {
+            try { Files.deleteIfExists(path); } catch (IOException ignored) { }
+        });
+        uploadedMarketplaceFiles.clear();
     }
 
     @Test
@@ -441,6 +464,128 @@ class SecurityApiIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Objet démo\",\"description\":\"Description\",\"price\":0}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void marketplaceImageUploadPersistsServesAndCanBeAttachedToListing() throws Exception {
+        User seller = saveUser("market-image-seller", Role.USER);
+        MockMultipartFile image = new MockMultipartFile("file", "item.png", "image/png", validPng());
+
+        var upload = mvc.perform(multipart("/api/marketplace/listings/upload")
+                        .file(image).with(csrf()).header("Authorization", bearer(seller)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrl").isString())
+                .andReturn();
+        String imageUrl = objectMapper.readTree(upload.getResponse().getContentAsString()).get("imageUrl").asText();
+        assertThat(imageUrl).startsWith("/media/marketplace/listing_").endsWith(".jpg");
+
+        Path storedFile = Path.of(System.getProperty("user.dir"), "media")
+                .resolve(imageUrl.substring("/media/".length())).normalize();
+        uploadedMarketplaceFiles.add(storedFile);
+        assertThat(Files.isRegularFile(storedFile)).isTrue();
+        assertThat(Files.size(storedFile)).isPositive();
+        mvc.perform(get(imageUrl)).andExpect(status().isOk());
+
+        String payload = objectMapper.writeValueAsString(Map.of(
+                "title", "Objet illustré", "description", "Image de test", "price", 12,
+                "image", imageUrl));
+        var created = mvc.perform(post("/api/marketplace/listings").with(csrf())
+                        .header("Authorization", bearer(seller)).contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.image").value(imageUrl))
+                .andReturn();
+        long id = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+        mvc.perform(get("/api/marketplace/listings/{id}", id)
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.image").value(imageUrl));
+    }
+
+    @Test
+    void marketplaceImageUploadRejectsUnsupportedMimeType() throws Exception {
+        User seller = saveUser("market-image-invalid", Role.USER);
+        MockMultipartFile file = new MockMultipartFile("file", "item.svg", "image/svg+xml", "<svg/>".getBytes());
+        mvc.perform(multipart("/api/marketplace/listings/upload").file(file).with(csrf())
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void marketplaceImageUploadRequiresAuthentication() throws Exception {
+        MockMultipartFile image = new MockMultipartFile("file", "item.png", "image/png", validPng());
+        mvc.perform(multipart("/api/marketplace/listings/upload").file(image).with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void marketplacePurchaseRequestAcceptsCookieAuthenticatedBuyerAndPersistsPending() throws Exception {
+        User seller = saveUser("market-cookie-seller", Role.USER);
+        User buyer = saveUser("market-cookie-buyer", Role.USER);
+        Listing listing = new Listing();
+        listing.setTitle("Annonce avec session cookie");
+        listing.setPrice(12.0);
+        listing.setSeller(seller);
+        listing.setStatus(com.watyouface.entity.enums.ListingStatus.AVAILABLE);
+        listing = listingRepository.saveAndFlush(listing);
+        Cookie authCookie = new Cookie(AuthCookieFactory.COOKIE_NAME, jwtUtil.generateToken(
+                buyer.getId(), buyer.getUsername(), buyer.getRole().name()));
+
+        mvc.perform(post("/api/marketplace/listings/{id}/request", listing.getId()).with(csrf()))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/marketplace/listings/{id}/request", listing.getId())
+                        .cookie(authCookie).with(csrf()))
+                .andExpect(status().isOk());
+        Listing updated = listingRepository.findById(listing.getId()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(com.watyouface.entity.enums.ListingStatus.PENDING);
+        assertThat(updated.getBuyer().getId()).isEqualTo(buyer.getId());
+    }
+
+    @Test
+    void cookiePurchaseRequestRequiresCsrfButValidCsrfAllowsRequest() throws Exception {
+        User seller = saveUser("market-csrf-seller", Role.USER);
+        User buyer = saveUser("market-csrf-buyer", Role.USER);
+        Listing listing = new Listing();
+        listing.setTitle("Annonce CSRF");
+        listing.setPrice(12.0);
+        listing.setSeller(seller);
+        listing.setStatus(com.watyouface.entity.enums.ListingStatus.AVAILABLE);
+        listing = listingRepository.saveAndFlush(listing);
+        Cookie authCookie = new Cookie(AuthCookieFactory.COOKIE_NAME, jwtUtil.generateToken(
+                buyer.getId(), buyer.getUsername(), buyer.getRole().name()));
+
+        mvc.perform(post("/api/marketplace/listings/{id}/request", listing.getId()).cookie(authCookie))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/marketplace/listings/{id}/request", listing.getId())
+                        .cookie(authCookie).with(csrf()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void contactSellerCreatesOrReusesPrivateConversationWithBothMembers() throws Exception {
+        User seller = saveUser("market-chat-seller", Role.USER);
+        User buyer = saveUser("market-chat-buyer", Role.USER);
+        var first = mvc.perform(post("/api/conversations/with/{id}", seller.getId()).with(csrf())
+                        .header("Authorization", bearer(buyer)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").exists()).andReturn();
+        long conversationId = objectMapper.readTree(first.getResponse().getContentAsString()).get("id").asLong();
+        assertThat(isConversationMember(conversationId, buyer.getId())).isTrue();
+        assertThat(isConversationMember(conversationId, seller.getId())).isTrue();
+
+        mvc.perform(post("/api/conversations/with/{id}", seller.getId()).with(csrf())
+                        .header("Authorization", bearer(buyer)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(conversationId));
+    }
+
+    private byte[] validPng() throws IOException {
+        BufferedImage image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
+    }
+
+    private boolean isConversationMember(Long conversationId, Long userId) {
+        return conversationUserRepository.findAll().stream().anyMatch(membership ->
+                membership.getConversation().getId().equals(conversationId)
+                        && membership.getUser().getId().equals(userId));
     }
 
     @Test
