@@ -52,14 +52,32 @@ Les autres transitions sont refusées par la vérification d’état du service 
 - Aucun contrat spécifique de vente, d’acceptation acheteur/vendeur ou de livraison n’est rattaché à `Listing`.
 - Le cycle complet a désormais un test d’intégration API MockMvc/H2 avec deux identités distinctes et soldes fictifs, mais aucun parcours navigateur UI à deux comptes n’a été exécuté. Ce test API ne vaut pas preuve PostgreSQL ni E2E navigateur.
 
+## Réexécution finale (2026-10-10)
+
+- Backend `./mvnw clean test`: **PASS**, 65 tests rapportés, dont 60 exécutés avec succès et 5 ignorés, 0 échec, 0 erreur (configuration PostgreSQL dédiée absente). Cela inclut les tests d’intégration API/H2; cela ne constitue pas une preuve PostgreSQL.
+- PostgreSQL installé: client 16.15. Le serveur local ne répond pas (`pg_isready`: aucune réponse sur `/var/run/postgresql:5432`); `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` et `JWT_SECRET` ne sont pas définis dans cet environnement. Les tests PostgreSQL, la contrainte `uq_transaction_listing_id` sur le moteur réel, le rollback DB et la concurrence DB sont donc **NON EXÉCUTÉS** pendant cette réévaluation.
+- Frontend: ESLint PASS (un avertissement préexistant dans `Admin.jsx`), Vitest **9 fichiers / 22 tests PASS**, build Vite PASS. `npm audit --omit=dev`: **0 vulnérabilité**.
+- PR backend #32 et frontend #7: ouvertes et mergeables; GitHub ne rapporte aucun check CI pour ces branches.
+- Aucun navigateur graphique n’est disponible dans l’environnement. Les captures et scénarios navigateur restent **MANUELS / NON TESTÉS**; aucune preuve visuelle n’est revendiquée.
+
+## Correctifs UI et réévaluation (2026-10-12)
+
+- PostgreSQL 16.15, base `watyouface_db`, utilisateur `watuser`: connexion locale confirmée. La suite ciblée `PostgresPaymentIntegrationTests` a été rejouée avec **5 tests, 0 échec, 0 erreur, 0 ignoré**. Elle couvre commit, contrainte unique `uq_transaction_listing_id`, rollback forcé, solde insuffisant et paiements concurrents; la contrainte a rejeté la seconde écriture. Les valeurs sensibles ne sont pas consignées.
+- Cause des skips JUnit: `@EnabledIfEnvironmentVariable` exige `DB_URL` correspondant à `jdbc:postgresql:.*`, `DB_USERNAME` non vide, `DB_PASSWORD` défini (vide permis) et `JWT_SECRET` d’au moins 32 caractères. Sans ces variables dans le processus Maven, les cinq méthodes sont ignorées même si PostgreSQL fonctionne. Exécuter séparément la classe PostgreSQL: l’injection de `DB_URL` dans toute la suite ferait utiliser l’URL PostgreSQL à des tests `dev` qui attendent H2.
+- Upload image: parcours réellement implémenté en deux requêtes — POST multipart authentifié `/api/marketplace/listings/upload` (JPEG/PNG/WebP, 10 Mo max) renvoie une URL `/media/marketplace/...`; puis POST JSON création d’annonce persiste cette URL dans `Listing.image`. Le nom de fichier est généré par UUID, le stockage est `media/marketplace/`, et `/media/**` sert le fichier publiquement pour l’affichage. Un test MockMvc/H2 vérifie upload, fichier servi, création, URL persistée et relecture du détail. La sélection frontend est limitée aux formats acceptés par le backend et rejette les fichiers de plus de 10 Mo.
+- Demande d’achat: `POST /api/marketplace/listings/{id}/request`. Le transport frontend commun envoie `credentials: "include"`, récupère le jeton CSRF et le transmet dans `X-XSRF-TOKEN`; le cookie auth est joint par le navigateur. Le test avec cookie valide passe à `PENDING`; sans cookie, la réponse est 401; avec cookie mais sans CSRF, 403. Ainsi, le 401 observé correspond au refus par Spring Security faute d’un principal établi (cookie absent, invalide ou expiré). Le code ne permet pas d’identifier lequel s’est produit dans le navigateur sans examiner la requête réseau concernée.
+- Contact vendeur: le clic créait déjà/récupérait la conversation privée via `/api/conversations/with/{sellerId}`, mais la page Marketplace ne fournissait aucun callback de navigation. Correction UI: passage vers `/messages` avec l’identifiant de conversation; la page Chat sélectionne cette conversation. Un test API confirme création/réutilisation et membership vendeur + acheteur. La conversation demeure générique; aucun lien `Listing`–`Conversation` n’est ajouté. Le droit de lecture/envoi reste borné aux membres par les contrôles Chat existants.
+- Résultats complets: backend `./mvnw clean test` **79 tests rapportés, 74 succès, 0 échec/erreur, 5 tests PostgreSQL ignorés** car variables absentes pour cette exécution H2; la suite PostgreSQL séparée est **5/5 PASS**. Frontend lint PASS (un avertissement préexistant `Admin.jsx`), 10 fichiers / 30 tests PASS, build PASS, `npm audit --omit=dev`: 0 vulnérabilité.
+- Recette visuelle réelle non exécutée: pas de navigateur graphique détecté. L’image persistée/servable et les actions sont prouvées par API/tests; image après refresh navigateur, saisie/envoi message et captures restent MANUELS.
+
 ## Limites de la passe
 
 - PostgreSQL local n’est pas disponible (`pg_isready`: aucune réponse sur le socket local); les tests PostgreSQL dédiés n’ont donc pas été rejoués. H2/service ne vaut pas preuve PostgreSQL.
 - Aucun navigateur graphique n’est disponible dans cette passe : refresh, affichage des statuts, erreurs UX et captures restent à exécuter manuellement.
 - Une lecture de code a identifié une course potentielle entre transitions concurrentes autres que le paiement. La branche de validation applique désormais le verrou pessimiste existant aux mutations d’annonce; faute de PostgreSQL disponible, la concurrence de ces transitions reste non prouvée par un test DB réel.
-- Vérification automatisée courante : backend `./mvnw clean test` PASS, 73 tests, 0 échec, 0 erreur, 5 tests PostgreSQL ignorés; frontend lint PASS (1 avertissement préexistant `Admin.jsx`), Vitest 9 fichiers / 22 tests PASS, build Vite PASS. `npm audit --omit=dev` : 0 vulnérabilité.
+- Vérification automatisée courante : voir « Correctifs UI et réévaluation » ci-dessus (backend 79 rapportés, 74 PASS, 5 ignorés; PostgreSQL séparé 5/5; frontend lint, 30 tests, build et audit runtime PASS).
 - Aucune capture PNG n’est fabriquée ou revendiquée. Les preuves attendues MKT-01 à MKT-08 sont à produire après recette navigateur réelle.
 
 ## Résultat de clôture Marketplace
 
-**Blocage levé : NON.** Le cycle métier est en partie couvert par service/API, mais PostgreSQL courant, recette navigateur, refus, matrice complète des transitions API et scénario E2E à deux utilisateurs restent à valider.
+**Blocage levé : NON pour la clôture avant déploiement.** Le paiement et ses invariants sont maintenant prouvés sur PostgreSQL réel; upload, demande d’achat cookie/CSRF et contact vendeur ont des tests automatisés. La recette utilisateur réelle avec deux comptes, confirmation image après refresh, message et captures reste manuelle et n’a pas été exécutée dans cet environnement.

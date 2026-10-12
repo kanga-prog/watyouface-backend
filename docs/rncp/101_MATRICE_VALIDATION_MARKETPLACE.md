@@ -1,6 +1,6 @@
 # Matrice de validation Marketplace
 
-Date : 2026-10-10. Les statuts visuels exigent une capture de l’application réelle; ils ne sont pas déduits de tests de service.
+Date : 2026-10-12. Backend `clean test`: 79 rapportés, 74 succès, 0 échec/erreur, 5 PostgreSQL ignorés; suite PostgreSQL séparée 5/5 PASS. Frontend lint, 30 tests, build PASS; audit runtime 0 vulnérabilité. Aucun navigateur graphique n’est disponible. Les statuts visuels exigent une capture de l’application réelle; ils ne sont pas déduits de tests de service.
 
 | ID | Scénario | Acteur | État initial | Action | État attendu | Test automatique | Test manuel | Résultat | Preuve |
 |---|---|---|---|---|---|---|---|---|---|
