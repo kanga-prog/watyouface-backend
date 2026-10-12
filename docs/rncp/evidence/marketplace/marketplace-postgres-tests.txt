@@ -1,9 +1,7 @@
 WatYouFace Marketplace — PostgreSQL réel
-Date de tentative : 2026-10-10
-Commande de disponibilité : pg_isready
-Résultat courant : NON REJOUE — /var/run/postgresql:5432 no response.
-Les tests PostgresPaymentIntegrationTests ont été détectés dans ./mvnw clean test mais 5 sont ignorés faute de serveur/configuration DB.
-
-Résultat réel du 2026-10-12 : PostgresPaymentIntegrationTests — 5 exécutés, 5 PASS, 0 échec/erreur/skipped, PostgreSQL 16.15, base watyouface_db, utilisateur watuser.
+Date : 2026-10-12
+Disponibilité : pg_isready PASS — PostgreSQL 16.15, base watyouface_db, utilisateur watuser.
+Résultat courant : PostgresPaymentIntegrationTests — 5 exécutés, 5 PASS, 0 échec/erreur/skipped.
+Les cinq tests sont ignorés dans l'exécution globale sans variables de connexion; ils ont été exécutés séparément contre le PostgreSQL réel.
 Vérifications : paiement/commit cohérent, contrainte `uq_transaction_listing_id`, rollback forcé, solde insuffisant, deux tentatives concurrentes avec un seul paiement commité.
 La suite est conditionnée par DB_URL, DB_USERNAME, DB_PASSWORD défini (vide permis) et JWT_SECRET (32 caractères minimum). Valeurs sensibles non consignées.
