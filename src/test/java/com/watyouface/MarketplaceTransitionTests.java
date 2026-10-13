@@ -30,7 +30,6 @@ class MarketplaceTransitionTests {
         listing.setSeller(seller);
         listing.setPrice(25.0);
         listing.setStatus(ListingStatus.AVAILABLE);
-        when(listings.findById(7L)).thenReturn(Optional.of(listing));
         when(listings.findByIdForUpdate(7L)).thenReturn(Optional.of(listing));
         when(users.findById(2L)).thenReturn(Optional.of(buyer));
         when(transactions.existsByListing_Id(7L)).thenReturn(false);
@@ -59,12 +58,13 @@ class MarketplaceTransitionTests {
         listing.setSeller(seller);
         listing.setBuyer(buyer);
         listing.setStatus(ListingStatus.PENDING);
-        when(listings.findById(7L)).thenReturn(Optional.of(listing));
+        when(listings.findByIdForUpdate(7L)).thenReturn(Optional.of(listing));
         MarketplaceService service = new MarketplaceService(
                 listings, mock(UserRepository.class), mock(TransactionService.class), mock(TransactionRepository.class));
 
         assertThrows(SecurityException.class, () -> service.accept(7L, 2L, false));
         assertEquals(ListingStatus.PENDING, listing.getStatus());
+        verify(listings).findByIdForUpdate(7L);
         assertThrows(IllegalStateException.class, () -> service.ship(7L, 1L, false));
     }
 }

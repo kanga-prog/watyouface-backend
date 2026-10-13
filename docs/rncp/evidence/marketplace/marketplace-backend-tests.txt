@@ -1,0 +1,11 @@
+WatYouFace Marketplace — exécution backend
+Dates : 2026-10-10 et 2026-10-12
+Branche : fix/marketplace-final-validation
+Commande H2 : env -u DB_URL -u DB_USERNAME -u DB_PASSWORD -u JWT_SECRET ./mvnw clean test
+Résultat : BUILD SUCCESS
+Surefire global : 79 tests rapportés, 0 failure, 0 error, 5 skipped (74 exécutés avec succès). Les 5 tests PostgreSQL sont ignorés par leurs conditions d’environnement.
+Commande PostgreSQL séparée : DB_URL=jdbc:postgresql://localhost:5432/watyouface_db, DB_USERNAME=watuser, DB_PASSWORD vide pour l’accès local, JWT_SECRET de test éphémère (32+ caractères), ./mvnw -Dtest=PostgresPaymentIntegrationTests test.
+Résultat PostgreSQL : 5 tests, 0 failure, 0 error, 0 skipped sur PostgreSQL 16.15.
+H2/MockMvc : tests d'intégration exécutés, dont création/list/detail, validation, ownership vendeur, refus, auto-achat interdit, scénario complet à deux identités, transferts wallets démo, paiement répété et rollback solde insuffisant. Les transitions de cycle et règles de sécurité Marketplace sont également exécutées.
+Cause des skips : DB_URL doit matcher jdbc:postgresql:.*, DB_USERNAME être non vide, DB_PASSWORD être défini (vide permis), JWT_SECRET contenir au moins 32 caractères. Cette suite doit être lancée séparément: DB_URL affecte également les tests `dev` qui utilisent le driver H2.
+Les 5 tests PostgreSQL couvrent commit, contrainte unique `uq_transaction_listing_id`, rollback, solde insuffisant et concurrence de paiement. Aucun secret n’est enregistré dans cette preuve.
