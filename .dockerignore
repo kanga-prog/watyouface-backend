@@ -1,0 +1,25 @@
+# Version control and local tooling
+.git/
+.github/
+.idea/
+.vscode/
+*.iml
+
+# Build output and local runtime data
+target/
+media/
+uploads/
+logs/
+*.log
+
+# Local configuration and secrets
+.env
+.env.*
+*.env
+secrets/
+
+# Documentation is not required to compile or run the application image.
+docs/
+
+# Operating-system noise
+.DS_Store
