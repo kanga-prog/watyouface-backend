@@ -103,3 +103,9 @@ La base `watyouface_db` existante n'est pas utilisée pour cette validation.
 - **C7 — base de données relationnelle :** schéma versionné, relations, contraintes, index et invariants Marketplace validés sur PostgreSQL.
 - **C10 — préparation au déploiement :** démarrage Railway reproductible sur une base vide et variables documentées.
 - **C11 — démarche DevOps :** migration automatisée, validation au démarrage, tests de base vide et procédure d'évolution/retour arrière documentées.
+
+## Preuve et statut Phase 13
+
+La preuve d'exécution est `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`. Elle consigne exclusivement les résultats réels : build Docker, V1 sur PostgreSQL 16.15 vide, 14 tables, historique Flyway, Hibernate validate, démarrage et 5/5 tests PostgreSQL.
+
+Commits concernés : `934b650` et `db23290`, sur la PR backend #33 ouverte. Statut : **PASS** pour une base neuve reproductible ; **PARTIEL** pour Railway en exploitation, car le redeploy réel, la sauvegarde/restauration et l'adoption d'une base non vide ne sont pas exécutés dans cette phase.

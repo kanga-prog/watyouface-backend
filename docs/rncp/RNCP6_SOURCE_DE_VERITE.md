@@ -351,3 +351,38 @@ Backend : `./mvnw clean test` PASS, 61 tests comptabilisés, 0 échec/erreur, 5 
 ### Phase 11C — résultat
 
 JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: include`; cookie HttpOnly; CSRF actif via token distinct; CORS credentials avec origines explicites; logout expire le cookie. L'impact du vol de JWT via XSS est fortement réduit, sans déclarer les XSS corrigées. Clôture technique Phase 11C : OUI; preuve navigateur réelle : MANUEL À FAIRE (`94_RECETTE_MANUELLE_AUTH_COOKIE.md`). PR backend : #28; PR frontend : #5; livrables V0.2 : versionnés; `updateAvatars.js` reste local; rotation historique : À CONFIRMER.
+
+## PHASE 13 — DOCKER RAILWAY ET MIGRATIONS POSTGRESQL
+
+| Champ | État réel vérifié le 13/10/2026 |
+|---|---|
+| Branche / PR | `rncp6/docker-railway`; PR backend [#33](https://github.com/kanga-prog/watyouface-backend/pull/33) ouverte et mergeable, sans merge |
+| Décision | Docker multi-stage Java 17 non-root et Flyway V1 ; PostgreSQL est externe, `ddl-auto=validate` reste actif en prod |
+| Raison | Railway connecte Hikari mais la base vide échouait avec `Schema-validation: missing table [comment]` ; `validate` doit contrôler, non créer |
+| Solution | Flyway 10.10.0, `db/migration/V1__baseline_schema.sql`, 14 tables, PK/FK/index/checks, `uq_transaction_listing_id`; aucun seed ni secret |
+| Difficulté | V1 quotait initialement `transaction`; H2 créait alors une table distincte de celle résolue par Hibernate et le test UQ ne déclenchait pas |
+| Résolution | `transaction` est créé sans guillemets dans V1 ; `./mvnw clean test` revient à 79 tests, 0 échec/erreur, 5 PostgreSQL conditionnels ignorés |
+| Tests réels | Docker build PASS; PostgreSQL 16.15 Docker vide : Flyway V1 PASS, 14/14 tables, historique `1:true`, Hibernate validate PASS, backend prod démarré; `PostgresPaymentIntegrationTests` 5/5 PASS |
+| Preuves | `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt` |
+| Commits | `f2f9da7`, `59b7cc2`, `934b650`, `db23290` |
+| Statut | **PASS** pour le schéma neuf reproductible; **PARTIEL** pour le déploiement/opérations réelles |
+| Limites | redeploy Railway réel, volume média, sauvegarde/restauration, adoption d'une base non vide, CI et observabilité non prouvés |
+| Étape suivante | redeploy Railway sur la base vide, vérifier Flyway/health/WebSocket, puis compléter les preuves d'exploitation et CI |
+
+### Compétences RNCP — preuve nouvelle Phase 13
+
+| Compétence | Apport réel de la Phase 13 | Statut de preuve |
+|---|---|---|
+| C1 | variables runtime documentées, sans valeurs | PARTIEL |
+| C2 | aucune preuve nouvelle | inchangé |
+| C3 | checks Marketplace versionnés et test de paiement PostgreSQL | renforcé, PARTIEL |
+| C4 | commits atomiques et PR #33 traçable | renforcé, PARTIEL |
+| C5 | aucune preuve nouvelle | inchangé |
+| C6 | ordre Spring Boot → Flyway → Hibernate et frontières PostgreSQL documentés | renforcé, PARTIEL |
+| C7 | baseline relationnelle 14 tables, contraintes et validation sur base PostgreSQL vide | preuve forte, périmètre schéma neuf |
+| C8 | FK, contraintes et tests transactionnels PostgreSQL | renforcé, PARTIEL |
+| C9 | suite Maven et cinq tests PostgreSQL réellement exécutés | renforcé, PARTIEL |
+| C10 | image Docker, variables, port, migration et runbook | PARTIEL : pas de redeploy Railway réel |
+| C11 | build et migration reproductibles sur branche/PR | PARTIEL : pas de CI/observabilité prouvées |
+
+La Phase 13 ne transforme aucune compétence en « complète » sans preuve supplémentaire. Elle remplace l'ancienne recommandation Flyway par une preuve d'exécution sur base vide et conserve explicitement les limites opérationnelles.

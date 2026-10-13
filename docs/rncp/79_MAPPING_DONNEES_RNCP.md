@@ -11,5 +11,5 @@
 
 ## État
 
-La conception renforce **C7/C8**. Les migrations, la reconstruction d’une base vierge et les tests d’intégrité restent des preuves techniques à produire dans les issues #5/#10/#15.
+La Phase 13 fournit une preuve technique supplémentaire : Flyway V1 a créé les 14 tables sur PostgreSQL 16.15 vide, Hibernate `validate` a démarré et les cinq tests PostgreSQL dédiés sont PASS. Cela renforce C7/C8 pour le périmètre schéma/versionnement ; l'adoption d'une base non vide et le redeploy Railway réel restent hors de cette preuve.
 

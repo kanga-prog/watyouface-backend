@@ -11,13 +11,13 @@
 | LIV-07 | Architecture logicielle et ADR | conception technique | à produire | audit initial | phase architecture |
 | LIV-08 | Cas d'utilisation et diagrammes de séquence | analyse/conception | à produire | parcours MVP | phase analyse |
 | LIV-09 | MCD, MLD, MPD | données | à produire | entités JPA existantes, à confirmer | phase données |
-| LIV-10 | Migrations et jeu d'essai | données | à produire | aucune migration versionnée | phase données |
+| LIV-10 | Migrations et jeu d'essai | données | partiel / migration produite | Flyway V1 validée sur PostgreSQL vide; seed démo volontairement hors prod | compléter jeu d'essai séparé |
 | LIV-11 | Frontend et backend versionnés | développement | existant, à stabiliser | deux dépôts Git | continu |
 | LIV-12 | Documentation sécurité | sécurité | partiel/produit | rapport hardening + matrice sécurité | compléter avant jury |
 | LIV-13 | Plan de tests, cas, jeux et rapport | tests | partiel | 14 tests backend, 5 frontend, matrice sécurité | phase tests |
-| LIV-14 | Docker/Compose | déploiement | absent | audit initial | phase déploiement |
-| LIV-15 | CI/CD et qualité automatisée | DevOps | absent | audit initial | phase DevOps |
-| LIV-16 | Procédure de déploiement, rollback, sauvegarde | déploiement | absent | audit initial | phase déploiement |
+| LIV-14 | Docker/Compose | déploiement | partiel / backend Docker produit | Dockerfile Java 17, build et smoke local; Compose/frontend absents | compléter stack complète |
+| LIV-15 | CI/CD et qualité automatisée | DevOps | absent | aucune CI verte versionnée | phase DevOps |
+| LIV-16 | Procédure de déploiement, rollback, sauvegarde | déploiement | partiel | runbooks Docker/Flyway; rollback documenté | redeploy, backup/restauration à tester |
 | LIV-17 | Veille technique et sécurité | transverse | à produire | risques / choix futurs | avant jury |
 | LIV-18 | Dossier projet RNCP | certification | à produire | compilation des livrables | avant 17/10/2026 |
 | LIV-19 | Dossier professionnel | certification | à produire | expériences/preuves sélectionnées | avant 17/10/2026 |

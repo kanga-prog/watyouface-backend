@@ -149,8 +149,9 @@ Après le build et le lancement, vérifier au minimum :
 
 ## Couverture RNCP
 
-- **C10 — Préparer et documenter le déploiement :** Dockerfile reproductible,
-  variables, port, stockage et procédures de vérification documentés.
-- **C11 — Contribuer à la mise en production dans une démarche DevOps :**
-  build multi-stage, utilisateur non-root, configuration externalisée,
-  contrôles de build et limites de production explicités.
+- **C10 — PARTIEL :** Dockerfile reproductible, variables, port, stockage et
+  procédures de vérification documentés. Le redeploy Railway réel, le volume
+  média et la sauvegarde/restauration restent à prouver.
+- **C11 — PARTIEL :** build multi-stage, utilisateur non-root, configuration
+  externalisée et contrôles locaux sont établis. Une CI verte, les artefacts
+  distants et l'observabilité ne sont pas encore des preuves disponibles.
