@@ -27,5 +27,5 @@ Pour une base existante sans historique Flyway, ne pas activer `baseline-on-migr
 
 La première V1 quotait `transaction`, ce qui créait sous H2 une table sensible à la casse distincte de celle résolue par Hibernate. Le test d'unicité ne voyait donc pas la contrainte. La baseline crée désormais `transaction` sans guillemets ; `./mvnw clean test` repasse à 79 tests, 0 échec, 0 erreur, 5 ignorés et la suite PostgreSQL dédiée passe 5/5.
 
-Le rollback est logique : migration corrective forward ou restauration d'une sauvegarde validée. Le redeploy Railway réel, la sauvegarde Railway et une adoption de base non vide restent à réaliser. Preuve : `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`. Commits : `934b650`, `db23290`; PR backend #33 ouverte.
+Le rollback est logique : migration corrective forward ou restauration d'une sauvegarde validée. Le redeploy Railway est désormais prouvé pour le backend et le volume media par `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt`; cette preuve ne remplace pas une procédure de sauvegarde/restauration ni une migration d'adoption de base non vide. La preuve Flyway de base vide reste `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`. Commits : `934b650`, `db23290`, `ba705c4`; PR backend #33 ouverte.
 

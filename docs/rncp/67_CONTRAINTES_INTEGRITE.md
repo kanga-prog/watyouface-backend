@@ -18,4 +18,4 @@
 
 ## Risque
 
-Les validations Java protègent le flux normal mais une contrainte DB est la dernière barrière face à concurrence, scripts ou endpoint legacy. La V1 a été appliquée et validée sur une base PostgreSQL vide ; toute évolution exige une nouvelle migration testée, sans réécrire V1. Limite : le redeploy Railway réel reste à effectuer.
+Les validations Java protègent le flux normal mais une contrainte DB est la dernière barrière face à concurrence, scripts ou endpoint legacy. La V1 a été appliquée et validée sur une base PostgreSQL vide ; toute évolution exige une nouvelle migration testée, sans réécrire V1. Le redeploy Railway et la persistance du volume media sont désormais prouvés séparément ; restent à démontrer la sauvegarde/restauration, le rollback et l'adoption d'une base non vide.
