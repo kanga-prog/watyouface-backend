@@ -1,0 +1,31 @@
+WatYouFace — preuve permissions volume media Railway
+Date : 2026-10-14
+Branche : rncp6/docker-railway
+PR : #33 ouverte ; aucun merge effectué.
+Commit technique : ba705c4 (initialisation des permissions du volume media).
+
+Incident Railway rapporté : volume monté sur /app/media, puis
+java.nio.file.AccessDeniedException: /app/media/avatars.
+Le journal indiquait que Java était démarré par spring malgré RAILWAY_RUN_UID=0.
+
+Correctif versionné : docker-entrypoint.sh démarre comme root, vérifie setpriv,
+crée /app/media si nécessaire et exécute chown -R spring:spring uniquement sur
+ce répertoire. Il remplace ensuite son processus par :
+setpriv --reuid=spring --regid=spring --init-groups java -jar /app/app.jar.
+Le Dockerfile vérifie /usr/bin/setpriv durant le build. Aucun chmod 777 ni
+secret n'est introduit.
+
+Vérifications locales réelles :
+- docker build -t watyouface-backend:rncp6 . : PASS.
+- montage temporaire sur /app/media : l'entrypoint a exécuté la commande sous
+  uid=999(spring), gid=999(spring) ; touch /app/media/entrypoint-write-check : PASS ;
+  le conteneur a signalé spring:spring pour le répertoire et le fichier.
+- smoke Spring Boot avec SPRING_PROFILES_ACTIVE=dev et secret temporaire :
+  Tomcat port 8081 démarré, application démarrée ; docker top a observé le
+  processus java -jar /app/app.jar sous UID 999 ; GET /hello = HTTP 401 attendu.
+- ./mvnw clean test : 79 tests, 0 failure, 0 error, 5 skipped.
+
+Limites : aucune preuve de redeploy Railway réel avec le volume existant ni de
+persistance d'un upload après redeploy. La compatibilité du volume Railway avec
+chown reste à valider sur la plateforme ; l'entrypoint échoue volontairement
+si l'initialisation ne peut pas être réalisée.

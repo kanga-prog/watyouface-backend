@@ -10,7 +10,7 @@
 | EV-06 | MCD/MLD/MPD et migrations | V1 Flyway sur PostgreSQL 16.15 vide : 14 tables, validate, tests 5/5 | 13/10 | données | modèle + schéma | C7, intégrité et reproductibilité |
 | EV-07 | Tests backend/frontend et plan de tests | sorties commandes, rapports | 12–17/10 | qualité | tableau résultats | C9 |
 | EV-08 | Avant/après sécurité | gaps + correctifs + tests | 12/10 | sécurité | risque/correction | raisonnement AppSec |
-| EV-09 | Docker et lancement backend | image Java 17 non-root, smoke H2 et démarrage prod contre PostgreSQL vide | 13/10 | déploiement | schéma env. | C10 |
+| EV-09 | Docker, lancement backend et volume media | image Java 17, entrypoint root limité, Java `spring`, écriture montage media, smoke H2 et démarrage prod contre PostgreSQL vide | 13–14/10 | déploiement | schéma env. + preuves `BE-DATA-03` / `BE-DEP-03` | C10, C11 |
 | EV-10 | Pipeline CI verte | logs/capture workflow | 14/10 | DevOps | pipeline | C11 |
 | EV-11 | Procédure déploiement, backup/rollback | runbook validé | 14/10 | exploitation | étapes | C10 |
 | EV-12 | RGPD/RGAA/éco-conception | checklist/revue et limites | 15/10 | conformité | checklist | responsabilité |

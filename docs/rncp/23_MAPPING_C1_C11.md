@@ -20,4 +20,4 @@ Aucune compétence ne peut être déclarée « complète » avant de disposer d'
 
 ### Mise à jour Phase 13
 
-Preuves nouvelles : `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, V1 Flyway, commits `934b650` / `db23290`, PR #33. C7 est démontrée pour le schéma initial sur base vide. C10 et C11 restent **PARTIELLES** : aucun redeploy Railway réel, volume média, sauvegarde/restauration opérationnelle ni pipeline CI vert n'ont été prouvés.
+Preuves nouvelles : `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt`, `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, V1 Flyway, commits `934b650` / `db23290` / `ba705c4`, PR #33. C7 est démontrée pour le schéma initial sur base vide. C10/C11 sont renforcées par l'initialisation ciblée d'un montage media et la baisse vérifiée de privilèges vers `spring`, mais restent **PARTIELLES** : aucun redeploy Railway réel, persistance d'upload, sauvegarde/restauration opérationnelle ni pipeline CI vert n'ont été prouvés.

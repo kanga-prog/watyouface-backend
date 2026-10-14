@@ -34,9 +34,9 @@ Le `Dockerfile` est multi-stage :
    dans le dépôt ;
 2. les dépendances Maven sont résolues dans une couche dédiée, réutilisable par
    Docker lorsque `pom.xml` ne change pas ;
-3. l'étape finale utilise Eclipse Temurin JRE 17, contient uniquement le JAR
-   exécutable `watyouface-0.0.1-SNAPSHOT.jar` et s'exécute avec l'utilisateur
-   non-root `spring`.
+3. l'étape finale utilise Eclipse Temurin JRE 17 et contient uniquement le JAR
+   exécutable `watyouface-0.0.1-SNAPSHOT.jar` ; son entrypoint initialise le
+   volume media puis exécute Java avec l'utilisateur non-root `spring`.
 
 Le contexte Docker exclut notamment Git, `target`, données media locales,
 logs, fichiers `.env`, secrets et documentation. Le wrapper (`mvnw` et
@@ -112,9 +112,31 @@ le chemin runtime correspondant est donc `/app/media`.
 
 Railway fournit un système de fichiers éphémère par défaut : sans volume, les
 avatars et uploads seront perdus lors d'un redéploiement ou remplacement de
-conteneur. L'image prépare `/app/media` pour l'utilisateur non-root `spring`.
-Pour conserver les fichiers, attacher un volume Railway monté sur `/app/media`
-et vérifier que ses permissions permettent toujours à cet utilisateur d'écrire.
+conteneur. Pour les conserver, attacher un volume Railway monté sur
+`/app/media`.
+
+### Initialisation des permissions du volume
+
+Un volume Railway peut masquer le répertoire créé à l'image et arriver monté
+avec une propriété root. L'incident constaté était
+`AccessDeniedException: /app/media/avatars` alors que les logs indiquaient un
+processus démarré par `spring`. Définir `RAILWAY_RUN_UID=0` seul ne corrige pas
+un `USER spring` présent dans l'image : le processus ne peut alors pas
+réattribuer le montage.
+
+`docker-entrypoint.sh` est donc l'unique étape lancée initialement comme root.
+Il vérifie ce prérequis, crée si besoin `/app/media`, puis applique
+`chown -R spring:spring /app/media`. Il exécute ensuite
+`setpriv --reuid=spring --regid=spring --init-groups` avec la commande Java.
+`setpriv` est fourni par `util-linux` dans l'image Temurin Ubuntu et sa
+présence est vérifiée pendant le build. Il n'y a ni `chmod 777`, ni exécution
+persistante de Spring Boot comme root, ni changement de propriétaire hors du
+point de montage media.
+
+Sur un volume qui interdit `chown`, le démarrage échoue explicitement plutôt
+que d'élargir les permissions. Le redeploy Railway réel doit encore confirmer
+que son volume attaché accepte l'opération et qu'un upload reste présent après
+redéploiement.
 
 Le chemin applicatif n'est pas rendu configurable dans cette phase, car il est
 actuellement codé dans les composants media ; le modifier exigerait une
@@ -136,22 +158,26 @@ Après le build et le lancement, vérifier au minimum :
 
 ## Sécurité et limites
 
-- L'image runtime utilise un JRE plutôt qu'un JDK et tourne sans privilège
-  root.
+- L'image runtime utilise un JRE plutôt qu'un JDK. L'entrypoint utilise root
+  seulement pour initialiser `/app/media`; le processus Java est ensuite
+  explicitement exécuté sous `spring` (principe du moindre privilège).
 - Les secrets sont exclusivement injectés par l'environnement de déploiement.
 - `.dockerignore` réduit le risque d'envoyer des données locales au démon
   Docker.
 - Le Dockerfile compile le JAR avec `-DskipTests` ; la suite
   `./mvnw clean test` doit être exécutée explicitement avant de publier une
   image.
-- La persistance media et la configuration CORS/HTTPS/WebSocket restent des
-  éléments à valider sur l'environnement Railway réel.
+- Le correctif de propriété du volume est validé localement sur un montage
+  temporaire ; sa validation sur le volume Railway réel, la persistance après
+  redeploy et la configuration CORS/HTTPS/WebSocket restent à effectuer.
 
 ## Couverture RNCP
 
-- **C10 — PARTIEL :** Dockerfile reproductible, variables, port, stockage et
-  procédures de vérification documentés. Le redeploy Railway réel, le volume
-  média et la sauvegarde/restauration restent à prouver.
-- **C11 — PARTIEL :** build multi-stage, utilisateur non-root, configuration
-  externalisée et contrôles locaux sont établis. Une CI verte, les artefacts
-  distants et l'observabilité ne sont pas encore des preuves disponibles.
+- **C10 — PARTIEL :** Dockerfile reproductible, variables, port, migration,
+  stockage et procédure d'initialisation du volume sont documentés et testés
+  localement. Le redeploy Railway réel, la persistance media et la
+  sauvegarde/restauration restent à prouver.
+- **C11 — PARTIEL :** build multi-stage, baisse contrôlée de privilèges,
+  configuration externalisée et contrôles locaux sont établis. Une CI verte,
+  les artefacts distants et l'observabilité ne sont pas encore des preuves
+  disponibles.
