@@ -29,7 +29,7 @@
 | TEST-003 | EPIC-10 | Recette UI/accessibilité | Recette clavier, responsive, erreurs et parcours nominaux/refusés. | P1 | C2,C9 | UX-002 | M | défaut démo | checklist/captures | TODO |
 | DEP-001 | EPIC-11 | Docker/Compose | Conteneuriser frontend, backend, base et variables sans secrets. | P0 | C10 | DATA-002,SEC-001 | L | environnement | backend Docker build/smoke; stack Compose à compléter | PARTIEL Phase 13 |
 | DEP-002 | EPIC-11 | Procédure déploiement | Installation, variables, migrations, backup, rollback, smoke test. | P0 | C10 | DEP-001,DATA-002 | M | absence exploitation | runbook Docker/Flyway; redeploy/backup à compléter | PARTIEL Phase 13 |
-| DEVOPS-001 | EPIC-12 | CI lint/build/tests | Workflow versionné sur branches/PR : backend tests, frontend lint/build/tests. | P0 | C11 | TEST-002,DEP-001 | M | pipeline rouge | exécution CI verte | TODO |
+| DEVOPS-001 | EPIC-12 | CI lint/build/tests | Workflow versionné sur push/PR : backend Maven tests et Docker build. Frontend hors de ce lot. | P0 | C11 | TEST-002,DEP-001 | M | pipeline rouge | run GitHub Actions #38550729055 vert | DONE Phase 13 |
 | DEVOPS-002 | EPIC-12 | Qualité/sécurité CI | Ajouter analyse dépendances/secrets selon faisabilité et conserver résultats. | P1 | C11 | DEVOPS-001 | S | faux positifs | rapport CI | TODO |
 | COMP-001 | EPIC-13 | RGPD | Inventaire données, finalités, minimisation, rétention, droits et mentions. | P1 | C4,C5 | PROFILE-001 | M | conformité | fiche RGPD | TODO |
 | COMP-002 | EPIC-13 | RGAA/éco-conception | Audit ciblé labels/clavier/contraste/assets/appels ; corrections prioritaires. | P1 | C2,C9 | UX-002 | temps | checklist + captures | TODO |

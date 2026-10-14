@@ -158,6 +158,28 @@ Après le build et le lancement, vérifier au minimum :
 5. un upload survit à un redéploiement lorsque le volume `/app/media` est
    attaché.
 
+## CI GitHub Actions et CD Railway
+
+Le workflow versionné `.github/workflows/backend-ci.yml` s'exécute à chaque
+événement `push` et `pull_request`. Il utilise `actions/checkout@v4` sans
+persistance de credential, Java Temurin 17 avec cache Maven, puis exécute
+`./mvnw clean test` et `docker build -t watyouface-backend:ci .`. Une erreur de
+test ou de build fait échouer le job. Ses permissions sont limitées à
+`contents: read`; aucun secret GitHub, JWT ni accès PostgreSQL n'est requis.
+
+La première preuve GitHub Actions est le run pull request
+[#38550729055](https://github.com/kanga-prog/watyouface-backend/actions/runs/38550729055),
+exécuté le 14/10/2026 pour le commit `01a8919` : checkout, Java 17, tests Maven
+et build Docker sont `success`.
+
+Le workflow ne contient volontairement aucun job de déploiement Railway, aucun
+token Railway et aucun secret de production. Le CD est donc **MANUEL / PARTIEL**
+dans l'état prouvé : après validation et merge vers une branche de production
+contrôlée (cible recommandée : `main`), un déploiement Railway doit être lancé
+par la configuration Railway de ce service ou son tableau de bord. La présence,
+la branche surveillée et l'automatisation de cette intégration Railway ne sont
+pas déductibles du dépôt et ne sont pas déclarées actives sans preuve dédiée.
+
 ## Sécurité et limites
 
 - L'image runtime utilise un JRE plutôt qu'un JDK. L'entrypoint utilise root
@@ -180,6 +202,7 @@ Après le build et le lancement, vérifier au minimum :
   Le volume Railway réel, le Java non-root et la persistance media après
   redeploy sont prouvés. La sauvegarde/restauration et le rollback restent à
   prouver.
-- **C11 — PARTIEL :** build multi-stage, baisse contrôlée de privilèges,
-  configuration externalisée et déploiement Railway sont établis. Une CI/CD
-  verte et l'observabilité ne sont pas encore des preuves disponibles.
+- **C11 — PARTIEL renforcé :** build multi-stage, baisse contrôlée de
+  privilèges, configuration externalisée, déploiement Railway et CI GitHub
+  Actions verte sont prouvés. Le CD Railway automatique, l'observabilité et
+  les procédures de rollback ne sont pas encore des preuves disponibles.

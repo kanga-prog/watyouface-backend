@@ -12,7 +12,7 @@
 | C8 Accès données SQL/NoSQL | PARTIEL | sécuriser accès Like/chat, documenter JPA/transactions, migrations | repositories/services, tests BOLA, transactions | 12/10 | élevé |
 | C9 Plans de tests | PARTIEL → renforcé | plan complet, jeu d'essai, P0/UI/E2E, rapport | cas, sorties, matrice, captures | 15/10 | critique |
 | C10 Déploiement | PARTIEL → preuve renforcée | redeploy Railway, volume média, backup/rollback opérationnels | Docker backend, port/variables, Flyway base vide, runbook | 13/10 | moyen |
-| C11 DevOps | PARTIEL → preuve renforcée | CI verte et observabilité | branche/PR, build Docker, migrations testées, rapports versionnés | 13/10 | élevé |
+| C11 DevOps | PARTIEL → preuve renforcée | CD Railway contrôlé, observabilité et rollback | branche/PR, build Docker, migrations testées, run GitHub Actions vert, rapports versionnés | 14/10 | élevé |
 
 ## Règle de couverture
 
@@ -20,4 +20,4 @@ Aucune compétence ne peut être déclarée « complète » avant de disposer d'
 
 ### Mise à jour Phase 13
 
-Preuves nouvelles : `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt`, `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, V1 Flyway, commits `934b650` / `db23290` / `ba705c4`, PR #33. C7 est démontrée pour le schéma initial sur base vide. C10 est renforcée par la preuve Railway du volume, de l'UID Java `spring` et de la persistance après redeploy. C11 est renforcée par le déploiement reproductible et le moindre privilège, mais reste **PARTIELLE** sans CI/CD verte ni observabilité; sauvegarde/restauration et rollback restent également à prouver.
+Preuves nouvelles : `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt`, `evidence/backend/BE-DEVOPS-01-github-actions-backend-ci.txt`, `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, V1 Flyway, commits `934b650` / `db23290` / `ba705c4` / `01a8919`, PR #33. C7 est démontrée pour le schéma initial sur base vide. C10 est renforcée par la preuve Railway du volume, de l'UID Java `spring` et de la persistance après redeploy. C11 est renforcée par la CI GitHub Actions verte, le déploiement reproductible et le moindre privilège, mais reste **PARTIELLE** sans CD Railway automatique, observabilité, sauvegarde/restauration et rollback prouvés.

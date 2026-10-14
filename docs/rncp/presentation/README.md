@@ -23,3 +23,12 @@ Compétences à citer avec nuance : C7 (schéma relationnel versionné et valid�
 | Choix sécurité | entrypoint root limité à `/app/media`, puis `setpriv` vers `spring` | « Root n'est utilisé qu'une fois pour initialiser le point de montage ; l'application Java conserve le moindre privilège. » |
 | Preuve production | `/app/media` `spring:spring`, Java PID 1 sous UID 999, fichier media présent après redeploy, `GET /api/users/me` = HTTP/2 401 avec en-têtes de sécurité | « Je peux montrer que le volume persiste après redeploy et que Java n'est jamais resté root. » |
 | Limite | CI/CD, observabilité, sauvegarde/restauration et rollback non encore prouvés | « La mise en production du volume est validée ; je ne déclare pas C11 complète sans pipeline ni exploitation mesurée. » |
+
+## Éléments Phase 13 — CI/CD
+
+| Angle | Élément vérifiable | Formulation jury |
+|---|---|---|
+| CI | Workflow GitHub Actions sur `push` et `pull_request` : Java 17, cache Maven, tests et build Docker | « Chaque modification est testée et l'image est reconstruite avant intégration. » |
+| Preuve | Run [#38550729055](https://github.com/kanga-prog/watyouface-backend/actions/runs/38550729055) vert : Maven tests et Docker build | « Je conserve l'URL du run, les étapes et le commit contrôlé comme preuve rejouable. » |
+| Sécurité | `contents: read`, credentials de checkout non persistés, aucun secret dans le YAML | « La CI n'a pas besoin d'un secret de production : elle applique le moindre privilège. » |
+| CD | aucun job Railway dans le workflow ; merge validé vers `main`, puis intégration Railway ou tableau de bord | « Je distingue la CI prouvée du CD qui reste manuel tant que la connexion Railway et sa branche ne sont pas prouvées. » |

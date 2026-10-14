@@ -11,7 +11,7 @@
 | EV-07 | Tests backend/frontend et plan de tests | sorties commandes, rapports | 12–17/10 | qualité | tableau résultats | C9 |
 | EV-08 | Avant/après sécurité | gaps + correctifs + tests | 12/10 | sécurité | risque/correction | raisonnement AppSec |
 | EV-09 | Docker, lancement backend et volume media | image Java 17, entrypoint root limité, Java `spring` UID 999, volume Railway `spring:spring`, fichier media conservé après redeploy, smoke HTTP prod 401 + en-têtes | 13–14/10 | déploiement | schéma env. + preuves `BE-DATA-03` / `BE-DEP-03` | C10, C11 |
-| EV-10 | Pipeline CI verte | logs/capture workflow | 14/10 | DevOps | pipeline | C11 |
+| EV-10 | Pipeline CI backend verte | Run GitHub Actions [#38550729055](https://github.com/kanga-prog/watyouface-backend/actions/runs/38550729055) : checkout, Java 17, Maven tests et Docker build PASS | 14/10 | DevOps | workflow + preuve `BE-DEVOPS-01` | C11 |
 | EV-11 | Procédure déploiement, backup/rollback | runbook validé | 14/10 | exploitation | étapes | C10 |
 | EV-12 | RGPD/RGAA/éco-conception | checklist/revue et limites | 15/10 | conformité | checklist | responsabilité |
 | EV-13 | Dossier/DP/slides et scénario | version finalisée | 16–17/10 | certification | support | soutenance |
@@ -26,4 +26,4 @@
 
 ## État Phase 13
 
-Les preuves versionnées `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt` et `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt` conservent uniquement des résultats réels : build Docker PASS, suite Maven 79 tests/0 échec/5 ignorés, Flyway V1 appliquée, 14 tables, Hibernate validate, 5 tests PostgreSQL PASS, volume Railway `spring:spring`, Java UID 999, persistance media après redeploy et smoke HTTP prod 401 avec en-têtes de sécurité. Elles ne prouvent pas CI/CD, observabilité, rollback ni restauration de sauvegarde.
+Les preuves versionnées `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt` et `evidence/backend/BE-DEVOPS-01-github-actions-backend-ci.txt` conservent uniquement des résultats réels : build Docker PASS, suite Maven 79 tests/0 échec/5 ignorés, Flyway V1 appliquée, 14 tables, Hibernate validate, 5 tests PostgreSQL PASS, volume Railway `spring:spring`, Java UID 999, persistance media après redeploy, smoke HTTP prod 401 avec en-têtes de sécurité et CI GitHub Actions backend verte. Elles ne prouvent pas le CD Railway automatique, l'observabilité, le rollback ni la restauration de sauvegarde.

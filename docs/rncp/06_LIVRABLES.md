@@ -16,7 +16,7 @@
 | LIV-12 | Documentation sécurité | sécurité | partiel/produit | rapport hardening + matrice sécurité | compléter avant jury |
 | LIV-13 | Plan de tests, cas, jeux et rapport | tests | partiel | 14 tests backend, 5 frontend, matrice sécurité | phase tests |
 | LIV-14 | Docker/Compose | déploiement | partiel / backend Docker produit | Dockerfile Java 17, build et smoke local; Compose/frontend absents | compléter stack complète |
-| LIV-15 | CI/CD et qualité automatisée | DevOps | absent | aucune CI verte versionnée | phase DevOps |
+| LIV-15 | CI/CD et qualité automatisée | DevOps | partiel / CI backend produite | workflow GitHub Actions versionné, Maven tests + Docker build verts sur le run #38550729055; CD Railway automatique non prouvé | compléter CD, observabilité et qualité élargie |
 | LIV-16 | Procédure de déploiement, rollback, sauvegarde | déploiement | partiel | runbooks Docker/Flyway; rollback documenté | redeploy, backup/restauration à tester |
 | LIV-17 | Veille technique et sécurité | transverse | à produire | risques / choix futurs | avant jury |
 | LIV-18 | Dossier projet RNCP | certification | à produire | compilation des livrables | avant 17/10/2026 |

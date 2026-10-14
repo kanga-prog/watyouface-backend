@@ -36,3 +36,19 @@ ni permission `777` n'est ajouté. La validation Railway de production montre
 `no-cache, no-store`, `nosniff` et `DENY`. C10 est ainsi renforcée par une
 preuve d'exploitation réelle; C11 reste partielle sans preuve CI/CD,
 observabilité, sauvegarde/restauration ou rollback.
+
+### CI et limite du CD
+
+La CI backend est versionnée dans GitHub Actions : à chaque push ou pull
+request, elle prépare Java 17 avec cache Maven, lance `./mvnw clean test` puis
+construit l'image Docker. Le run pull request
+[#38550729055](https://github.com/kanga-prog/watyouface-backend/actions/runs/38550729055)
+est vert pour ces deux contrôles. Le token GitHub est limité à la lecture et
+aucun secret applicatif ou Railway n'est injecté dans le workflow.
+
+Le CD Railway n'est pas automatisé dans ce dépôt : aucun job de déploiement,
+token Railway ou credential de production n'est versionné. Après validation et
+merge sur la branche contrôlée `main`, le déploiement doit être déclenché par
+l'intégration Railway si elle est configurée, ou manuellement depuis son tableau
+de bord. C11 est renforcée par la CI exécutée, mais reste partielle sans preuve
+de CD automatique, d'observabilité et de rollback.

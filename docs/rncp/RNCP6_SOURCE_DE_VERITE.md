@@ -369,9 +369,12 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 | Validation Railway production | `/app/media` est `spring:spring` (`drwxr-xr-x`); Java est `spring` PID 1; `id spring` = UID/GID 999; le fichier `railway-persistence-test.txt` contient `watyouface-volume-ok` après redeploy; `GET /api/users/me` retourne HTTP/2 401 attendu et les en-têtes `no-cache, no-store`, `strict-origin-when-cross-origin`, `nosniff`, `DENY` sont observés. |
 | Preuves | `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt` |
 | Commits | `f2f9da7`, `59b7cc2`, `934b650`, `db23290`, `ba705c4` |
-| Statut | **PASS** pour le schéma neuf reproductible et pour le volume media Railway en production; **PARTIEL** pour les opérations DevOps non démontrées |
-| Limites | sauvegarde/restauration, rollback, CI/CD et observabilité non prouvés; l'adoption d'une base non vide reste une procédure distincte |
-| Étape suivante | compléter CI/CD, observabilité et procédure testée de sauvegarde/restauration/rollback; compléter la preuve WebSocket si nécessaire |
+| CI GitHub Actions | `.github/workflows/backend-ci.yml` : `push` et `pull_request`, checkout lecture seule, Temurin 17/cache Maven, `./mvnw clean test`, `docker build`; aucune valeur secrète ni déploiement dans le workflow |
+| Preuve CI | Run pull request [#38550729055](https://github.com/kanga-prog/watyouface-backend/actions/runs/38550729055), commit `01a8919`, 14/10/2026 : Maven tests PASS et Docker build PASS |
+| CD Railway | **MANUEL / PARTIEL** : le workflow n'a pas de job de déploiement ni de token Railway. La politique cible est merge validé vers `main`, puis déclenchement par l'intégration Railway si configurée ou le tableau de bord; cette intégration et sa branche ne sont pas prouvées depuis le dépôt. |
+| Statut | **PASS** pour le schéma neuf reproductible, le volume media Railway production et la CI backend; **PARTIEL** pour le CD/opérations DevOps non démontrés |
+| Limites | CD Railway automatique, sauvegarde/restauration, rollback et observabilité non prouvés; l'adoption d'une base non vide reste une procédure distincte |
+| Étape suivante | prouver ou configurer le CD Railway depuis une branche contrôlée, puis compléter observabilité et procédure testée de sauvegarde/restauration/rollback; compléter la preuve WebSocket si nécessaire |
 
 ### Compétences RNCP — preuve nouvelle Phase 13
 
@@ -387,6 +390,6 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 | C8 | FK, contraintes et tests transactionnels PostgreSQL | renforcé, PARTIEL |
 | C9 | suite Maven et cinq tests PostgreSQL réellement exécutés | renforcé, PARTIEL |
 | C10 | image Docker, variables, port, migration, runbook, volume production et persistance après redeploy | renforcée, PARTIEL : sauvegarde/restauration/rollback non prouvés |
-| C11 | build/migration reproductibles, déploiement Railway et baisse contrôlée de privilèges prouvée | renforcée, PARTIEL : pas de CI/CD ni observabilité prouvées |
+| C11 | build/migration reproductibles, déploiement Railway, baisse contrôlée de privilèges et CI backend verte | renforcée, PARTIEL : CD Railway automatique, observabilité et rollback non prouvés |
 
 La Phase 13 ne transforme aucune compétence en « complète » sans preuve supplémentaire. Elle remplace l'ancienne recommandation Flyway par une preuve d'exécution sur base vide et conserve explicitement les limites opérationnelles.
