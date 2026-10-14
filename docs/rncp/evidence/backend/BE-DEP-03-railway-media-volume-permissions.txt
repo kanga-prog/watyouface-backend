@@ -4,7 +4,7 @@ Branche : rncp6/docker-railway
 PR : #33 ouverte ; aucun merge effectué.
 Commit technique : ba705c4 (initialisation des permissions du volume media).
 
-Incident Railway rapporté : volume monté sur /app/media, puis
+Incident Railway constaté : volume monté sur /app/media, puis
 java.nio.file.AccessDeniedException: /app/media/avatars.
 Le journal indiquait que Java était démarré par spring malgré RAILWAY_RUN_UID=0.
 
@@ -25,7 +25,20 @@ Vérifications locales réelles :
   processus java -jar /app/app.jar sous UID 999 ; GET /hello = HTTP 401 attendu.
 - ./mvnw clean test : 79 tests, 0 failure, 0 error, 5 skipped.
 
-Limites : aucune preuve de redeploy Railway réel avec le volume existant ni de
-persistance d'un upload après redeploy. La compatibilité du volume Railway avec
-chown reste à valider sur la plateforme ; l'entrypoint échoue volontairement
-si l'initialisation ne peut pas être réalisée.
+Validation Railway production réelle :
+- `ls -ld /app/media` : répertoire présent avec propriétaire `spring:spring`
+  et permissions `drwxr-xr-x`.
+- `ps -eo user,pid,cmd | grep '[j]ava'` : `spring 1 java -jar /app/app.jar`.
+- `id spring` : `uid=999(spring) gid=999(spring) groups=999(spring)`.
+- `cat /app/media/railway-persistence-test.txt` :
+  `watyouface-volume-ok`, fichier toujours présent après redeploy Railway.
+- `GET /api/users/me` : HTTP/2 401 attendu sans authentification. En-têtes
+  observés : `cache-control: no-cache, no-store`,
+  `referrer-policy: strict-origin-when-cross-origin`,
+  `x-content-type-options: nosniff`, `x-frame-options: DENY`.
+
+Verdict : PASS production pour l'initialisation ciblée du volume, l'exécution
+Java non-root et la persistance media après redeploy.
+
+Limites : CI/CD, observabilité, sauvegarde/restauration et scénario de rollback
+ne sont pas prouvés par cette validation. C11 reste donc PARTIELLE.

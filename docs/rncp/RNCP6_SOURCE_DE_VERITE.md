@@ -363,14 +363,15 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 | Difficulté | V1 quotait initialement `transaction`; H2 créait alors une table distincte de celle résolue par Hibernate et le test UQ ne déclenchait pas |
 | Résolution | `transaction` est créé sans guillemets dans V1 ; `./mvnw clean test` revient à 79 tests, 0 échec/erreur, 5 PostgreSQL conditionnels ignorés |
 | Tests réels | Docker build PASS; PostgreSQL 16.15 Docker vide : Flyway V1 PASS, 14/14 tables, historique `1:true`, Hibernate validate PASS, backend prod démarré; `PostgresPaymentIntegrationTests` 5/5 PASS |
-| Incident volume Railway | Volume attaché sur `/app/media`; `AccessDeniedException: /app/media/avatars`. Malgré `RAILWAY_RUN_UID=0`, l'image avec `USER spring` lançait encore Java comme `spring`, sans droit de réattribuer le montage. |
+| Incident volume Railway | Volume attaché sur `/app/media`; `AccessDeniedException: /app/media/avatars`. Malgré `RAILWAY_RUN_UID=0`, l'image avec `USER spring` lançait encore Java comme `spring`, sans droit de réattribuer le montage root. |
 | Décision permissions | Entry point root de durée limitée : `mkdir`/`chown -R` exclusivement sur `/app/media`, puis `setpriv` exécute Java sous `spring`; aucun `chmod 777`, aucun Java root. |
 | Vérifications réelles du correctif | Build Docker PASS; montage media temporaire : écriture PASS après propriété `spring:spring`; processus Java observé UID 999 (`spring`); profil `dev` : démarrage Spring Boot PASS et `/hello` répond 401 attendu; Maven 79 tests, 0 échec, 0 erreur, 5 ignorés. |
-| Preuves | `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt` |
+| Validation Railway production | `/app/media` est `spring:spring` (`drwxr-xr-x`); Java est `spring` PID 1; `id spring` = UID/GID 999; le fichier `railway-persistence-test.txt` contient `watyouface-volume-ok` après redeploy; `GET /api/users/me` retourne HTTP/2 401 attendu et les en-têtes `no-cache, no-store`, `strict-origin-when-cross-origin`, `nosniff`, `DENY` sont observés. |
+| Preuves | `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt` |
 | Commits | `f2f9da7`, `59b7cc2`, `934b650`, `db23290`, `ba705c4` |
-| Statut | **PASS local** pour le schéma neuf reproductible et le correctif de permissions; **PARTIEL** pour le déploiement/opérations Railway réelles |
-| Limites | redeploy Railway réel avec volume, persistance upload, sauvegarde/restauration, adoption d'une base non vide, CI et observabilité non prouvés |
-| Étape suivante | redeploy Railway avec le volume existant, vérifier Flyway/health/WebSocket et un upload après redeploy, puis compléter les preuves d'exploitation et CI |
+| Statut | **PASS** pour le schéma neuf reproductible et pour le volume media Railway en production; **PARTIEL** pour les opérations DevOps non démontrées |
+| Limites | sauvegarde/restauration, rollback, CI/CD et observabilité non prouvés; l'adoption d'une base non vide reste une procédure distincte |
+| Étape suivante | compléter CI/CD, observabilité et procédure testée de sauvegarde/restauration/rollback; compléter la preuve WebSocket si nécessaire |
 
 ### Compétences RNCP — preuve nouvelle Phase 13
 
@@ -385,7 +386,7 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 | C7 | baseline relationnelle 14 tables, contraintes et validation sur base PostgreSQL vide | preuve forte, périmètre schéma neuf |
 | C8 | FK, contraintes et tests transactionnels PostgreSQL | renforcé, PARTIEL |
 | C9 | suite Maven et cinq tests PostgreSQL réellement exécutés | renforcé, PARTIEL |
-| C10 | image Docker, variables, port, migration, runbook et initialisation documentée/testée du volume | PARTIEL : pas de redeploy Railway réel ni persistance d'upload prouvée |
-| C11 | build/migration reproductibles et baisse contrôlée de privilèges sur branche/PR | PARTIEL : pas de CI/observabilité prouvées |
+| C10 | image Docker, variables, port, migration, runbook, volume production et persistance après redeploy | renforcée, PARTIEL : sauvegarde/restauration/rollback non prouvés |
+| C11 | build/migration reproductibles, déploiement Railway et baisse contrôlée de privilèges prouvée | renforcée, PARTIEL : pas de CI/CD ni observabilité prouvées |
 
 La Phase 13 ne transforme aucune compétence en « complète » sans preuve supplémentaire. Elle remplace l'ancienne recommandation Flyway par une preuve d'exécution sur base vide et conserve explicitement les limites opérationnelles.

@@ -134,9 +134,11 @@ persistante de Spring Boot comme root, ni changement de propriétaire hors du
 point de montage media.
 
 Sur un volume qui interdit `chown`, le démarrage échoue explicitement plutôt
-que d'élargir les permissions. Le redeploy Railway réel doit encore confirmer
-que son volume attaché accepte l'opération et qu'un upload reste présent après
-redéploiement.
+que d'élargir les permissions. La validation Railway production a confirmé que
+le volume existant accepte cette initialisation : `/app/media` est
+`spring:spring`, Java s'exécute sous `spring` UID 999 et le fichier de contrôle
+media est encore présent après redeploy. Cette preuve est conservée dans
+`evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt`.
 
 Le chemin applicatif n'est pas rendu configurable dans cette phase, car il est
 actuellement codé dans les composants media ; le modifier exigerait une
@@ -167,17 +169,17 @@ Après le build et le lancement, vérifier au minimum :
 - Le Dockerfile compile le JAR avec `-DskipTests` ; la suite
   `./mvnw clean test` doit être exécutée explicitement avant de publier une
   image.
-- Le correctif de propriété du volume est validé localement sur un montage
-  temporaire ; sa validation sur le volume Railway réel, la persistance après
-  redeploy et la configuration CORS/HTTPS/WebSocket restent à effectuer.
+- Le correctif de propriété et la persistance media après redeploy sont validés
+  sur le volume Railway réel. La configuration CORS/HTTPS/WebSocket, la
+  sauvegarde/restauration, le rollback et l'observabilité restent à compléter.
 
 ## Couverture RNCP
 
-- **C10 — PARTIEL :** Dockerfile reproductible, variables, port, migration,
-  stockage et procédure d'initialisation du volume sont documentés et testés
-  localement. Le redeploy Railway réel, la persistance media et la
-  sauvegarde/restauration restent à prouver.
+- **C10 — PARTIEL renforcé :** Dockerfile reproductible, variables, port,
+  migration, stockage et procédure d'initialisation du volume sont documentés.
+  Le volume Railway réel, le Java non-root et la persistance media après
+  redeploy sont prouvés. La sauvegarde/restauration et le rollback restent à
+  prouver.
 - **C11 — PARTIEL :** build multi-stage, baisse contrôlée de privilèges,
-  configuration externalisée et contrôles locaux sont établis. Une CI verte,
-  les artefacts distants et l'observabilité ne sont pas encore des preuves
-  disponibles.
+  configuration externalisée et déploiement Railway sont établis. Une CI/CD
+  verte et l'observabilité ne sont pas encore des preuves disponibles.

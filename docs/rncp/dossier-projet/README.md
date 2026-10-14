@@ -18,9 +18,9 @@ Une première baseline créait `transaction` avec des guillemets : H2 la disting
 
 ### Résultats et limites
 
-Sur PostgreSQL 16.15 Docker vide : Flyway V1 PASS, 14/14 tables, historique `1:true`, Hibernate validate PASS, backend prod démarré et tests PostgreSQL 5/5 PASS. La suite Maven est à 79 tests, 0 échec, 0 erreur, 5 ignorés conditionnels. Le redeploy Railway réel, la restauration de sauvegarde, l'adoption d'une base non vide et la CI restent à produire : C7 est fortement prouvée pour le schéma neuf ; C10/C11 restent partielles.
+Sur PostgreSQL 16.15 Docker vide : Flyway V1 PASS, 14/14 tables, historique `1:true`, Hibernate validate PASS, backend prod démarré et tests PostgreSQL 5/5 PASS. La suite Maven est à 79 tests, 0 échec, 0 erreur, 5 ignorés conditionnels. Le redeploy Railway avec volume et persistance media est maintenant prouvé ; la restauration de sauvegarde, le rollback, l'adoption d'une base non vide, la CI/CD et l'observabilité restent à produire. C7 est fortement prouvée pour le schéma neuf ; C10/C11 restent partielles.
 
-Sources : `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, PR #33.
+Sources : `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt`, PR #33.
 
 ### Incident de volume et principe du moindre privilège
 
@@ -29,7 +29,10 @@ Le volume Railway attaché à `/app/media` provoquait `AccessDeniedException` su
 `spring`, donc ne pouvait pas réattribuer un montage présenté comme root. Le
 correctif conserve Java non-root : un entrypoint root limité crée et attribue
 uniquement `/app/media`, puis `setpriv` lance Java sous `spring`. Aucun secret
-ni permission `777` n'est ajouté. Localement, l'écriture du montage temporaire
-et le processus Java UID 999 ont été constatés; Spring Boot démarre et le
-endpoint protégé répond 401 attendu. Le volume Railway réel doit encore être
-redeployé et un upload doit être vérifié après redéploiement.
+ni permission `777` n'est ajouté. La validation Railway de production montre
+`/app/media` en `spring:spring`, Java PID 1 sous `spring` UID 999 et le fichier
+`railway-persistence-test.txt` toujours présent après redeploy. Le smoke
+`GET /api/users/me` retourne HTTP/2 401 attendu avec les en-têtes observés
+`no-cache, no-store`, `nosniff` et `DENY`. C10 est ainsi renforcée par une
+preuve d'exploitation réelle; C11 reste partielle sans preuve CI/CD,
+observabilité, sauvegarde/restauration ou rollback.
