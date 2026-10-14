@@ -351,3 +351,45 @@ Backend : `./mvnw clean test` PASS, 61 tests comptabilisés, 0 échec/erreur, 5 
 ### Phase 11C — résultat
 
 JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: include`; cookie HttpOnly; CSRF actif via token distinct; CORS credentials avec origines explicites; logout expire le cookie. L'impact du vol de JWT via XSS est fortement réduit, sans déclarer les XSS corrigées. Clôture technique Phase 11C : OUI; preuve navigateur réelle : MANUEL À FAIRE (`94_RECETTE_MANUELLE_AUTH_COOKIE.md`). PR backend : #28; PR frontend : #5; livrables V0.2 : versionnés; `updateAvatars.js` reste local; rotation historique : À CONFIRMER.
+
+## PHASE 13 — DOCKER RAILWAY ET MIGRATIONS POSTGRESQL
+
+| Champ | État réel vérifié les 13–14/10/2026 |
+|---|---|
+| Branche / PR | `rncp6/docker-railway`; PR backend [#33](https://github.com/kanga-prog/watyouface-backend/pull/33) ouverte et mergeable, sans merge |
+| Décision | Docker multi-stage Java 17 non-root et Flyway V1 ; PostgreSQL est externe, `ddl-auto=validate` reste actif en prod |
+| Raison | Railway connecte Hikari mais la base vide échouait avec `Schema-validation: missing table [comment]` ; `validate` doit contrôler, non créer |
+| Solution | Flyway 10.10.0, `db/migration/V1__baseline_schema.sql`, 14 tables, PK/FK/index/checks, `uq_transaction_listing_id`; aucun seed ni secret |
+| Difficulté | V1 quotait initialement `transaction`; H2 créait alors une table distincte de celle résolue par Hibernate et le test UQ ne déclenchait pas |
+| Résolution | `transaction` est créé sans guillemets dans V1 ; `./mvnw clean test` revient à 79 tests, 0 échec/erreur, 5 PostgreSQL conditionnels ignorés |
+| Tests réels | Docker build PASS; PostgreSQL 16.15 Docker vide : Flyway V1 PASS, 14/14 tables, historique `1:true`, Hibernate validate PASS, backend prod démarré; `PostgresPaymentIntegrationTests` 5/5 PASS |
+| Incident volume Railway | Volume attaché sur `/app/media`; `AccessDeniedException: /app/media/avatars`. Malgré `RAILWAY_RUN_UID=0`, l'image avec `USER spring` lançait encore Java comme `spring`, sans droit de réattribuer le montage root. |
+| Décision permissions | Entry point root de durée limitée : `mkdir`/`chown -R` exclusivement sur `/app/media`, puis `setpriv` exécute Java sous `spring`; aucun `chmod 777`, aucun Java root. |
+| Vérifications réelles du correctif | Build Docker PASS; montage media temporaire : écriture PASS après propriété `spring:spring`; processus Java observé UID 999 (`spring`); profil `dev` : démarrage Spring Boot PASS et `/hello` répond 401 attendu; Maven 79 tests, 0 échec, 0 erreur, 5 ignorés. |
+| Validation Railway production | `/app/media` est `spring:spring` (`drwxr-xr-x`); Java est `spring` PID 1; `id spring` = UID/GID 999; le fichier `railway-persistence-test.txt` contient `watyouface-volume-ok` après redeploy; `GET /api/users/me` retourne HTTP/2 401 attendu et les en-têtes `no-cache, no-store`, `strict-origin-when-cross-origin`, `nosniff`, `DENY` sont observés. |
+| Preuves | `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt` |
+| Commits | `f2f9da7`, `59b7cc2`, `934b650`, `db23290`, `ba705c4` |
+| CI GitHub Actions | `.github/workflows/backend-ci.yml` : `push` et `pull_request`, checkout lecture seule, Temurin 17/cache Maven, `./mvnw clean test`, `docker build`; aucune valeur secrète ni déploiement dans le workflow |
+| Preuve CI | Run pull request [#38550729055](https://github.com/kanga-prog/watyouface-backend/actions/runs/38550729055), commit `01a8919`, 14/10/2026 : Maven tests PASS et Docker build PASS |
+| CD Railway | **MANUEL / PARTIEL** : le workflow n'a pas de job de déploiement ni de token Railway. La politique cible est merge validé vers `main`, puis déclenchement par l'intégration Railway si configurée ou le tableau de bord; cette intégration et sa branche ne sont pas prouvées depuis le dépôt. |
+| Statut | **PASS** pour le schéma neuf reproductible, le volume media Railway production et la CI backend; **PARTIEL** pour le CD/opérations DevOps non démontrés |
+| Limites | CD Railway automatique, sauvegarde/restauration, rollback et observabilité non prouvés; l'adoption d'une base non vide reste une procédure distincte |
+| Étape suivante | prouver ou configurer le CD Railway depuis une branche contrôlée, puis compléter observabilité et procédure testée de sauvegarde/restauration/rollback; compléter la preuve WebSocket si nécessaire |
+
+### Compétences RNCP — preuve nouvelle Phase 13
+
+| Compétence | Apport réel de la Phase 13 | Statut de preuve |
+|---|---|---|
+| C1 | variables runtime documentées, sans valeurs | PARTIEL |
+| C2 | aucune preuve nouvelle | inchangé |
+| C3 | checks Marketplace versionnés et test de paiement PostgreSQL | renforcé, PARTIEL |
+| C4 | commits atomiques et PR #33 traçable | renforcé, PARTIEL |
+| C5 | aucune preuve nouvelle | inchangé |
+| C6 | ordre Spring Boot → Flyway → Hibernate et frontières PostgreSQL documentés | renforcé, PARTIEL |
+| C7 | baseline relationnelle 14 tables, contraintes et validation sur base PostgreSQL vide | preuve forte, périmètre schéma neuf |
+| C8 | FK, contraintes et tests transactionnels PostgreSQL | renforcé, PARTIEL |
+| C9 | suite Maven et cinq tests PostgreSQL réellement exécutés | renforcé, PARTIEL |
+| C10 | image Docker, variables, port, migration, runbook, volume production et persistance après redeploy | renforcée, PARTIEL : sauvegarde/restauration/rollback non prouvés |
+| C11 | build/migration reproductibles, déploiement Railway, baisse contrôlée de privilèges et CI backend verte | renforcée, PARTIEL : CD Railway automatique, observabilité et rollback non prouvés |
+
+La Phase 13 ne transforme aucune compétence en « complète » sans preuve supplémentaire. Elle remplace l'ancienne recommandation Flyway par une preuve d'exécution sur base vide et conserve explicitement les limites opérationnelles.

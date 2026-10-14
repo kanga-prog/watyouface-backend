@@ -9,7 +9,7 @@
 | UX-002 | EPIC-07 | Maquettes/prototype | Maquettes responsive et prototype des parcours MUST. | P1 | C2,C5,C9 | UX-001 | L | temps | lien/prototype + recette | TODO |
 | ARCH-001 | EPIC-08 | Architecture cible | Diagramme couches, flux REST/STOMP, médias, frontières de sécurité et ADR. | P1 | C6 | PRJ-001 | M | incohérence | diagramme + ADR | TODO |
 | DATA-001 | EPIC-09 | MCD/MLD/MPD | Modéliser User, contenu, conversation, listing, wallet, transaction et contraintes. | P0 | C7,C8 | exigences phase 2 | M | données incorrectes | MCD/MLD/MPD revus | TODO |
-| DATA-002 | EPIC-09 | Migrations versionnées | Introduire migrations reproductibles à partir du modèle validé. | P0 | C7,C8,C10 | DATA-001 | L | schéma existant | scripts + exécution vierge | TODO |
+| DATA-002 | EPIC-09 | Migrations versionnées | Introduire migrations reproductibles à partir du modèle validé. | P0 | C7,C8,C10 | DATA-001 | L | schéma existant | Flyway V1 + exécution PostgreSQL vierge | DONE Phase 13 |
 | DATA-003 | EPIC-09 | Jeu d'essai | Créer données fictives couvrant rôles, états marketplace et erreurs. | P1 | C7,C9 | DATA-002 | M | données personnelles | seed/notice d'usage | TODO |
 | AUTH-001 | EPIC-05 | Contrat au login | Corriger GAP-AUTH-001 : refuser accès membre sans contrat accepté. | P0 | C3,C9 | PRJ-001 | S | régression accès | tests sans/avec contrat | TODO |
 | SOCIAL-001 | EPIC-02 | Interdire auto-like | Corriger GAP-LIKE-001 côté serveur. | P0 | C3,C8,C9 | règles BR-LIKE | S | contournement | test auteur 403/409 | TODO |
@@ -27,13 +27,13 @@
 | TEST-001 | EPIC-10 | Plan de tests RNCP | Cas ID, préconditions, jeux, attendus, verdicts pour MVP. | P0 | C9 | exigences/règles | M | non-régression | plan + jeu d'essai | TODO |
 | TEST-002 | EPIC-10 | Régression P0 | Ajouter/exécuter tests API/services/front des corrections P0. | P0 | C3,C8,C9 | AUTH-001,SOCIAL-001/002,CHAT-001 | M | tests rouges | commande verte/rapport | TODO |
 | TEST-003 | EPIC-10 | Recette UI/accessibilité | Recette clavier, responsive, erreurs et parcours nominaux/refusés. | P1 | C2,C9 | UX-002 | M | défaut démo | checklist/captures | TODO |
-| DEP-001 | EPIC-11 | Docker/Compose | Conteneuriser frontend, backend, base et variables sans secrets. | P0 | C10 | DATA-002,SEC-001 | L | environnement | compose lancé + capture | TODO |
-| DEP-002 | EPIC-11 | Procédure déploiement | Installation, variables, migrations, backup, rollback, smoke test. | P0 | C10 | DEP-001,DATA-002 | M | absence exploitation | runbook validé | TODO |
-| DEVOPS-001 | EPIC-12 | CI lint/build/tests | Workflow versionné sur branches/PR : backend tests, frontend lint/build/tests. | P0 | C11 | TEST-002,DEP-001 | M | pipeline rouge | exécution CI verte | TODO |
+| DEP-001 | EPIC-11 | Docker/Compose | Conteneuriser frontend, backend, base et variables sans secrets. | P0 | C10 | DATA-002,SEC-001 | L | environnement | backend Docker build/smoke; stack Compose à compléter | PARTIEL Phase 13 |
+| DEP-002 | EPIC-11 | Procédure déploiement | Installation, variables, migrations, backup, rollback, smoke test. | P0 | C10 | DEP-001,DATA-002 | M | absence exploitation | runbook Docker/Flyway; redeploy/backup à compléter | PARTIEL Phase 13 |
+| DEVOPS-001 | EPIC-12 | CI lint/build/tests | Workflow versionné sur push/PR : backend Maven tests et Docker build. Frontend hors de ce lot. | P0 | C11 | TEST-002,DEP-001 | M | pipeline rouge | run GitHub Actions #38550729055 vert | DONE Phase 13 |
 | DEVOPS-002 | EPIC-12 | Qualité/sécurité CI | Ajouter analyse dépendances/secrets selon faisabilité et conserver résultats. | P1 | C11 | DEVOPS-001 | S | faux positifs | rapport CI | TODO |
 | COMP-001 | EPIC-13 | RGPD | Inventaire données, finalités, minimisation, rétention, droits et mentions. | P1 | C4,C5 | PROFILE-001 | M | conformité | fiche RGPD | TODO |
 | COMP-002 | EPIC-13 | RGAA/éco-conception | Audit ciblé labels/clavier/contraste/assets/appels ; corrections prioritaires. | P1 | C2,C9 | UX-002 | temps | checklist + captures | TODO |
-| DOC-001 | EPIC-14 | Source de vérité | Mettre à jour après chaque jalon et relier décision→preuve. | P0 | C4 | tous jalons | XS/jour | divergence | SSOT datée | TODO |
+| DOC-001 | EPIC-14 | Source de vérité | Mettre à jour après chaque jalon et relier décision→preuve. | P0 | C4 | tous jalons | XS/jour | divergence | SSOT Phase 13 datée et preuve liée | DONE Phase 13 |
 | DOC-002 | EPIC-14 | Dossier projet | Assembler besoins, UX, architecture, données, sécurité, tests, déploiement. | P0 | C1-C11 | phases UX à DevOps | L | dossier incomplet | version PDF/Markdown | TODO |
 | DOC-003 | EPIC-14 | Dossier professionnel | Sélectionner situations et preuves personnalisées. | P0 | C1-C11 | DOC-002 | M | preuve faible | trame DP | TODO |
 | JURY-001 | EPIC-15 | Slides/scénario | Slides : problème, trois piliers, marketplace, sécurité, tests, architecture. | P0 | C1-C11 | DOC-002 | M | oral dispersé | support + notes | TODO |

@@ -1,0 +1,44 @@
+WatYouFace — preuve permissions volume media Railway
+Date : 2026-10-14
+Branche : rncp6/docker-railway
+PR : #33 ouverte ; aucun merge effectué.
+Commit technique : ba705c4 (initialisation des permissions du volume media).
+
+Incident Railway constaté : volume monté sur /app/media, puis
+java.nio.file.AccessDeniedException: /app/media/avatars.
+Le journal indiquait que Java était démarré par spring malgré RAILWAY_RUN_UID=0.
+
+Correctif versionné : docker-entrypoint.sh démarre comme root, vérifie setpriv,
+crée /app/media si nécessaire et exécute chown -R spring:spring uniquement sur
+ce répertoire. Il remplace ensuite son processus par :
+setpriv --reuid=spring --regid=spring --init-groups java -jar /app/app.jar.
+Le Dockerfile vérifie /usr/bin/setpriv durant le build. Aucun chmod 777 ni
+secret n'est introduit.
+
+Vérifications locales réelles :
+- docker build -t watyouface-backend:rncp6 . : PASS.
+- montage temporaire sur /app/media : l'entrypoint a exécuté la commande sous
+  uid=999(spring), gid=999(spring) ; touch /app/media/entrypoint-write-check : PASS ;
+  le conteneur a signalé spring:spring pour le répertoire et le fichier.
+- smoke Spring Boot avec SPRING_PROFILES_ACTIVE=dev et secret temporaire :
+  Tomcat port 8081 démarré, application démarrée ; docker top a observé le
+  processus java -jar /app/app.jar sous UID 999 ; GET /hello = HTTP 401 attendu.
+- ./mvnw clean test : 79 tests, 0 failure, 0 error, 5 skipped.
+
+Validation Railway production réelle :
+- `ls -ld /app/media` : répertoire présent avec propriétaire `spring:spring`
+  et permissions `drwxr-xr-x`.
+- `ps -eo user,pid,cmd | grep '[j]ava'` : `spring 1 java -jar /app/app.jar`.
+- `id spring` : `uid=999(spring) gid=999(spring) groups=999(spring)`.
+- `cat /app/media/railway-persistence-test.txt` :
+  `watyouface-volume-ok`, fichier toujours présent après redeploy Railway.
+- `GET /api/users/me` : HTTP/2 401 attendu sans authentification. En-têtes
+  observés : `cache-control: no-cache, no-store`,
+  `referrer-policy: strict-origin-when-cross-origin`,
+  `x-content-type-options: nosniff`, `x-frame-options: DENY`.
+
+Verdict : PASS production pour l'initialisation ciblée du volume, l'exécution
+Java non-root et la persistance media après redeploy.
+
+Limites : CI/CD, observabilité, sauvegarde/restauration et scénario de rollback
+ne sont pas prouvés par cette validation. C11 reste donc PARTIELLE.

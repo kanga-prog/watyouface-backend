@@ -1,0 +1,37 @@
+WatYouFace — preuve Flyway / baseline PostgreSQL Railway
+Date : 2026-10-13
+Branche : rncp6/docker-railway
+PR : #33 ouverte, branche poussée ; aucun merge effectué.
+Commits techniques : 934b650 (baseline Flyway), db23290 (stratégie documentée).
+
+Contexte réel : la connexion PostgreSQL Railway fonctionne, mais le schéma est vide.
+Le démarrage échouait sur Hibernate validate avec la table `comment` absente.
+
+Mise en oeuvre : Flyway 10.10.0 ajouté via Spring Boot, avec
+src/main/resources/db/migration/V1__baseline_schema.sql.
+La V1 ne contient ni compte, ni secret, ni wallet de démonstration, ni seed RNCP.
+Le profil prod conserve spring.jpa.hibernate.ddl-auto=validate.
+
+Validation PostgreSQL sur base locale Docker temporaire vide :
+- PostgreSQL 16.15 ; base watyouface_migration_test ; aucun volume persistant.
+- Backend Docker démarré avec le profil prod et les seules variables temporaires nécessaires.
+- Flyway : V1 appliquée avec succès ; flyway_schema_history = 1:true.
+- Tables vérifiées : 14/14 (comment, contract, conversation_users, conversations,
+  likes, listings, messages, post, transaction, user_contract, users, video,
+  video_share, wallet).
+- Hibernate validate : PASS ; backend démarré.
+- PostgresPaymentIntegrationTests : 5 exécutés, 0 failure, 0 error, 0 skipped.
+
+Suite générale : ./mvnw clean test = 79 tests, 0 failure, 0 error, 5 skipped
+(tests PostgreSQL conditionnels hors de cette exécution H2).
+Docker build : docker build -t watyouface-backend:rncp6 . = PASS.
+
+Difficulté rencontrée : la première V1 quotait la table transaction. H2 créait alors
+une table sensible à la casse distincte de celle utilisée sans guillemets par Hibernate,
+et le test d'unicité de transaction ne déclenchait pas. Solution : V1 crée transaction
+sans guillemets, conformément au nom résolu par Hibernate et PostgreSQL. La suite Maven
+est ensuite revenue au vert.
+
+Limites : ce test valide une base PostgreSQL Docker vide, pas un redeploy Railway réel,
+ni une adoption d'une base non vide. Toute base existante sans historique Flyway exige
+sauvegarde, comparaison de schéma et migration d'adoption revue.

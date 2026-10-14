@@ -2,20 +2,20 @@
 
 | Règle | État | Preuve / action |
 |---|---|---|
-| username/email unique | EXISTANTE | `User @Column(unique=true)` |
-| wallet par user | EXISTANTE | `Wallet.user_id unique=true NN` |
-| titre/prix/status listing NN | EXISTANTE | annotations `Listing` |
-| transaction amount/listing/users NN | EXISTANTE | annotations `Transaction` |
-| message conversation/sender/receiver NN | EXISTANTE | `optional=false` |
-| `like(user,post)` unique | À AJOUTER | règle métier + no UQ observée ; issue #5/#2 |
-| `like(user,video)` unique | À AJOUTER | no UQ observée |
-| exactement une cible Like/Comment (post XOR video) | À AJOUTER / À VÉRIFIER | CHECK cible ; modèle actuel nullable |
-| participant conversation unique | À AJOUTER | `ConversationUser` sans UQ composée |
-| acceptation contrat unique user/version | À AJOUTER | repository vérifie, contrainte DB absente |
-| transaction unique par listing | CIBLE DOCUMENTÉE / NON APPLIQUÉE | garde service `existsByListing_Id`, contrainte déclarée dans l'entité et migration manuelle `src/main/resources/db/manual/V1__unique_transaction_listing.sql`; PostgreSQL non joignable pendant cette phase |
-| solde/prix/montant positifs | PARTIEL | service wallet ; CHECK DB cible |
-| status enum valide | PARTIEL | `@Enumerated(STRING)` ; CHECK/enum SQL cible |
+| username/email unique | APPLIQUÉE V1 | contraintes `uq_users_username` / `uq_users_email`, base PostgreSQL vide validée |
+| wallet par user | APPLIQUÉE V1 | `uq_wallet_user`, FK et NN validés par V1 |
+| titre/prix/status listing NN | APPLIQUÉE V1 | colonnes NN + checks de prix/statut dans V1 |
+| transaction amount/listing/users NN | APPLIQUÉE V1 | colonnes NN, FK, check montant et statut |
+| message conversation/sender/receiver NN | APPLIQUÉE V1 | colonnes NN et FK dans V1 |
+| `like(user,post)` unique | APPLIQUÉE V1 | `uq_likes_user_post` ; test fonctionnel spécifique à compléter |
+| `like(user,video)` unique | APPLIQUÉE V1 | `uq_likes_user_video` ; test fonctionnel spécifique à compléter |
+| exactement une cible Like/Comment (post XOR video) | APPLIQUÉE V1 | checks `ck_likes_target` / `ck_comment_target` sur base vide |
+| participant conversation unique | APPLIQUÉE V1 | `uq_conversation_users_participant` |
+| acceptation contrat unique user/version | APPLIQUÉE V1 | `uq_user_contract_user_contract` |
+| transaction unique par listing | APPLIQUÉE V1 / TESTÉE | `uq_transaction_listing_id`; `PostgresPaymentIntegrationTests` 5/5 sur PostgreSQL 16.15 temporaire |
+| solde/prix/montant positifs | APPLIQUÉE V1 | checks `ck_wallet_balance`, `ck_listings_price`, `ck_transaction_amount` |
+| status enum valide | APPLIQUÉE V1 | checks rôles, `listings.status` et `transaction.status` |
 
 ## Risque
 
-Les validations Java protègent le flux normal mais une contrainte DB est la dernière barrière face à concurrence, scripts ou endpoint legacy. Toute contrainte nouvelle nécessite migration testée sur base vierge.
+Les validations Java protègent le flux normal mais une contrainte DB est la dernière barrière face à concurrence, scripts ou endpoint legacy. La V1 a été appliquée et validée sur une base PostgreSQL vide ; toute évolution exige une nouvelle migration testée, sans réécrire V1. Le redeploy Railway et la persistance du volume media sont désormais prouvés séparément ; restent à démontrer la sauvegarde/restauration, le rollback et l'adoption d'une base non vide.

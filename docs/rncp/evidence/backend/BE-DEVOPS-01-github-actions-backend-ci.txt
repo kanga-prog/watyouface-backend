@@ -1,0 +1,33 @@
+WatYouFace — preuve CI GitHub Actions backend
+Date : 2026-10-14
+Branche : rncp6/docker-railway
+PR : #33 ouverte ; aucun merge effectué.
+Workflow : .github/workflows/backend-ci.yml
+Commit du workflow : 01a8919 (ci: add backend Maven and Docker workflow).
+
+Déclencheurs versionnés : push et pull_request.
+Permissions : contents: read uniquement ; checkout sans credential persistant.
+Secrets : aucun secret applicatif, JWT, PostgreSQL ou Railway dans le workflow.
+
+Run GitHub Actions réel :
+https://github.com/kanga-prog/watyouface-backend/actions/runs/38550729055
+Événement : pull_request.
+Commit testé : 01a89194064fac775104a7134455cce583705674.
+Statut global : success.
+Job : Maven tests and Docker build (ID 115807755852), success.
+
+Étapes réelles réussies :
+- Checkout.
+- Set up Java 17 (Temurin, cache Maven).
+- Run Maven tests : success.
+- Build Docker image : success.
+
+Décision CD : MANUEL / PARTIEL.
+Le workflow ne contient aucun job de déploiement, token Railway ou credential
+de production. Le dépôt ne prouve pas la configuration de l'intégration
+Railway ni sa branche surveillée. La cible proposée est un merge validé vers
+main, suivi d'un déploiement via l'intégration Railway si configurée ou le
+tableau de bord.
+
+Limites : cette preuve démontre la CI backend, pas le CD Railway automatique,
+l'observabilité, le rollback ni la sauvegarde/restauration.
