@@ -354,9 +354,9 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 
 ## PHASE 13 — DOCKER RAILWAY ET MIGRATIONS POSTGRESQL
 
-| Champ | État réel vérifié les 13–14/10/2026 |
+| Champ | État réel actualisé au 17/10/2026 |
 |---|---|
-| Branche / PR | `rncp6/docker-railway`; PR backend [#33](https://github.com/kanga-prog/watyouface-backend/pull/33) ouverte et mergeable, sans merge |
+| Branche / PR | `main`; PR backend [#33](https://github.com/kanga-prog/watyouface-backend/pull/33) fusionnée dans `main` (`6d77f24`) |
 | Décision | Docker multi-stage Java 17 non-root et Flyway V1 ; PostgreSQL est externe, `ddl-auto=validate` reste actif en prod |
 | Raison | Railway connecte Hikari mais la base vide échouait avec `Schema-validation: missing table [comment]` ; `validate` doit contrôler, non créer |
 | Solution | Flyway 10.10.0, `db/migration/V1__baseline_schema.sql`, 14 tables, PK/FK/index/checks, `uq_transaction_listing_id`; aucun seed ni secret |
@@ -368,10 +368,10 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 | Vérifications réelles du correctif | Build Docker PASS; montage media temporaire : écriture PASS après propriété `spring:spring`; processus Java observé UID 999 (`spring`); profil `dev` : démarrage Spring Boot PASS et `/hello` répond 401 attendu; Maven 79 tests, 0 échec, 0 erreur, 5 ignorés. |
 | Validation Railway production | `/app/media` est `spring:spring` (`drwxr-xr-x`); Java est `spring` PID 1; `id spring` = UID/GID 999; le fichier `railway-persistence-test.txt` contient `watyouface-volume-ok` après redeploy; `GET /api/users/me` retourne HTTP/2 401 attendu et les en-têtes `no-cache, no-store`, `strict-origin-when-cross-origin`, `nosniff`, `DENY` sont observés. |
 | Preuves | `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt` |
-| Commits | `f2f9da7`, `59b7cc2`, `934b650`, `db23290`, `ba705c4` |
+| Commits | `f2f9da7`, `59b7cc2`, `934b650`, `db23290`, `ba705c4`, `e892ae8` (robustesse upload Marketplace) |
 | CI GitHub Actions | `.github/workflows/backend-ci.yml` : `push` et `pull_request`, checkout lecture seule, Temurin 17/cache Maven, `./mvnw clean test`, `docker build`; aucune valeur secrète ni déploiement dans le workflow |
-| Preuve CI | Run pull request [#38550729055](https://github.com/kanga-prog/watyouface-backend/actions/runs/38550729055), commit `01a8919`, 14/10/2026 : Maven tests PASS et Docker build PASS |
-| CD Railway | **MANUEL / PARTIEL** : le workflow n'a pas de job de déploiement ni de token Railway. La politique cible est merge validé vers `main`, puis déclenchement par l'intégration Railway si configurée ou le tableau de bord; cette intégration et sa branche ne sont pas prouvées depuis le dépôt. |
+| Preuve CI | Run GitHub Actions [#38943060289](https://github.com/kanga-prog/watyouface-backend/actions/runs/38943060289), 17/10/2026 : Maven tests et Docker build **SUCCESS** pour le correctif Marketplace sur `main` |
+| CD Railway | **PARTIEL** : le correctif Marketplace a été redéployé sur Railway après son arrivée sur `main`, mais le workflow ne contient aucun job de déploiement ni token Railway. Le mode automatique ou manuel n'est pas prouvé par ce dépôt ; il n'est donc pas déclaré comme CD automatique. |
 | Statut | **PASS** pour le schéma neuf reproductible, le volume media Railway production et la CI backend; **PARTIEL** pour le CD/opérations DevOps non démontrés |
 | Limites | CD Railway automatique, sauvegarde/restauration, rollback et observabilité non prouvés; l'adoption d'une base non vide reste une procédure distincte |
 | Étape suivante | prouver ou configurer le CD Railway depuis une branche contrôlée, puis compléter observabilité et procédure testée de sauvegarde/restauration/rollback; compléter la preuve WebSocket si nécessaire |
@@ -393,3 +393,20 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 | C11 | build/migration reproductibles, déploiement Railway, baisse contrôlée de privilèges et CI backend verte | renforcée, PARTIEL : CD Railway automatique, observabilité et rollback non prouvés |
 
 La Phase 13 ne transforme aucune compétence en « complète » sans preuve supplémentaire. Elle remplace l'ancienne recommandation Flyway par une preuve d'exécution sur base vide et conserve explicitement les limites opérationnelles.
+
+### Correctif upload Marketplace — état de production (17/10/2026)
+
+| Champ | État réel vérifié |
+|---|---|
+| Incident | Le contrat MIME annonçait `image/webp`, sans lecteur ImageIO WebP. Selon l'image, Thumbnailator remontait une `IOException` au handler générique et le client recevait HTTP 500. |
+| Décision | Limiter l'upload Marketplace à `image/jpeg` et `image/png`; ne pas ajouter de dépendance WebP ni assouplir les validations. |
+| Solution | Conserver les contrôles vide, 10 Mo et MIME. Convertir JPEG/PNG en JPG via un fichier temporaire dans `media/marketplace/`, déplacer seulement après succès et convertir les erreurs ImageIO/Thumbnailator de décodage en `IllegalArgumentException("Image invalide ou format non lisible")`. |
+| Handler | `ApiExceptionHandler` existant confirme `IllegalArgumentException` → HTTP 400 JSON `{"error":"..."}`; aucun autre mapping modifié. |
+| Tests | `MarketplaceImageUploadTests` : 7/7 PASS (JPEG, PNG, WebP, MIME arbitraire, vide, >10 Mo, PNG illisible sans fichier partiel). La CI GitHub Actions [run 38943060289](https://github.com/kanga-prog/watyouface-backend/actions/runs/38943060289) confirme Maven tests et Docker build **SUCCESS**. |
+| Production | Correctif `e892ae8` commité sur `main`, poussé et redéployé sur Railway. L'API `https://api.watyouface.com` répond ; `/api/users/me` sans session retourne HTTP 401 attendu. Les uploads JPEG et PNG sont validés ; WebP est volontairement refusé proprement en HTTP 400. |
+| Frontend associé | Le sélecteur impose JPEG/PNG et 10 Mo, refuse WebP avant l'appel API ; 35 tests et build Vite PASS, pipeline GitHub Actions vers Hostinger déclenché. L'utilisateur confirme les uploads fonctionnels en production. |
+| Preuve | `evidence/backend/BE-API-02-marketplace-image-upload.txt`, run CI 38943060289 et validation de production fournie. |
+| Limites | Le MIME fourni par le client reste le premier filtre ; le décodage effectif protège les faux JPEG/PNG. Le CD Railway automatique, l'observabilité, le rollback et la restauration de sauvegarde ne sont pas prouvés. |
+| Compétences | C3 : validation sécurisée d'upload ; C8 : stockage media borné et anti-path traversal conservé ; C9 : sept cas HTTP automatisés ; C10 : déploiement documenté et validé ; C11 : CI exécutée et mise en production contrôlée. C10/C11 restent PARTIELLES faute de CD automatique, observabilité, sauvegarde/restauration et rollback prouvés. |
+
+Le correctif est **VALIDÉ** pour son périmètre : il est versionné, passé en CI et observé en production. Il ne clôt pas les limites DevOps ci-dessus.

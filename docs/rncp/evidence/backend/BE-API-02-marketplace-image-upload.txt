@@ -1,0 +1,43 @@
+WatYouFace — preuve de production robustesse upload image Marketplace
+Date de mise à jour : 2026-10-17
+Branche : main
+Statut Git : correctif `e892ae8` commité sur main et poussé sur GitHub.
+
+Cause racine : MarketplaceImageService annonçait image/webp dans ALLOWED alors
+que Thumbnailator 0.4.20 s'appuie sur ImageIO et qu'aucun lecteur WebP n'est
+installé. Un contenu non décodable pouvait remonter une IOException au handler
+générique et devenir HTTP 500.
+
+Décision : image/jpeg et image/png seulement; aucune dépendance WebP.
+La limite de 10 MB, le contrôle MIME, MediaStorageService et
+media/marketplace restent en place.
+
+Correctif local : conversion Thumbnailator dans un fichier temporaire du même
+répertoire; déplacement vers listing_<UUID>.jpg seulement après succès.
+IOException ou RuntimeException du décodage/conversion devient
+IllegalArgumentException("Image invalide ou format non lisible"). Le handler
+existant retourne alors HTTP 400 avec JSON {"error":"..."}.
+
+Résultats réellement exécutés :
+- MarketplaceImageUploadTests : 7 tests, 0 failure, 0 error, 0 skipped.
+- JPEG valide : HTTP 200, URL /media/marketplace/listing_*.jpg et JPG lisible.
+- PNG valide : HTTP 200, URL /media/marketplace/listing_*.jpg et JPG lisible.
+- WebP : HTTP 400 avec erreur MIME explicite.
+- MIME text/plain : HTTP 400.
+- fichier vide : HTTP 400.
+- fichier > 10 MB : HTTP 400.
+- faux PNG illisible : HTTP 400 "Image invalide ou format non lisible" et
+  aucun fichier Marketplace résiduel.
+- ./mvnw test : 86 tests, 0 failure, 0 error, 5 skipped conditionnels.
+- CI GitHub Actions : [run 38943060289](https://github.com/kanga-prog/watyouface-backend/actions/runs/38943060289)
+  SUCCESS ; Maven tests et Docker build PASS.
+- Railway : backend redéployé ; `https://api.watyouface.com` répond et
+  `/api/users/me` sans session retourne HTTP 401 attendu.
+- Validation production : upload JPEG PASS, upload PNG PASS, WebP refusé
+  proprement conformément au contrat.
+
+Limites : les erreurs physiques de stockage pendant le déplacement final restent
+des erreurs serveur génériques, sans stack trace exposée au client; le fichier
+temporaire et le nom final UUID sont nettoyés lors d'un échec de déplacement.
+Cette preuve ne démontre pas un CD Railway automatique, l'observabilité, la
+sauvegarde/restauration ni le rollback.
