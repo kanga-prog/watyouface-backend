@@ -2,6 +2,7 @@ package com.watyouface.service;
 
 import com.watyouface.entity.User;
 import com.watyouface.entity.Contract;
+import com.watyouface.entity.enums.Role;
 import com.watyouface.repository.UserRepository;
 import com.watyouface.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +73,8 @@ public class AuthService {
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
+        // Registration never accepts a client-selected role.
+        user.setRole(Role.USER);
         user.setAcceptedContract(acceptedContract); // false si pas encore accepté
 
         // Si accepté maintenant, lie le contrat actif

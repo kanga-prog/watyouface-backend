@@ -5,8 +5,8 @@ target/
 !.env.example
 login.json
 wallet_before.json
-media/
-uploads/
+/media/
+/uploads/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

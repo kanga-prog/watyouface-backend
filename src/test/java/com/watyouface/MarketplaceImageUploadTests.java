@@ -86,13 +86,13 @@ class MarketplaceImageUploadTests {
     @Test
     void rejectsWebpWithBadRequest() throws Exception {
         assertBadRequest(new MockMultipartFile("file", "image.webp", "image/webp", "webp".getBytes()),
-                "Type non autorisé: image/webp");
+                "Format d'image non autorisé");
     }
 
     @Test
     void rejectsArbitraryMimeTypeWithBadRequest() throws Exception {
         assertBadRequest(new MockMultipartFile("file", "file.txt", MediaType.TEXT_PLAIN_VALUE, "text".getBytes()),
-                "Type non autorisé: text/plain");
+                "Format d'image non autorisé");
     }
 
     @Test
@@ -106,7 +106,7 @@ class MarketplaceImageUploadTests {
         byte[] oversized = new byte[10 * 1024 * 1024 + 1];
 
         assertBadRequest(new MockMultipartFile("file", "large.png", MediaType.IMAGE_PNG_VALUE, oversized),
-                "Image trop volumineuse (max 10MB)");
+                "Image trop volumineuse : 10 Mo maximum.");
     }
 
     @Test
@@ -115,6 +115,36 @@ class MarketplaceImageUploadTests {
                         "not a PNG image".getBytes()),
                 "Image invalide ou format non lisible");
 
+        assertThat(marketplaceFiles()).isEmpty();
+    }
+
+    @Test
+    void acceptsGifAndNormalizesItsFirstFrameToJpg() throws Exception {
+        MockMultipartFile image = image("animated.gif", MediaType.IMAGE_GIF_VALUE, "gif");
+
+        mvc.perform(multipart(UPLOAD_URL).file(image))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.endsWith(".jpg")));
+
+        assertThat(marketplaceFiles()).hasSize(1);
+    }
+
+    @Test
+    void acceptsBmpAndNormalizesItToJpg() throws Exception {
+        MockMultipartFile image = image("photo.bmp", "image/bmp", "bmp");
+
+        mvc.perform(multipart(UPLOAD_URL).file(image))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.endsWith(".jpg")));
+
+        assertThat(marketplaceFiles()).hasSize(1);
+    }
+
+    @Test
+    void rejectsImageWhoseBytesDoNotMatchItsDeclaredMimeType() throws Exception {
+        MockMultipartFile pngClaimingToBeJpeg = image("mismatch.jpg", MediaType.IMAGE_JPEG_VALUE, "png");
+
+        assertBadRequest(pngClaimingToBeJpeg, "Le contenu ne correspond pas au type MIME déclaré");
         assertThat(marketplaceFiles()).isEmpty();
     }
 

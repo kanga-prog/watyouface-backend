@@ -2,6 +2,7 @@ package com.watyouface.entity;
 
 import com.watyouface.entity.enums.ListingStatus;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "listings")
@@ -21,6 +22,13 @@ public class Listing {
     private Double price;
 
     private String image;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    /** Preserve an engaged transaction while hiding moderated content from third parties. */
+    @Column(nullable = false)
+    private boolean hidden = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -72,6 +80,12 @@ public class Listing {
     public void setImage(String image) {
         this.image = image;
     }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public boolean isHidden() { return hidden; }
+    public void setHidden(boolean hidden) { this.hidden = hidden; }
 
     public ListingStatus getStatus() {
         return status;

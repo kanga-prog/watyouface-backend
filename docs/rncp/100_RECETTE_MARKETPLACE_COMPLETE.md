@@ -38,11 +38,11 @@ Statuts : **PASS** = preuve automatisée au niveau indiqué; **PARTIEL** = une p
 | Transition | Règle observée | Preuve actuelle |
 |---|---|---|
 | `AVAILABLE → PENDING` | Acheteur authentifié non vendeur; demande uniquement si disponible | Test de service de cycle complet |
-| `PENDING → ACCEPTED` | Vendeur (ou admin) seulement; acheteur requis | Test API + service |
-| `PENDING → REFUSED` | Vendeur (ou admin) seulement | Test API/H2 dédié |
+| `PENDING → ACCEPTED` | Vendeur seulement; acheteur requis | Test API + service |
+| `PENDING → REFUSED` | Vendeur seulement | Test API/H2 dédié |
 | `ACCEPTED → PAID` | Acheteur associé; wallet démo; une transaction par annonce | service, verrou pessimiste et contrainte DB; tests PostgreSQL non rejoués |
-| `PAID → SHIPPED` | Vendeur (ou admin) | test de service de cycle complet |
-| `SHIPPED → RECEIVED` | Acheteur associé (ou admin) | test de service de cycle complet |
+| `PAID → SHIPPED` | Vendeur seulement | test de service de cycle complet |
+| `SHIPPED → RECEIVED` | Acheteur associé seulement | test de service de cycle complet |
 
 Les autres transitions sont refusées par la vérification d’état du service (`IllegalStateException`, normalement HTTP 409). Le jeu complet de transitions interdites n’a pas été exécuté comme test API exhaustif.
 
@@ -81,3 +81,39 @@ Les autres transitions sont refusées par la vérification d’état du service 
 ## Résultat de clôture Marketplace
 
 **Blocage upload image levé : OUI.** Le correctif est commité, contrôlé par CI, redéployé sur Railway et validé en production (JPEG/PNG PASS, WebP refusé proprement). La clôture Marketplace complète reste **PARTIELLE** : le parcours navigateur complet avec deux comptes, la confirmation de persistance après refresh, les messages de chat liés au parcours et les captures de recette restent à documenter par une recette manuelle réelle.
+
+## État de référence — administration, médias et migrations (18/10/2026)
+
+Cette section remplace les mentions antérieures contradictoires sur le contrat d'image, les privilèges ADMIN et les tests PostgreSQL.
+
+### ADMIN, RBAC et wallets
+
+- L'unique compte ADMIN existant (`demo`) est **modérateur et gestionnaire du wallet de démonstration**. Aucun second ADMIN n'a été créé.
+- Toutes les routes `/api/admin/**` exigent ADMIN : non authentifié → **401**, USER → **403**, ADMIN autorisé ; les mutations restent soumises à CSRF.
+- Le seul crédit manuel est `POST /api/admin/users/{userId}/wallet/credit`. Il exige un montant strictement positif, est transactionnel et renvoie le solde courant. Aucune route USER ne crée, crédite ou fixe directement un solde.
+- La route de changement de rôle a été retirée. L'inscription force le rôle USER et les DTO ne permettent pas d'assigner `role` (pas de mass assignment).
+- La suppression de son propre compte ADMIN et la suppression du dernier ADMIN sont refusées explicitement. Le rôle du dernier ADMIN ne peut pas être rétrogradé.
+
+### Modération Marketplace et intégrité transactionnelle
+
+- L'ADMIN n'est plus un acheteur/vendeur universel : il ne peut pas demander, accepter, refuser, payer, expédier ou réceptionner à la place des parties.
+- Une annonce `AVAILABLE` ou `REFUSED` peut être supprimée physiquement par la modération.
+- Pour `PENDING`, `ACCEPTED`, `PAID`, `SHIPPED` et `RECEIVED`, la modération positionne `hidden=true` au lieu de supprimer la ligne : la transaction et ses références sont conservées.
+- Une annonce masquée est invisible à un tiers dans le catalogue ; vendeur, acheteur concerné et ADMIN la conservent accessible. Cette règle permet la modération sans rompre le cycle transactionnel.
+
+### Politique commune d'upload Feed et Marketplace
+
+- Formats réellement acceptés : **JPEG/JPG, PNG, GIF et BMP**, limite **10 Mo**. WebP, AVIF et HEIC/HEIF sont volontairement refusés car aucun décodeur Java fiable correspondant n'est embarqué.
+- Le MIME est filtré puis le contenu est réellement décodé avec ImageIO. Un fichier vide, falsifié ou corrompu produit une erreur client HTTP 400, jamais une erreur 500 générique.
+- GIF : seule la première image est normalisée ; BMP : normalisé. Le fichier final est un **JPEG** sous un nom UUID, placé dans le répertoire media prévu.
+- L'écriture passe par un fichier temporaire puis un déplacement final après succès ; le temporaire est supprimé lors d'un échec. Les protections de chemin existantes sont conservées.
+
+### PostgreSQL et Flyway
+
+- `PostgresPaymentIntegrationTests` a été exécuté séparément contre PostgreSQL 16 : **5/5 PASS, 0 failure, 0 error, 0 skipped**.
+- La suite Maven globale actuelle contient **104 tests rapportés**, dont **5 tests PostgreSQL conditionnels ignorés** lorsque leurs variables dédiées ne sont pas injectées. Ce run ne doit pas être présenté comme l'exécution des cinq tests PostgreSQL ; la preuve dédiée ci-dessus les couvre.
+- V2 ajoute `listings.created_at` avec une valeur par défaut compatible table non vide. V3 ajoute `listings.hidden` avec défaut `false`. Les migrations ont été validées sur PostgreSQL 16 avec **37 listings existants**, sans suppression de donnée et avec **0 NULL** pour `created_at` et `hidden` après migration.
+
+### Limites de recette
+
+Les tests unitaires/intégration et les migrations sont prouvés. Le parcours E2E navigateur de production, avec deux comptes USER et les captures correspondantes, n'a pas été lancé dans cette phase et reste à effectuer après déploiement/CI.

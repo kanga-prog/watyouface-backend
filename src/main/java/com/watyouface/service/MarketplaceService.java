@@ -34,13 +34,18 @@ public class MarketplaceService {
     }
 
     // READ
-    public List<ListingDTO> findAll() {
-        return listingRepository.findAll().stream().map(this::toDTO).toList();
+    public List<ListingDTO> findVisibleTo(Long actorId, boolean actorIsAdmin) {
+        return listingRepository.findAll().stream()
+                .filter(listing -> isVisibleTo(listing, actorId, actorIsAdmin))
+                .map(this::toDTO).toList();
     }
 
-    public ListingDTO findById(Long id) {
+    public ListingDTO findVisibleTo(Long id, Long actorId, boolean actorIsAdmin) {
         Listing listing = listingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
+        if (!isVisibleTo(listing, actorId, actorIsAdmin)) {
+            throw new ResourceNotFoundException("Annonce introuvable");
+        }
         return toDTO(listing);
     }
 
@@ -62,11 +67,11 @@ public class MarketplaceService {
 
     // UPDATE sécurisé
     @Transactional
-    public ListingDTO updateSecured(Long id, ListingDTO dto, Long actorId, boolean admin) {
+    public ListingDTO updateSecured(Long id, ListingDTO dto, Long actorId) {
         Listing listing = listingRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
-        if (!admin && !listing.getSeller().getId().equals(actorId)) {
+        if (!listing.getSeller().getId().equals(actorId)) {
             throw new SecurityException("Interdit");
         }
 
@@ -84,11 +89,11 @@ public class MarketplaceService {
 
     // DELETE sécurisé
     @Transactional
-    public void deleteSecured(Long id, Long actorId, boolean admin) {
+    public void deleteSecured(Long id, Long actorId) {
         Listing listing = listingRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
-        if (!admin && !listing.getSeller().getId().equals(actorId)) {
+        if (!listing.getSeller().getId().equals(actorId)) {
             throw new SecurityException("Interdit");
         }
 
@@ -101,9 +106,26 @@ public class MarketplaceService {
         listingRepository.delete(listing);
     }
 
+    /**
+     * La modération détruit seulement les annonces sans transaction active.
+     * Une annonce engagée est masquée des tiers, sans casser son cycle
+     * vendeur/acheteur ni les écritures de paiement existantes.
+     */
+    @Transactional
+    public void deleteForModeration(Long id) {
+        Listing listing = listingRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
+        if (listing.getStatus() == ListingStatus.AVAILABLE || listing.getStatus() == ListingStatus.REFUSED) {
+            listingRepository.delete(listing);
+            return;
+        }
+        listing.setHidden(true);
+        listingRepository.save(listing);
+    }
+
     // Buyer demande achat => PENDING + buyer
     @Transactional
-    public void requestPurchase(Long listingId, Long buyerId, boolean admin) {
+    public void requestPurchase(Long listingId, Long buyerId) {
         Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
@@ -114,7 +136,7 @@ public class MarketplaceService {
         User buyer = userRepository.findById(buyerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Acheteur introuvable"));
 
-        if (!admin && listing.getSeller().getId().equals(buyerId)) {
+        if (listing.getSeller().getId().equals(buyerId)) {
             throw new IllegalStateException("Vous ne pouvez pas acheter votre propre annonce");
         }
 
@@ -123,13 +145,19 @@ public class MarketplaceService {
         listingRepository.save(listing);
     }
 
+    @Deprecated(forRemoval = false)
+    @Transactional
+    public void requestPurchase(Long listingId, Long buyerId, boolean ignoredAdmin) {
+        requestPurchase(listingId, buyerId);
+    }
+
     // Seller accepte => ACCEPTED
     @Transactional
-    public void accept(Long listingId, Long actorId, boolean admin) {
+    public void accept(Long listingId, Long actorId) {
         Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
-        if (!admin && !listing.getSeller().getId().equals(actorId)) {
+        if (!listing.getSeller().getId().equals(actorId)) {
             throw new SecurityException("Interdit");
         }
 
@@ -145,13 +173,19 @@ public class MarketplaceService {
         listingRepository.save(listing);
     }
 
+    @Deprecated(forRemoval = false)
+    @Transactional
+    public void accept(Long listingId, Long actorId, boolean ignoredAdmin) {
+        accept(listingId, actorId);
+    }
+
     // Seller refuse => REFUSED
     @Transactional
-    public void refuse(Long listingId, Long actorId, boolean admin) {
+    public void refuse(Long listingId, Long actorId) {
         Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
-        if (!admin && !listing.getSeller().getId().equals(actorId)) {
+        if (!listing.getSeller().getId().equals(actorId)) {
             throw new SecurityException("Interdit");
         }
 
@@ -163,9 +197,15 @@ public class MarketplaceService {
         listingRepository.save(listing);
     }
 
+    @Deprecated(forRemoval = false)
+    @Transactional
+    public void refuse(Long listingId, Long actorId, boolean ignoredAdmin) {
+        refuse(listingId, actorId);
+    }
+
     // Buyer paye => PAID (uniquement ACCEPTED)
     @Transactional
-    public void paySecured(Long listingId, Long buyerId, boolean admin) {
+    public void paySecured(Long listingId, Long buyerId) {
 
         Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
@@ -178,7 +218,7 @@ public class MarketplaceService {
             throw new IllegalStateException("Aucun acheteur défini");
         }
 
-        if (!admin && !listing.getBuyer().getId().equals(buyerId)) {
+        if (!listing.getBuyer().getId().equals(buyerId)) {
             throw new SecurityException("Interdit : seul l'acheteur peut payer");
         }
 
@@ -194,13 +234,19 @@ public class MarketplaceService {
         listingRepository.save(listing);
     }
 
+    @Deprecated(forRemoval = false)
+    @Transactional
+    public void paySecured(Long listingId, Long buyerId, boolean ignoredAdmin) {
+        paySecured(listingId, buyerId);
+    }
+
     // Seller ship => SHIPPED (uniquement PAID)
     @Transactional
-    public void ship(Long listingId, Long actorId, boolean admin) {
+    public void ship(Long listingId, Long actorId) {
         Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
-        if (!admin && !listing.getSeller().getId().equals(actorId)) {
+        if (!listing.getSeller().getId().equals(actorId)) {
             throw new SecurityException("Interdit");
         }
 
@@ -212,9 +258,15 @@ public class MarketplaceService {
         listingRepository.save(listing);
     }
 
+    @Deprecated(forRemoval = false)
+    @Transactional
+    public void ship(Long listingId, Long actorId, boolean ignoredAdmin) {
+        ship(listingId, actorId);
+    }
+
     // Buyer receive => RECEIVED (uniquement SHIPPED)
     @Transactional
-    public void receive(Long listingId, Long buyerId, boolean admin) {
+    public void receive(Long listingId, Long buyerId) {
         Listing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
 
@@ -226,12 +278,18 @@ public class MarketplaceService {
             throw new IllegalStateException("Aucun acheteur défini");
         }
 
-        if (!admin && !listing.getBuyer().getId().equals(buyerId)) {
+        if (!listing.getBuyer().getId().equals(buyerId)) {
             throw new SecurityException("Interdit : seul l'acheteur peut confirmer");
         }
 
         listing.setStatus(ListingStatus.RECEIVED);
         listingRepository.save(listing);
+    }
+
+    @Deprecated(forRemoval = false)
+    @Transactional
+    public void receive(Long listingId, Long buyerId, boolean ignoredAdmin) {
+        receive(listingId, buyerId);
     }
 
     // MAPPER
@@ -246,5 +304,12 @@ public class MarketplaceService {
         dto.sellerId = listing.getSeller().getId();
         dto.buyerId = listing.getBuyer() != null ? listing.getBuyer().getId() : null;
         return dto;
+    }
+
+    private boolean isVisibleTo(Listing listing, Long actorId, boolean actorIsAdmin) {
+        if (!listing.isHidden() || actorIsAdmin) return true;
+        if (actorId == null) return false;
+        return listing.getSeller().getId().equals(actorId)
+                || (listing.getBuyer() != null && listing.getBuyer().getId().equals(actorId));
     }
 }

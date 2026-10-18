@@ -6,7 +6,9 @@ import com.watyouface.entity.Post;
 import com.watyouface.entity.User;
 import com.watyouface.repository.PostRepository;
 import com.watyouface.media.ImageService;
+import com.watyouface.media.ImageUploadService;
 import com.watyouface.media.VideoService;
+import com.watyouface.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -15,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,10 +36,8 @@ public class PostService {
 
     // Dossier d'upload par défaut (utilisé pour saveMediaFile)
     private static final String UPLOAD_DIR = "media/";
-    private static final long MAX_POST_IMAGE_BYTES = 20L * 1024 * 1024;
     private static final long MAX_POST_VIDEO_BYTES = 200L * 1024 * 1024;
-    private static final Set<String> IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
-    private static final Set<String> VIDEO_TYPES = Set.of("video/mp4", "video/webm", "video/quicktime");
+    private static final java.util.Set<String> VIDEO_TYPES = java.util.Set.of("video/mp4", "video/webm", "video/quicktime");
 
     public PostService(PostRepository postRepository, UserService userService) {
         this.postRepository = postRepository;
@@ -111,9 +110,9 @@ public class PostService {
     private void validateMedia(MultipartFile file) {
         if (file == null || file.isEmpty()) return;
         String type = file.getContentType();
-        if (type != null && IMAGE_TYPES.contains(type)) {
-            if (file.getSize() > MAX_POST_IMAGE_BYTES) {
-                throw new IllegalArgumentException("Image trop volumineuse (maximum 20 MB)");
+        if (ImageUploadService.isSupportedMime(type)) {
+            if (file.getSize() > ImageUploadService.MAX_BYTES) {
+                throw new IllegalArgumentException("Image trop volumineuse : 10 Mo maximum.");
             }
             return;
         }
@@ -154,7 +153,7 @@ public class PostService {
     }
     public Post getPostOrThrow(Long id) {
     return postRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Post introuvable"));
+            .orElseThrow(() -> new ResourceNotFoundException("Post introuvable"));
     }
 
     /**
@@ -176,22 +175,29 @@ public class PostService {
         postRepository.deleteById(postId);
     }
 
+    public void deletePostForModeration(Long postId) {
+        postRepository.delete(getPostOrThrow(postId));
+    }
+
     /**
      * ✅ Modifier un post (texte uniquement pour l'instant)
      * - ADMIN peut modifier tout
      * - USER peut modifier uniquement ses posts
      */
-    public Post updatePostAs(Long postId, Long currentUserId, boolean isAdmin, String content) {
+    public Post updatePostAs(Long postId, Long currentUserId, String content) {
         Post post = getPostOrThrow(postId);
 
         Long authorId = post.getAuthor() != null ? post.getAuthor().getId() : null;
-        if (!isAdmin) {
-            if (authorId == null || !authorId.equals(currentUserId)) {
-                throw new AccessDeniedException("Interdit : vous ne pouvez modifier que vos posts.");
-            }
+        if (authorId == null || !authorId.equals(currentUserId)) {
+            throw new AccessDeniedException("Interdit : vous ne pouvez modifier que vos posts.");
         }
 
         post.setContent(content);
         return postRepository.save(post);
+    }
+
+    @Deprecated(forRemoval = false)
+    public Post updatePostAs(Long postId, Long currentUserId, boolean ignoredAdmin, String content) {
+        return updatePostAs(postId, currentUserId, content);
     }
 }

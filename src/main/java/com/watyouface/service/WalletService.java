@@ -4,8 +4,10 @@ import com.watyouface.entity.User;
 import com.watyouface.entity.Wallet;
 import com.watyouface.repository.UserRepository;
 import com.watyouface.repository.WalletRepository;
+import com.watyouface.exception.ResourceNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import java.util.Optional;
 
 @Service
 public class WalletService {
@@ -28,9 +30,13 @@ public class WalletService {
                 });
     }
 
+    public Optional<Wallet> findWallet(Long userId) {
+        return walletRepository.findByUser_Id(userId);
+    }
+
     public Wallet getOrCreateWallet(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
         return getOrCreateWallet(user);
     }
 

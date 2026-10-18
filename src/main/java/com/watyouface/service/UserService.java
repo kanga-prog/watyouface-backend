@@ -15,6 +15,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.io.IOException;
+import com.watyouface.entity.enums.Role;
+import com.watyouface.exception.ResourceNotFoundException;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -106,8 +108,23 @@ public class UserService implements UserDetailsService {
     }
 
     @SuppressWarnings("null")
-    public void deleteUser(Long id) {
-        userRepository.deleteById(id);
+    public void deleteUserSecured(Long id, Long actorId, boolean actorIsAdmin) {
+        User target = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
+
+        if (target.getRole() == Role.ADMIN) {
+            if (target.getId().equals(actorId)) {
+                throw new IllegalStateException("Un administrateur ne peut pas supprimer son propre compte");
+            }
+            if (userRepository.countByRole(Role.ADMIN) <= 1) {
+                throw new IllegalStateException("Le dernier administrateur ne peut pas être supprimé");
+            }
+        }
+
+        if (!actorIsAdmin && !target.getId().equals(actorId)) {
+            throw new SecurityException("Interdit");
+        }
+        userRepository.delete(target);
     }
      @SuppressWarnings("null")
     public Optional<User> findById(Long id) {

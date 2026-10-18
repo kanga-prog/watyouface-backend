@@ -46,8 +46,12 @@ public class CommentService {
     // ✅ UPDATE sécurisé
     public Comment updateCommentAs(Long commentId, String newContent, Long currentUserId, boolean isAdmin) {
         Comment comment = getCommentOrThrow(commentId);
-
-        assertOwnerOrAdmin(comment, currentUserId, isAdmin);
+        // A moderator removes abusive content; it must not rewrite another
+        // member's words. Editing stays reserved to the comment author.
+        Long authorId = comment.getAuthor() != null ? comment.getAuthor().getId() : null;
+        if (authorId == null || !authorId.equals(currentUserId)) {
+            throw new AccessDeniedException("Interdit : vous ne pouvez modifier que vos commentaires.");
+        }
 
         String content = (newContent == null) ? "" : newContent.trim();
         if (content.isEmpty()) {
@@ -65,5 +69,9 @@ public class CommentService {
         assertOwnerOrAdmin(comment, currentUserId, isAdmin);
 
         commentRepository.deleteById(commentId);
+    }
+
+    public void deleteCommentForModeration(Long commentId) {
+        commentRepository.delete(getCommentOrThrow(commentId));
     }
 }

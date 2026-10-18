@@ -32,12 +32,12 @@ public class MarketplaceController {
 
     @GetMapping
     public List<ListingDTO> getAll() {
-        return marketplaceService.findAll();
+        return marketplaceService.findVisibleTo(authz.me(), authz.isAdmin());
     }
 
     @GetMapping("/{id}")
     public ListingDTO getOne(@PathVariable Long id) {
-        return marketplaceService.findById(id);
+        return marketplaceService.findVisibleTo(id, authz.me(), authz.isAdmin());
     }
 
     @PostMapping
@@ -49,63 +49,55 @@ public class MarketplaceController {
     @PutMapping("/{id}")
     public ListingDTO update(@PathVariable Long id, @Valid @RequestBody ListingDTO dto) {
         Long me = authz.me();
-        boolean isAdmin = authz.isAdmin();
-        return marketplaceService.updateSecured(id, dto, me, isAdmin);
+        return marketplaceService.updateSecured(id, dto, me);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         Long me = authz.me();
-        boolean isAdmin = authz.isAdmin();
-        marketplaceService.deleteSecured(id, me, isAdmin);
+        marketplaceService.deleteSecured(id, me);
         return ResponseEntity.ok(Map.of("message", "Annonce supprimée"));
     }
 
     @PostMapping("/{id}/request")
     public ResponseEntity<?> requestPurchase(@PathVariable Long id) {
         Long buyerId = authz.me();
-        boolean isAdmin = authz.isAdmin();
-        marketplaceService.requestPurchase(id, buyerId, isAdmin);
+        marketplaceService.requestPurchase(id, buyerId);
         return ResponseEntity.ok(Map.of("message", "Demande envoyée"));
     }
 
     @PostMapping("/{id}/accept")
     public ResponseEntity<?> accept(@PathVariable Long id) {
         Long me = authz.me();
-        boolean isAdmin = authz.isAdmin();
-        marketplaceService.accept(id, me, isAdmin);
+        marketplaceService.accept(id, me);
         return ResponseEntity.ok(Map.of("message", "Annonce acceptée"));
     }
 
     @PostMapping("/{id}/refuse")
     public ResponseEntity<?> refuse(@PathVariable Long id) {
         Long me = authz.me();
-        boolean isAdmin = authz.isAdmin();
-        marketplaceService.refuse(id, me, isAdmin);
+        marketplaceService.refuse(id, me);
         return ResponseEntity.ok(Map.of("message", "Annonce refusée"));
     }
 
     @PostMapping("/{id}/pay")
     public ResponseEntity<?> pay(@PathVariable Long id) {
         Long buyerId = authz.me();
-        boolean isAdmin = authz.isAdmin();
-        marketplaceService.paySecured(id, buyerId, isAdmin);
+        marketplaceService.paySecured(id, buyerId);
         return ResponseEntity.ok(Map.of("message", "Paiement effectué"));
     }
 
     @PostMapping("/{id}/ship")
     public ResponseEntity<?> ship(@PathVariable Long id) {
         Long me = authz.me();
-        boolean isAdmin = authz.isAdmin();
-        marketplaceService.ship(id, me, isAdmin);
+        marketplaceService.ship(id, me);
         return ResponseEntity.ok(Map.of("message", "Expédié"));
     }
 
     @PostMapping("/{id}/receive")
     public ResponseEntity<?> receive(@PathVariable Long id) {
         Long buyerId = authz.me();
-        boolean isAdmin = authz.isAdmin();
-        marketplaceService.receive(id, buyerId, isAdmin);
+        marketplaceService.receive(id, buyerId);
         return ResponseEntity.ok(Map.of("message", "Réception confirmée"));
     }
 

@@ -12,6 +12,7 @@ import com.watyouface.entity.User;
 import com.watyouface.entity.enums.Role;
 import com.watyouface.entity.enums.TransactionStatus;
 import com.watyouface.repository.ContractRepository;
+import com.watyouface.repository.CommentRepository;
 import com.watyouface.repository.ConversationRepository;
 import com.watyouface.repository.ConversationUserRepository;
 import com.watyouface.repository.ListingRepository;
@@ -89,6 +90,7 @@ class SecurityApiIntegrationTests {
     @Autowired private MessageRepository messageRepository;
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private PostRepository postRepository;
+    @Autowired private CommentRepository commentRepository;
     @Autowired private LikeRepository likeRepository;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private LoginRateLimiter loginRateLimiter;
@@ -98,6 +100,7 @@ class SecurityApiIntegrationTests {
     void cleanUsers() {
         loginRateLimiter.clear(RATE_LIMIT_TEST_IP);
         likeRepository.deleteAll();
+        commentRepository.deleteAll();
         postRepository.deleteAll();
         transactionRepository.deleteAll();
         messageRepository.deleteAll();
@@ -842,17 +845,151 @@ class SecurityApiIntegrationTests {
     }
 
     @Test
-    void walletCreditIsDeniedForUserAndAllowedForAdmin() throws Exception {
+    void registrationAndProfileJsonCannotAssignAdminRole() throws Exception {
+        String username = "registration-role-user";
+        mvc.perform(post("/api/auth/register").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"" + username + "\",\"email\":\"" + username
+                                + "@example.test\",\"password\":\"SecurePassword123!\",\"acceptTerms\":true,\"role\":\"ADMIN\"}"))
+                .andExpect(status().isOk());
+        assertThat(userRepository.findByUsername(username).orElseThrow().getRole()).isEqualTo(Role.USER);
+
+        User user = saveUser("profile-role-user", Role.USER);
+        mvc.perform(put("/api/users/update").with(csrf()).header("Authorization", bearer(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"profile-role-user\",\"role\":\"ADMIN\"}"))
+                .andExpect(status().isOk());
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getRole()).isEqualTo(Role.USER);
+    }
+
+    @Test
+    void legacyWalletCreditRouteIsRemovedForEveryRole() throws Exception {
         User user = saveUser("wallet-user", Role.USER);
         User admin = saveUser("wallet-admin", Role.ADMIN);
 
         mvc.perform(post("/api/wallet/me/credit").header("Authorization", bearer(user))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"amount\":100}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
 
         mvc.perform(post("/api/wallet/me/credit").header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"amount\":100}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.balance").value(100.0));
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void adminRoutesRequireAdminAndOnlyAdminCanCreditAnotherUsersWallet() throws Exception {
+        User user = saveUser("admin-wallet-user", Role.USER);
+        User admin = saveUser("admin-wallet-demo", Role.ADMIN);
+
+        mvc.perform(get("/api/admin/users"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/admin/users").header("Authorization", bearer(user)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/users?query=admin-wallet-user&page=0&size=5")
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].username").value("admin-wallet-user"))
+                .andExpect(jsonPath("$.content[0].password").doesNotExist());
+
+        mvc.perform(post("/api/admin/users/{id}/wallet/credit", user.getId())
+                        .with(csrf()).header("Authorization", bearer(user))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"amount\":20}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/users/{id}/wallet/credit", user.getId())
+                        .with(csrf()).header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"amount\":20}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.userId").value(user.getId()))
+                .andExpect(jsonPath("$.balance").value(20.0));
+        mvc.perform(post("/api/admin/users/{id}/wallet/credit", user.getId())
+                        .with(csrf()).header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"amount\":0}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/admin/users/{id}/wallet/credit", 999999L)
+                        .with(csrf()).header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"amount\":20}"))
+                .andExpect(status().isNotFound());
+
+        mvc.perform(put("/api/admin/users/{id}/role", user.getId()).with(csrf())
+                        .header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"ADMIN\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void adminModeratesRemovableContentAndCannotDeleteItself() throws Exception {
+        User admin = saveUser("single-admin", Role.ADMIN);
+        User author = saveUser("moderated-author", Role.USER);
+        Post post = new Post();
+        post.setAuthor(author);
+        post.setContent("Post à modérer");
+        post = postRepository.saveAndFlush(post);
+        com.watyouface.entity.Comment comment = new com.watyouface.entity.Comment();
+        comment.setAuthor(author);
+        comment.setPost(post);
+        comment.setContent("Commentaire à modérer");
+        comment = commentRepository.saveAndFlush(comment);
+        Listing listing = new Listing();
+        listing.setTitle("Annonce à modérer");
+        listing.setDescription("Description");
+        listing.setPrice(12.0);
+        listing.setSeller(author);
+        listing = listingRepository.saveAndFlush(listing);
+
+        mvc.perform(get("/api/admin/posts").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].id").value(post.getId()));
+        mvc.perform(get("/api/admin/comments").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].postId").value(post.getId()));
+        mvc.perform(get("/api/admin/listings").header("Authorization", bearer(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].id").value(listing.getId()));
+
+        mvc.perform(delete("/api/admin/comments/{id}", comment.getId()).with(csrf())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+        mvc.perform(delete("/api/admin/posts/{id}", post.getId()).with(csrf())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+        mvc.perform(delete("/api/admin/listings/{id}", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+        mvc.perform(delete("/api/admin/listings/{id}", 999999L).with(csrf())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isNotFound());
+        mvc.perform(delete("/api/users/{id}", admin.getId()).with(csrf())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void adminHidesAnEngagedListingFromThirdPartiesWithoutBreakingParticipantAccess() throws Exception {
+        User admin = saveUser("moderation-admin", Role.ADMIN);
+        User seller = saveUser("hidden-seller", Role.USER);
+        User buyer = saveUser("hidden-buyer", Role.USER);
+        User outsider = saveUser("hidden-outsider", Role.USER);
+        Listing listing = new Listing();
+        listing.setTitle("Annonce signalée");
+        listing.setDescription("Contenu signalé");
+        listing.setPrice(15.0);
+        listing.setSeller(seller);
+        listing.setBuyer(buyer);
+        listing.setStatus(com.watyouface.entity.enums.ListingStatus.PENDING);
+        listing = listingRepository.saveAndFlush(listing);
+
+        mvc.perform(delete("/api/admin/listings/{id}", listing.getId()).with(csrf())
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk());
+        assertThat(listingRepository.findById(listing.getId()).orElseThrow().isHidden()).isTrue();
+
+        mvc.perform(get("/api/marketplace/listings").header("Authorization", bearer(outsider)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + listing.getId() + ")]").isEmpty());
+        mvc.perform(get("/api/marketplace/listings/{id}", listing.getId())
+                        .header("Authorization", bearer(outsider)))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/marketplace/listings/{id}", listing.getId())
+                        .header("Authorization", bearer(seller)))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/marketplace/listings/{id}", listing.getId())
+                        .header("Authorization", bearer(buyer)))
+                .andExpect(status().isOk());
     }
 
     @Test

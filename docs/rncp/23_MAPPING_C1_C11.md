@@ -25,3 +25,17 @@ Preuves nouvelles : `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `
 ### Correctif upload Marketplace — preuve de production (17/10)
 
 Le correctif `e892ae8` est sur `main`, poussé et validé par la CI GitHub Actions [run 38943060289](https://github.com/kanga-prog/watyouface-backend/actions/runs/38943060289) : Maven tests et build Docker **SUCCESS**. `evidence/backend/BE-API-02-marketplace-image-upload.txt` consigne les 7 scénarios HTTP (JPEG, PNG, WebP, MIME arbitraire, vide, taille, image illisible) et les garanties de stockage : fichier temporaire dans `media/marketplace/`, déplacement seulement après conversion JPG réussie, nettoyage en cas d'échec et protection de chemin `MediaStorageService` conservée. Le redéploiement Railway et la validation de production confirment JPEG/PNG PASS et WebP volontairement refusé en HTTP 400. Le frontend est aligné (JPEG/PNG, 10 Mo, WebP refusé avant envoi), avec 35 tests et build Vite PASS, puis pipeline Hostinger déclenché et fonctionnement production confirmé par l'utilisateur. Cette preuve renforce C2 (validation UI), C3 (validation sécurisée d'un composant métier), C8 (stockage borné), C9 (plan de tests), C10 (déploiement documenté et vérifié) et C11 (CI exécutée et mise en production contrôlée). C10 et C11 restent **PARTIELLES** : ni CD Railway automatique, ni observabilité, sauvegarde/restauration ou rollback testé ne sont prouvés.
+
+### Lot ADMIN, wallet, modération et médias — état de preuve (18/10/2026)
+
+| Compétence | Preuve nouvelle, réellement obtenue | État |
+|---|---|---|
+| C2 | Dashboard ADMIN : pagination/recherche, consultation utilisateurs/wallets/posts/commentaires/annonces, actions de modération et crédit wallet ; validation frontend des formats JPEG/PNG/GIF/BMP et de 10 Mo. | renforcée, PARTIEL |
+| C3 | RBAC serveur, ADMIN limité à modération/wallet, cycle Marketplace réservé aux deux parties, protections dernier ADMIN et règles de masquage transactionnel. | renforcée, PARTIEL |
+| C7 | Flyway V2 (`created_at`) et V3 (`hidden`) validées sur PostgreSQL 16 avec 37 annonces non vides, sans suppression et sans NULL résiduel. | renforcée, PARTIEL |
+| C8 | Endpoint de crédit unique sous `/api/admin`, transactionnalité wallet, DTO sans secret/rôle mutable et accès annonces masquées borné aux acteurs légitimes. | renforcée, PARTIEL |
+| C9 | Suite Maven : 104 rapportés avec 5 conditionnels ignorés ; preuve séparée `PostgresPaymentIntegrationTests` : 5/5 exécutés, 0 failure/error/skip ; tests image réels JPEG/PNG/GIF/BMP et entrées invalides. | renforcée, PARTIEL |
+| C10 | Politique d'upload documentée (décodage réel, temporaire/nettoyage, persistance media) et migrations compatibles avec une base Railway non vide. | renforcée, PARTIEL |
+| C11 | Changements préparés pour CI, mais aucune nouvelle exécution CI ou CD de ce lot n'est encore revendiquée dans cette section. | PARTIEL |
+
+WebP, AVIF et HEIC/HEIF ne sont pas déclarés supportés : aucun décodeur Java correspondant n'a été ajouté. GIF est converti en JPEG sur sa première image et BMP en JPEG. Les preuves C10/C11 demeurent partielles tant que CD Railway automatique, observabilité, sauvegarde/restauration et rollback testés ne sont pas démontrés.

@@ -410,3 +410,28 @@ La Phase 13 ne transforme aucune compétence en « complète » sans preuve supp
 | Compétences | C3 : validation sécurisée d'upload ; C8 : stockage media borné et anti-path traversal conservé ; C9 : sept cas HTTP automatisés ; C10 : déploiement documenté et validé ; C11 : CI exécutée et mise en production contrôlée. C10/C11 restent PARTIELLES faute de CD automatique, observabilité, sauvegarde/restauration et rollback prouvés. |
 
 Le correctif est **VALIDÉ** pour son périmètre : il est versionné, passé en CI et observé en production. Il ne clôt pas les limites DevOps ci-dessus.
+
+## État de référence — lot ADMIN, wallet, modération, médias et migrations (18/10/2026)
+
+| Sujet | État factuel | Statut |
+|---|---|---|
+| ADMIN / RBAC | L'ADMIN `demo` reste le seul ADMIN utilisé. Toutes les routes `/api/admin/**` exigent ADMIN (401 sans authentification, 403 pour USER), avec CSRF sur les mutations. La route de changement de rôle est retirée ; inscription et DTO empêchent l'assignation de rôle. Le dernier ADMIN ne peut être supprimé ni rétrogradé, et ne peut supprimer son propre compte. | PASS par tests backend ; aucune création de second ADMIN |
+| Wallet | Seul `POST /api/admin/users/{userId}/wallet/credit` permet un crédit manuel. Montant strictement positif, utilisateur inexistant en 404, écriture transactionnelle et réponse avec nouveau solde. Aucun endpoint USER ne crédite, ne crée arbitrairement ou ne définit un solde. | PASS par audit de routes et tests backend |
+| Modération Feed | L'ADMIN consulte et supprime posts/commentaires ; il ne modifie pas arbitrairement le contenu d'autrui. Les ressources absentes sont traitées en 404. | PASS par tests backend / UI préparée |
+| Modération Marketplace | L'ADMIN n'est plus un acteur transactionnel. `AVAILABLE`/`REFUSED` sont supprimables ; les annonces engagées (`PENDING` à `RECEIVED`) sont masquées par `hidden=true`. Le tiers ne les voit plus, vendeur/acheteur/ADMIN gardent l'accès nécessaire. | PASS par tests backend ; E2E production non exécutée |
+| Upload Feed + Marketplace | JPEG/PNG/GIF/BMP, 10 Mo, MIME puis décodage ImageIO réel. GIF première image et BMP sont normalisés en JPEG ; sortie UUID JPEG, temporaire puis déplacement et nettoyage en cas d'échec. WebP/AVIF/HEIC ne sont volontairement pas supportés. | PASS par tests backend ; E2E production non exécutée |
+| Flyway / PostgreSQL | V2 ajoute `created_at`, V3 `hidden`, avec défauts compatibles table non vide. Validation PostgreSQL 16 sur 37 listings : aucune donnée supprimée, 0 NULL après migrations. `PostgresPaymentIntegrationTests` dédié : 5/5 PASS, 0 failure/error/skip. | PASS, preuve locale réelle |
+| Suite Maven globale | 104 tests rapportés ; les 5 tests PostgreSQL conditionnels sont ignorés dans ce run sans variables de profil. Ne pas confondre cette exécution avec le run PostgreSQL dédié. | PASS hors tests conditionnels ; preuve PostgreSQL séparée |
+| CI / déploiement de ce lot | Les changements sont prêts pour commit puis CI. Aucun run CI ni déploiement de ce lot n'est encore déclaré à cette étape. | À confirmer après push |
+
+### Preuves et compétences concernées
+
+- Preuve versionnée : `evidence/backend/BE-ADMIN-01-rbac-wallet-moderation-media.txt` ; elle enregistre uniquement les commandes et résultats réellement observés.
+- C2 : validation frontend de la politique média et écrans de modération — **PARTIEL**, E2E visuelle encore requise.
+- C3/C8 : RBAC, wallet transactionnel, contrôle d'accès des annonces masquées et validations upload — **renforcés, PARTIELS**.
+- C7 : migrations V2/V3 et validation PostgreSQL non vide — **renforcée, PARTIEL**.
+- C9 : suites automatisées et run PostgreSQL dédié — **renforcée, PARTIEL**.
+- C10 : stockage persistant, migrations et stratégie d'upload documentés — **renforcée, PARTIEL**.
+- C11 : aucune couverture complète n'est revendiquée : le CD Railway automatique, l'observabilité, la sauvegarde/restauration et le rollback restent non prouvés.
+
+La prochaine preuve autorisée est le passage CI après push. L'E2E de production reste explicitement hors de ce lot jusqu'à validation CI.

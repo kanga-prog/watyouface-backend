@@ -123,8 +123,7 @@ public class UserController {
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         // ✅ owner OR admin
         authz.ownerOrAdmin(id);
-
-        userService.deleteUser(id);
+        userService.deleteUserSecured(id, authz.me(), authz.isAdmin());
         return ResponseEntity.ok(Map.of("message", "Utilisateur supprimé"));
     }
 }

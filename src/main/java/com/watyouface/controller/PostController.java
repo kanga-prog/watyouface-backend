@@ -182,6 +182,8 @@ public class PostController {
             return ResponseEntity.status(401).body("Non authentifié");
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());
+        } catch (com.watyouface.exception.ResourceNotFoundException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             log.error("Post deletion failed ({})", e.getClass().getSimpleName());
             return ResponseEntity.status(500).body("Erreur serveur");
@@ -195,11 +197,9 @@ public class PostController {
     public ResponseEntity<?> updatePost(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         try {
             Long currentUserId = authz.me();
-            boolean isAdmin = authz.isAdmin();
-
             String content = body.get("content") != null ? String.valueOf(body.get("content")) : null;
 
-            Post updated = postService.updatePostAs(id, currentUserId, isAdmin, content);
+            Post updated = postService.updatePostAs(id, currentUserId, content);
 
             Map<String, Object> dto = new HashMap<>();
             dto.put("id", updated.getId());
@@ -229,6 +229,8 @@ public class PostController {
             return ResponseEntity.status(401).body("Non authentifié");
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(403).body(e.getMessage());
+        } catch (com.watyouface.exception.ResourceNotFoundException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             log.error("Post update failed ({})", e.getClass().getSimpleName());
             return ResponseEntity.status(500).body("Erreur serveur");

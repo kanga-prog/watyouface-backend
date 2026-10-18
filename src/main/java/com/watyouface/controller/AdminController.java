@@ -1,12 +1,17 @@
 package com.watyouface.controller;
 
-import com.watyouface.repository.*;
+import com.watyouface.dto.AdminCommentDTO;
+import com.watyouface.dto.AdminListingDTO;
+import com.watyouface.dto.AdminPostDTO;
+import com.watyouface.dto.AdminUserDTO;
+import com.watyouface.dto.WalletCreditRequest;
+import com.watyouface.dto.WalletDTO;
 import com.watyouface.security.Authz;
+import com.watyouface.service.AdminModerationService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import com.watyouface.entity.enums.Role;
-import com.watyouface.entity.User;
 
 import java.util.Map;
 
@@ -15,23 +20,11 @@ import java.util.Map;
 public class AdminController {
 
     private final Authz authz;
-    private final UserRepository userRepository;
-    private final PostRepository postRepository;
-    private final CommentRepository commentRepository;
-    private final ListingRepository listingRepository;
+    private final AdminModerationService adminService;
 
-    public AdminController(
-            Authz authz,
-            UserRepository userRepository,
-            PostRepository postRepository,
-            CommentRepository commentRepository,
-            ListingRepository listingRepository
-    ) {
+    public AdminController(Authz authz, AdminModerationService adminService) {
         this.authz = authz;
-        this.userRepository = userRepository;
-        this.postRepository = postRepository;
-        this.commentRepository = commentRepository;
-        this.listingRepository = listingRepository;
+        this.adminService = adminService;
     }
 
     private void requireAdmin() {
@@ -39,46 +32,62 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public Object users() {
+    public Page<AdminUserDTO> users(@RequestParam(defaultValue = "") String query,
+                                    @RequestParam(defaultValue = "0") int page,
+                                    @RequestParam(defaultValue = "20") int size) {
         requireAdmin();
-        return userRepository.findAll();
+        return adminService.users(query, page, size);
     }
 
-    @PutMapping("/users/{id}/role")
-    public ResponseEntity<?> setRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    @GetMapping("/posts")
+    public Page<AdminPostDTO> posts(@RequestParam(defaultValue = "") String query,
+                                    @RequestParam(defaultValue = "0") int page,
+                                    @RequestParam(defaultValue = "20") int size) {
         requireAdmin();
-        String roleStr = body.getOrDefault("role", "USER");
-        Role role;
-        try {
-            role = Role.valueOf(roleStr);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Role invalide"));
-        }
+        return adminService.posts(query, page, size);
+    }
 
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-        user.setRole(role);
-        userRepository.save(user);
-        return ResponseEntity.ok(Map.of("message", "Role mis à jour", "role", user.getRole().name()));
+    @GetMapping("/comments")
+    public Page<AdminCommentDTO> comments(@RequestParam(defaultValue = "") String query,
+                                          @RequestParam(defaultValue = "0") int page,
+                                          @RequestParam(defaultValue = "20") int size) {
+        requireAdmin();
+        return adminService.comments(query, page, size);
+    }
+
+    @GetMapping("/listings")
+    public Page<AdminListingDTO> listings(@RequestParam(defaultValue = "") String query,
+                                          @RequestParam(defaultValue = "0") int page,
+                                          @RequestParam(defaultValue = "20") int size) {
+        requireAdmin();
+        return adminService.listings(query, page, size);
+    }
+
+    @PostMapping("/users/{userId}/wallet/credit")
+    public WalletDTO creditWallet(@PathVariable Long userId,
+                                  @Valid @RequestBody WalletCreditRequest body) {
+        requireAdmin();
+        return adminService.creditWallet(userId, body.getAmount());
     }
 
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<?> deletePost(@PathVariable Long id) {
         requireAdmin();
-        postRepository.deleteById(id);
+        adminService.deletePost(id);
         return ResponseEntity.ok(Map.of("message", "Post supprimé"));
     }
 
     @DeleteMapping("/comments/{id}")
     public ResponseEntity<?> deleteComment(@PathVariable Long id) {
         requireAdmin();
-        commentRepository.deleteById(id);
+        adminService.deleteComment(id);
         return ResponseEntity.ok(Map.of("message", "Commentaire supprimé"));
     }
 
     @DeleteMapping("/listings/{id}")
     public ResponseEntity<?> deleteListing(@PathVariable Long id) {
         requireAdmin();
-        listingRepository.deleteById(id);
+        adminService.deleteListing(id);
         return ResponseEntity.ok(Map.of("message", "Annonce supprimée"));
     }
 }

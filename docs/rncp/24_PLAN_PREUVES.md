@@ -29,3 +29,13 @@
 Les preuves versionnées `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt` et `evidence/backend/BE-DEVOPS-01-github-actions-backend-ci.txt` conservent uniquement des résultats réels : build Docker PASS, suite Maven 79 tests/0 échec/5 ignorés, Flyway V1 appliquée, 14 tables, Hibernate validate, 5 tests PostgreSQL PASS, volume Railway `spring:spring`, Java UID 999, persistance media après redeploy, smoke HTTP prod 401 avec en-têtes de sécurité et CI GitHub Actions backend verte. Elles ne prouvent pas le CD Railway automatique, l'observabilité, le rollback ni la restauration de sauvegarde.
 
 La preuve `evidence/backend/BE-API-02-marketplace-image-upload.txt` couvre 7 cas HTTP Marketplace : JPEG, PNG, WebP, MIME arbitraire, fichier vide, taille supérieure à 10 Mo et PNG illisible. Le correctif est commité sur `main` (`e892ae8`), poussé, validé par le run GitHub Actions [#38943060289](https://github.com/kanga-prog/watyouface-backend/actions/runs/38943060289) (Maven tests + Docker build SUCCESS), puis redéployé sur Railway. La validation de production constate JPEG/PNG PASS et WebP refusé proprement. Cela ne prouve pas le CD Railway automatique, l'observabilité, le rollback ni la restauration de sauvegarde.
+
+## Ajout de preuve — lot ADMIN, wallet, modération et médias (18/10/2026)
+
+| ID | Preuve réelle | Résultat / limites | Compétences |
+|---|---|---|---|
+| EV-14 | `evidence/backend/BE-ADMIN-01-rbac-wallet-moderation-media.txt` | Routes ADMIN : 401 sans session, 403 USER ; suppression du changement de rôle ; protection du seul ADMIN ; crédit wallet transactionnel exclusivement ADMIN ; modération Marketplace sans bypass transactionnel. | C3, C8, C9 |
+| EV-15 | Tests image Feed + Marketplace avec fichiers réels | JPEG/PNG/GIF/BMP acceptés à 10 Mo ; MIME falsifié, vide, taille excessive et contenu corrompu refusés ; sortie JPEG, temporaire nettoyé. WebP/AVIF/HEIC non supportés volontairement. | C2, C3, C8, C9 |
+| EV-16 | Validation PostgreSQL locale dédiée | `PostgresPaymentIntegrationTests` : 5/5, 0 failure/error/skip ; V2/V3 Flyway sur PostgreSQL 16 et 37 listings, aucune suppression, 0 NULL après migration. La suite globale garde 5 tests conditionnels ignorés hors profil PostgreSQL. | C7, C8, C9, C10 |
+
+Ces preuves ne constituent pas une E2E navigateur en production ni une preuve de CD Railway automatique. Elles doivent être complétées après le passage CI de ce lot, puis par la recette E2E autorisée avec données de test.

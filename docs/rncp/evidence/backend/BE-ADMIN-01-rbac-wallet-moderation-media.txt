@@ -1,0 +1,32 @@
+WatYouFace — preuve backend ADMIN, wallet, modération et médias
+Date : 2026-10-18
+Périmètre : lot non déployé, préparé pour commit et CI.
+
+RBAC et dernier ADMIN
+- /api/admin/** : sans authentification = 401 ; utilisateur USER = 403 ; ADMIN = accès autorisé.
+- La mutation de rôle a été retirée. L'inscription force USER et les DTO HTTP ne reçoivent pas de rôle.
+- Le seul ADMIN existant n'a pas été dupliqué. Un ADMIN ne peut pas supprimer son propre compte ; le dernier ADMIN ne peut pas être supprimé ni rétrogradé.
+
+Wallet
+- Unique crédit manuel : POST /api/admin/users/{userId}/wallet/credit.
+- Montant > 0, transactionnel ; utilisateur absent = 404 ; USER interdit.
+- Aucun endpoint public/USER ne crée un wallet arbitraire, ne crédite ou ne fixe directement un solde. Les transferts Marketplace restent internes aux règles métier.
+
+Marketplace et modération
+- L'ADMIN ne contourne pas request/accept/refuse/pay/ship/receive.
+- AVAILABLE/REFUSED : suppression de modération possible.
+- PENDING/ACCEPTED/PAID/SHIPPED/RECEIVED : hidden=true, afin de préserver la transaction.
+- Un tiers ne peut plus lire une annonce masquée ; vendeur, acheteur et ADMIN y conservent l'accès nécessaire.
+
+Médias
+- Formats réellement testés : JPEG, PNG, GIF et BMP ; limite 10 Mo.
+- GIF première image et BMP sont normalisés en JPEG. Un fichier MIME falsifié, vide, trop grand ou corrompu est refusé sans fichier final résiduel.
+- WebP, AVIF et HEIC/HEIF ne sont pas annoncés comme supportés.
+
+PostgreSQL / Flyway
+- PostgresPaymentIntegrationTests : 5/5 exécutés, 0 failure, 0 error, 0 skipped.
+- PostgreSQL 16, 37 listings existants : V2 created_at et V3 hidden appliquées, aucune suppression ; 0 NULL sur les deux colonnes après migration.
+- La suite Maven globale contient 104 tests rapportés et 5 tests PostgreSQL conditionnels ignorés hors injection de profil PostgreSQL. Ce résultat est distinct du run dédié ci-dessus.
+
+Limites
+- Cette preuve ne démontre ni CI de ce lot, ni déploiement, ni E2E navigateur production.
