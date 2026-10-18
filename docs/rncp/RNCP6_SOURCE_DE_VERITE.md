@@ -464,8 +464,8 @@ Le correctif est **VALIDÉ** pour son périmètre : il est versionné, passé en
 | 12 | Tests | DONE |
 | 13 | Déploiement | DONE / PARTIAL rollback-backup |
 | 14 | DevOps CI-CD | DONE / PARTIAL backend CD manuel |
-| 15 | Conformité qualité | À TRAITER ENSUITE |
-| 16 | Veille | À TRAITER ENSUITE |
+| 15 | Conformité qualité | EN COURS — audit technique PARTIAL documenté |
+| 16 | Veille | DONE documentaire — relevé daté et méthode définie |
 | 17 | Documentation finale | EN COURS |
 | 18 | Preuves RNCP | EN COURS AVANCÉ |
 | 19 | Dossier Projet | À FINALISER |
@@ -474,3 +474,30 @@ Le correctif est **VALIDÉ** pour son périmètre : il est versionné, passé en
 | 22–25 | Préparation jury | À FAIRE |
 
 La recette fonctionnelle ne vaut pas à elle seule preuve visuelle complète. Les captures upload, les traces HTTP et les livrables de soutenance restent à finaliser. Aucun CD backend automatique n'est déclaré.
+
+## Phase 15 — conformité et qualité (18/10/2026)
+
+| Domaine | État réel | Statut |
+|---|---|---|
+| RGPD | Inventaire technique, minimisation partielle, droits et sécurité analysés. Durées, registre/politique, export, effacement relationnel et purge médias/logs non définis/testés. | PARTIAL / GAP |
+| RGAA | Labels, alternatives, alertes et tableaux Admin corrigés ; focus visible CSS et Dialog Radix présents. Contraste, clavier complet, zoom, technologies d'assistance et audit officiel non réalisés. | PARTIAL |
+| Éco-conception | Build mesuré (JS gzip 139,57 kB, CSS gzip 8,44 kB), images normalisées et pagination Admin/messages. Bundle unique, feed/catalogue non paginés et vidéo non transcodée. | PARTIAL |
+| Qualité | Retrait d'appel frontend wallet obsolète et des dialectes Hibernate explicitement configurés ; tests verts. Un avertissement ESLint de hook demeure documenté. | PASS ciblé / PARTIAL global |
+| Sauvegarde/restauration | Procédure documentée, aucun backup/restore Railway ou média prouvé. | GAP |
+| Rollback | Procédure frontend/backend documentée ; migrations Flyway à corriger vers l'avant ; aucun rollback réel. | PARTIAL |
+| Observabilité | Logs Spring/Railway/CI et smoke tests présents ; pas d'actuator/health, métriques, alerting ou centralisation prouvés. | PARTIAL |
+
+Preuves : `15_CONFORMITE_QUALITE.md` et `evidence/backend/BE-QUAL-01-conformite-qualite.txt`. Cette phase ne déclare ni conformité juridique exhaustive, ni audit RGAA certifiant, ni sauvegarde/restauration testée. La prochaine étape est la Phase 16 — veille technologique, tout en gardant les gaps de conformité au plan de finalisation.
+
+## Phase 16 — veille technologique (18/10/2026)
+
+| Sujet | Constat / décision WatYouFace | Statut |
+|---|---|---|
+| Java/Spring | Java 17 et Spring Boot 3.3.5 conservés pour stabilité ; Java 21 étudié après soutenance avec tests complets. | PASS documentaire |
+| PostgreSQL/Flyway | PostgreSQL 18.6 déclaré Railway, Flyway projet 10.10.0 ; warning de compatibilité à traiter par revue/mise à jour/test, jamais aveuglément. | PARTIAL |
+| React/Vite | Bundle mesuré, pas de code splitting prouvé ; optimisation différée après mesure. | PASS documentaire |
+| API/uploads | OWASP/BOLA/RBAC/CSRF surveillés ; JPEG/PNG/GIF/BMP maintenus, WebP/AVIF/HEIC refusés sans décodeur fiable. | PASS décision existante |
+| Observabilité, backup, déploiement | Actuator/Micrometer, restore testé et CD Railway automatique restent futurs ; backend manuel contrôlé maintenu avant soutenance. | PARTIAL |
+| Méthode | Sources officielles, fréquence, analyse d'impact, test isolé et décision documentés. | PASS documentaire |
+
+Preuves : `16_VEILLE_TECHNOLOGIQUE.md`, `evidence/backend/BE-VEILLE-01-veille-technologique.txt`. Aucune mise à niveau, migration, activation Dependabot ou modification de code n'est revendiquée par cette phase. La Phase 17 — documentation finale peut commencer avec les gaps déjà consignés.

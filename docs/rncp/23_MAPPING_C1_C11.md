@@ -57,3 +57,29 @@ WebP, AVIF et HEIC/HEIF ne sont pas déclarés supportés : aucun décodeur Java
 | C11 | GitHub Actions : backend tests/build Docker ; frontend tests/build/déploiement Hostinger/smoke test. Railway est contrôlé/manuellement déployé, pas de CD backend automatique revendiqué. | renforcée, PARTIEL |
 
 Les uploads JPEG, PNG, GIF et BMP sont **fonctionnels validés** en production ; leurs captures visuelles restent une preuve à ajouter. Aucune compétence n'est déclarée complète sur la seule base d'une recette manuelle sans l'ensemble des livrables de certification.
+
+### Phase 15 — conformité et qualité (18/10/2026)
+
+| Compétence | Preuve ou limite consolidée | État |
+|---|---|---|
+| C1 | Environnements et limites de configuration/observabilité documentés. | PARTIEL |
+| C2 | Corrections ciblées labels, alternatives, alertes et tableaux Admin ; build/test frontend passés. | renforcée, PARTIEL (pas d'audit RGAA complet) |
+| C3 | RBAC, ownership, validations média et flux wallet confirmés ; uploads avatar restent à aligner. | renforcée, PARTIEL |
+| C4/C5 | Risques, finalités et limites RGPD documentés ; registre juridique et politique de confidentialité à finaliser. | PARTIEL |
+| C6/C8 | Architecture services/DTO/transactions et risques d'effacement relationnel explicités. | renforcée, PARTIEL |
+| C7 | Références PostgreSQL/Flyway et nécessité de sauvegarde avant migration documentées. | PARTIEL (restauration non testée) |
+| C9 | Tests backend et frontend relancés après corrections ; audit RGAA/éco proportionné, non certifiant. | renforcée, PARTIEL |
+| C10 | Procédures cibles de sauvegarde/restauration et rollback documentées sans les déclarer exécutées. | PARTIEL |
+| C11 | CI déjà prouvée ; observabilité et CD backend automatique restent hors preuve. | PARTIEL |
+
+### Phase 16 — veille technologique (18/10/2026)
+
+| Compétence | Apport réel de la veille | État |
+|---|---|---|
+| C4/C5 | Sources, fréquence, analyse d'impact et décisions documentées, sans inventer une veille antérieure. | renforcée, PARTIEL |
+| C6 | Arbitrages Java 17/21, React/Vite, architecture d'observabilité et déploiement documentés. | renforcée, PARTIEL |
+| C7/C8 | Compatibilité PostgreSQL 18/Flyway, transactions, sauvegarde/restauration et migrations surveillées. | renforcée, PARTIEL |
+| C9 | Veille sécurité, dépendances/CVE et méthode test avant adoption. | renforcée, PARTIEL |
+| C10/C11 | Docker, Railway, GitHub Actions, rollback et CD backend manuel analysés. | renforcée, PARTIEL |
+
+La veille ne prouve ni une mise à niveau de dépendance, ni un scanner activé, ni un CD backend automatique : elle trace les décisions et conditions de test à respecter.

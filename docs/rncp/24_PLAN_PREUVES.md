@@ -48,3 +48,20 @@ Ces preuves ne constituent pas une preuve de CD Railway automatique. La recette 
 | EV-18 | Captures uploads production JPEG/PNG/GIF/BMP | **À AJOUTER** : les quatre formats sont fonctionnels validés manuellement ; aucune capture n'est inventée ni jointe à ce stade. | C2, C3, C8, C9, C10 |
 
 Le run backend [39143755010](https://github.com/kanga-prog/watyouface-backend/actions/runs/39143755010) est SUCCESS (Maven tests, Docker build). Le run frontend [39143768559](https://github.com/kanga-prog/watyouface-frontend/actions/runs/39143768559) est SUCCESS (tests, build, déploiement Hostinger et smoke test). Ces résultats ne prouvent pas un CD Railway automatique.
+
+## Phase 15 — conformité et qualité
+
+| ID | Preuve | Résultat / limite | Compétences |
+|---|---|---|---|
+| EV-19 | `15_CONFORMITE_QUALITE.md` et `evidence/backend/BE-QUAL-01-conformite-qualite.txt` | Inventaire RGPD, accessibilité ciblée, éco-conception, qualité, risques, sauvegarde/rollback/observabilité. Audit non juridique et non certifiant ; restore/rollback non exécutés. | C2, C3, C4, C5, C6, C7, C8, C9, C10, C11 |
+| EV-20 | Tests après corrections Phase 15 | Maven : 104 rapportés, 0 erreur/échec, 5 conditionnels PostgreSQL ignorés ; frontend : 47/47 et build PASS ; ESLint 0 erreur, 1 avertissement documenté. | C2, C3, C9 |
+
+La prochaine preuve à produire avant une déclaration de conformité complète est un registre/politique RGPD validé, un audit RGAA formel sur échantillon et un test isolé de sauvegarde/restauration.
+
+## Phase 16 — veille technologique
+
+| ID | Preuve | Résultat / limite | Compétences |
+|---|---|---|---|
+| EV-21 | `16_VEILLE_TECHNOLOGIQUE.md` et `evidence/backend/BE-VEILLE-01-veille-technologique.txt` | Relevé daté des versions, sources officielles, décisions Java/Flyway/uploads/rate-limit/observabilité et méthode de veille. Aucun outil de scan, upgrade ou migration déclenché. | C4, C5, C6, C7, C8, C9, C10, C11 |
+
+La Phase 16 est une preuve de démarche de veille et de décision, non une preuve de conformité, d'upgrade ou de correction de vulnérabilité.

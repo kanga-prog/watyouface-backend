@@ -1,0 +1,27 @@
+WatYouFace — preuve de veille technologique
+Date : 2026-10-18
+Nature : relevé documentaire ponctuel fondé sur les versions du projet et les documentations officielles. Il ne reconstitue pas une veille historique et n'active aucun outil externe.
+
+Technologies constatées
+- Backend : Java 17, Spring Boot 3.3.5, Flyway 10.10.0, Hibernate 6.5.3, Maven, Spring Security, JPA, WebSocket/STOMP.
+- Données : PostgreSQL 18.6 déclaré sur Railway ; validation locale PostgreSQL 16 ; migrations V1 à V3.
+- Frontend : React 19.1, Vite 7.3.7 observé au build ; bundle JS 446,02 kB brut / 139,57 kB gzip ; CSS 43,23 kB brut / 8,44 kB gzip.
+- DevOps : Docker multi-stage, GitHub Actions, Railway backend contrôlé/manuellement déployé, Hostinger frontend déployé par CI.
+
+Décisions de veille
+- Java 17 est conservé avant soutenance ; Java 21 est étudié ultérieurement avec tests complets.
+- L'avertissement PostgreSQL 18/Flyway 10.10.0 n'est pas ignoré : suivre Flyway, vérifier compatibilité, tester migrations avant mise à niveau.
+- Feed/Marketplace gardent JPEG/PNG/GIF/BMP ; WebP/AVIF/HEIC sont refusés tant qu'un décodeur Java fiable et testé n'est pas retenu.
+- Rate limit in-memory accepté pour instance actuelle ; solution distribuée seulement en cas de scaling/besoin démontré.
+- Actuator/Micrometer, backup/restore testés et CD backend automatique sont des évolutions futures, non des capacités prouvées.
+
+Sources suivies
+- Spring Boot/Spring Security, PostgreSQL, Flyway/Redgate, React, Vite, OWASP, Docker, GitHub Actions, Railway, CNIL, RGAA, RGESN, GitHub Security Advisories et CVE/NVD.
+
+Méthode future
+Source -> analyse -> impact WatYouFace -> priorité -> test isolé -> décision -> documentation.
+Fréquences : hebdomadaire légère, dépendances mensuelles, CVE critique immédiate, revue avant évolution majeure.
+
+Limites
+- Aucun Dependabot, scanner SCA, benchmark, migration de version ou test supplémentaire n'a été exécuté dans cette phase.
+- Cette preuve est documentaire ; elle ne prouve pas l'application immédiate de toutes les recommandations externes.

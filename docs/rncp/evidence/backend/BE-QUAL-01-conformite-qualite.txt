@@ -1,0 +1,27 @@
+WatYouFace — Phase 15 : conformité et qualité
+Date : 2026-10-18
+Nature : audit technique interne et corrections ciblées. Ce document n'est pas un avis juridique, un audit RGAA officiel, ni une preuve de sauvegarde/restauration.
+
+Résultats observés
+- Backend : ./mvnw test = PASS ; 104 tests rapportés, 0 failure, 0 error, 5 tests PostgreSQL conditionnels skipped hors profil dédié.
+- Frontend : npm test -- --run = PASS ; 47 tests, 12 fichiers.
+- Frontend : npm run build = PASS ; JS principal 446,02 kB / 139,57 kB gzip ; CSS 43,23 kB / 8,44 kB gzip.
+- Frontend : npm run lint = 0 erreur, 1 avertissement react-hooks/exhaustive-deps dans Admin.jsx, documenté et non masqué.
+- git diff --check backend et frontend = PASS après corrections.
+
+Corrections appliquées
+- Retrait du client frontend /api/wallet/me/credit devenu invalide : le crédit manuel reste exclusivement dans le dashboard ADMIN.
+- Labels/id, alternatives d'images, noms accessibles de boutons, role=alert et en-têtes/caption de tables Admin renforcés.
+- Retrait des dialectes Hibernate explicitement déclarés H2/PostgreSQL : autodétection Hibernate, avertissements concernés supprimés de la configuration.
+
+Constats non prouvés / limites
+- RGPD : aucune durée de conservation, registre complet, export utilisateur, purge médias/logs ou test d'effacement de compte actif avec relations Marketplace/Chat n'est prouvé.
+- RGAA : pas de mesure de contraste, zoom, parcours clavier complet, lecteur d'écran ou audit officiel sur échantillon.
+- Éco-conception : bundle unique, feed/catalogue non paginés, vidéo non transcodée ; cache et nombre de requêtes réelles non mesurés.
+- Sauvegarde/restauration, rollback production, observabilité/alerting et CD backend automatique ne sont pas testés/proclamés.
+- Avatar : flux distinct ; WebP annoncé sans décodeur Java WebP prouvé et erreurs de décodage à aligner/tester dans un lot dédié.
+
+Références de cadrage
+- CNIL : principes, minimisation, droits, conservation, sécurité et registre des traitements.
+- RGAA officiel : images, formulaires, navigation et focus à auditer sur échantillon.
+- RGESN 2024 : chargement à la demande, poids/format/dimensions des médias.
