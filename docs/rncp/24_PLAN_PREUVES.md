@@ -23,6 +23,7 @@
 | EV-23 | Documentation finale | `17_DOCUMENTATION_FINALE.md` et les sources Dossier Projet/Professionnel/Présentation synchronisées. | PASS documentaire | régénérer les livrables DOCX/PPTX sur instruction dédiée |
 | EV-24 | Index final des preuves | `18_PREUVES_RNCP_FINALES.md` et `evidence/backend/BE-RNCP-01-final-evidence-index.txt` : inventaire, matrice E2E, sécurité, DB, CI et gaps. | PASS documentaire | consolider les captures/traces listées dans `evidence/production/README.md` |
 | EV-25 | Source Dossier Projet | `19_DOSSIER_PROJET_FINAL.md` : 40 sections, preuves sélectionnées, emplacements de captures et limites explicites. | PASS documentaire | générer DOCX/PDF sur instruction dédiée et compléter annexes visuelles |
+| EV-26 | Source Dossier Professionnel | `20_DOSSIER_PROFESSIONNEL_FINAL.md` : parcours, activités types, situations, recul et références vers les preuves. | PASS documentaire | compléter les données administratives et générer DOCX/PDF sur instruction dédiée |
 
 ## Règles d'utilisation des preuves
 

@@ -509,7 +509,7 @@ Le correctif est **VALIDÉ** pour son périmètre : il est versionné, passé en
 | 17 | Documentation finale | DONE documentaire — synthèse et sources Dossier Projet/Professionnel/Présentation synchronisées; livrables binaires à régénérer |
 | 18 | Preuves RNCP | DONE documentaire — index, matrice E2E, checklist de captures et gaps consolidés; artefacts manquants restent à produire |
 | 19 | Dossier Projet | DONE documentaire — source 40 sections et annexes à prévoir; DOCX/PDF à générer sur instruction dédiée |
-| 20 | Dossier Professionnel | À FINALISER |
+| 20 | Dossier Professionnel | DONE documentaire — source personnelle, activités types et preuves référencées; DOCX/PDF à générer sur instruction dédiée |
 | 21 | Support | À FINALISER |
 | 22–25 | Préparation jury | À FAIRE |
 
@@ -567,3 +567,13 @@ preuves et annexes. Elle sélectionne les preuves Phase 18 sans les dupliquer et
 prévoit des emplacements pour les captures absentes. Elle ne constitue pas la
 génération du DOCX/PDF ni une preuve supplémentaire de conformité, backup,
 rollback ou CD backend.
+
+## Phase 20 — Dossier Professionnel final (18/10/2026)
+
+La source `20_DOSSIER_PROFESSIONNEL_FINAL.md` présente le parcours de Kouakou
+Brice Kanga, les trois activités types CDA, cinq situations WatYouFace, les
+compétences transversales, la veille, le recul et les références Phase 18.
+PurpleWatch et Bagage Voyage y sont seulement cités comme expériences
+complémentaires à confirmer par leurs propres supports; WatYouFace reste la
+preuve principale. La source ne revendique ni équipe fictive, ni conformité
+complète, ni CD backend automatique.
