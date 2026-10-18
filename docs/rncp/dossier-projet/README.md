@@ -1,5 +1,10 @@
 # Dossier projet
 
+> Mise à jour Phase 19 — 18/10/2026 : la source complète du futur Dossier Projet
+> est désormais `../19_DOSSIER_PROJET_FINAL.md`. Ce répertoire conserve les
+> contenus Phase 13 utiles en annexe historique. Aucun livrable DOCX binaire
+> n'est modifié dans cette phase.
+
 Emplacement de travail pour les éléments sources du dossier projet RNCP6. Le livrable final DOCX V0.2 sera déposé dans `../livrables/` lorsqu'il sera fourni et vérifié.
 
 ## Contenu source à intégrer — Phase 13
@@ -18,7 +23,7 @@ Une première baseline créait `transaction` avec des guillemets : H2 la disting
 
 ### Résultats et limites
 
-Sur PostgreSQL 16.15 Docker vide : Flyway V1 PASS, 14/14 tables, historique `1:true`, Hibernate validate PASS, backend prod démarré et tests PostgreSQL 5/5 PASS. Le redeploy Railway avec volume et persistance media est prouvé. La CI backend est également prouvée par le run GitHub Actions 38943060289 (Maven tests et build Docker SUCCESS). La restauration de sauvegarde, le rollback, l'adoption d'une base non vide, le CD Railway automatique et l'observabilité restent à produire. C7 est fortement prouvée pour le schéma neuf ; C10/C11 restent partielles.
+Sur PostgreSQL 16.15 Docker vide : Flyway V1 PASS, 14/14 tables, historique `1:true`, Hibernate validate PASS, backend prod démarré et tests PostgreSQL 5/5 PASS. V2/V3 ont aussi été validées sur une base PostgreSQL 16 contenant 37 listings : aucune donnée supprimée et 0 NULL pour `created_at`/`hidden`. Le redeploy Railway avec volume et persistance media est prouvé. La CI backend actuelle est prouvée par le run GitHub Actions 39165116209 (Maven tests et build Docker SUCCESS). La restauration de sauvegarde, le rollback et l'observabilité restent à produire; le CD Railway n'est pas automatique. C7 est renforcée; C10/C11 restent partielles.
 
 Sources : `102_DOCKER_RAILWAY_BACKEND.md`, `103_MIGRATIONS_POSTGRESQL_PRODUCTION.md`, `evidence/backend/BE-DATA-03-flyway-railway-baseline.txt`, `evidence/backend/BE-DEP-03-railway-media-volume-permissions.txt`, PR #33.
 
@@ -53,26 +58,27 @@ l'intégration Railway si elle est configurée, ou manuellement depuis son table
 de bord. C11 est renforcée par la CI exécutée, mais reste partielle sans preuve
 de CD automatique, d'observabilité et de rollback.
 
-### Robustesse de l'upload Marketplace — validée en production
+### Robustesse de l'upload Marketplace — évolution historisée et état actuel
 
 L'incident d'upload venait d'un écart entre le contrat et le runtime :
 `image/webp` était accepté par le MIME mais aucun lecteur ImageIO WebP n'était
 présent. Thumbnailator échouait alors à lire certaines images et l'exception
-arrivait au handler 500. La décision est de limiter le produit à JPEG/PNG,
-sans nouvelle dépendance. L'upload conserve la limite de 10 Mo et le contrôle
-anti-path traversal, convertit les images lisibles en JPG dans
+arrivait au handler 500. Le premier correctif a limité le contrat à JPEG/PNG.
+La politique actuelle, validée ensuite sur Feed et Marketplace, accepte
+JPEG/PNG/GIF/BMP à 10 Mo, refuse WebP/AVIF/HEIC et conserve le contrôle
+anti-path traversal. Elle convertit les images lisibles en JPG dans
 `media/marketplace/` et ne publie le fichier final qu'après conversion réussie.
 Les erreurs de décodage deviennent HTTP 400 JSON avec un message utilisateur.
 
-Sept scénarios HTTP ont été validés localement (JPEG, PNG, WebP, MIME arbitraire,
-vide, taille excessive, contenu PNG illisible). Le correctif `e892ae8` est commité
-sur `main`, poussé, et la CI GitHub Actions [run 38943060289](https://github.com/kanga-prog/watyouface-backend/actions/runs/38943060289)
-confirme Maven tests et build Docker SUCCESS. Après redéploiement Railway,
-`https://api.watyouface.com` répond ; les uploads JPEG et PNG sont validés et WebP
-reste refusé proprement en HTTP 400. Cette preuve renforce C3, C8, C9, C10 et C11,
-sans déclarer C10/C11 complètes : CD Railway automatique, observabilité,
-sauvegarde/restauration et rollback restent à démontrer.
+Les tests HTTP historiques couvrent JPEG, PNG, WebP, MIME arbitraire, vide,
+taille excessive et contenu illisible. Les tests ultérieurs couvrent aussi de
+vrais GIF/BMP et les erreurs Feed/Marketplace. La CI backend actuelle
+[#39165116209](https://github.com/kanga-prog/watyouface-backend/actions/runs/39165116209)
+confirme Maven et Docker SUCCESS. Les quatre formats autorisés sont fonctionnels
+validés en production; les captures visuelles restent à ajouter. C10/C11 restent
+partielles : CD Railway automatique, observabilité, sauvegarde/restauration et
+rollback restent à démontrer.
 
-Le frontend applique le même contrat avant envoi (JPEG/PNG, 10 Mo, WebP refusé),
-avec 35 tests et build Vite PASS. Son pipeline GitHub Actions vers Hostinger a été
-déclenché et l'utilisateur confirme le fonctionnement des uploads en production.
+Le frontend applique le contrat actuel avant envoi (JPEG/PNG/GIF/BMP, 10 Mo;
+WebP refusé), avec 47 tests et build Vite PASS. Son pipeline GitHub Actions vers
+Hostinger est prouvé par le run 39165084863 SUCCESS.

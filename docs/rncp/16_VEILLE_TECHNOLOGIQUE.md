@@ -1,5 +1,10 @@
 # Phase 16 — Veille technologique WatYouFace
 
+> Relecture Phase 17 (18/10/2026) : cette veille reste un relevé daté et une
+> méthode de décision, non la preuve d'un upgrade, d'un scanner activé ou d'un
+> CD backend automatique. Les décisions et limites sont synchronisées avec
+> `RNCP6_SOURCE_DE_VERITE.md` et `17_DOCUMENTATION_FINALE.md`.
+
 Date du relevé : 18/10/2026. Cette veille est un instantané documenté à cette date : elle ne prétend pas reconstituer une veille historique continue et ne déclenche aucune mise à jour de production.
 
 ## 1. Périmètre et technologies réellement utilisées

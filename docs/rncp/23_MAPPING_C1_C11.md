@@ -1,4 +1,38 @@
-# Mapping C1 à C11 — plan de preuves
+# Mapping C1 à C11 — référence consolidée
+
+> **État courant au 18/10/2026.** Ce tableau prévaut sur les jalons et mises à
+> jour historiques conservés plus bas pour leur traçabilité. PASS désigne une
+> preuve disponible pour le périmètre indiqué; PARTIAL une preuve réelle avec
+> limites restantes; GAP une absence de preuve suffisante.
+
+| Compétence | Apport effectivement démontré | Preuves de référence | Statut | Limites à ne pas masquer |
+|---|---|---|---|---|
+| C1 | Java 17, Maven wrapper, Docker, profils, variables externalisées et environnements Hostinger/Railway documentés. | `102_DOCKER_RAILWAY_BACKEND.md`, `17_DOCUMENTATION_FINALE.md`. | PARTIAL | restauration non testée. |
+| C2 | Interfaces Feed/Chat/Marketplace/ADMIN, validations média et corrections d'accessibilité ciblées. | 47 tests frontend, captures existantes, Phase 15. | PARTIAL | audit RGAA complet et captures Admin à compléter. |
+| C3 | Règles Marketplace, wallet démo, modération, RBAC, ownership et validations serveur. | `BE-ADMIN-01…`, `BE-E2E-01…`, tests backend. | PARTIAL | E2E STOMP non exhaustif; avatar distinct. |
+| C4 | Cadrage, backlog, risques, décisions et commits versionnés. | Documents 01–25, Git, source de vérité. | PARTIAL | livrables jury à finaliser. |
+| C5 | Besoins, personas, wireframes, prototype et parcours confrontés aux rôles réels. | Documents 02–16, 26–45, recette. | PARTIAL | validation formelle utilisateurs absente. |
+| C6 | Architecture React/Vite → REST/STOMP → Spring Boot → JPA → PostgreSQL documentée. | Documents 46–61, doc finale. | PASS documentaire | montée en charge/observabilité futures. |
+| C7 | Flyway V1–V3 et validation PostgreSQL 16 d'une base non vide de 37 listings. | `103_MIGRATIONS…`, EV-16. | PARTIAL | backup/restore non testés; warning PostgreSQL 18/Flyway. |
+| C8 | Services transactionnels, verrou paiement, BOLA/IDOR et accès aux annonces masquées bornés. | tests backend/PostgreSQL, `BE-ADMIN-01…`. | PARTIAL | pas de charge ni E2E STOMP complet. |
+| C9 | Maven 104 rapportés (0 failure/error, 5 conditionnels skipped), PostgreSQL 5/5, frontend 47/47, CI et recette. | EV-07, EV-15 à EV-20. | PARTIAL | traces HTTP/captures uploads à ajouter. |
+| C10 | Docker non-root, volume média, Flyway, Railway/Hostinger et smoke tests. | `102…`, `103…`, `BE-DEP-03…`. | PARTIAL | backup/restore et rollback réels non prouvés. |
+| C11 | CI backend Maven/Docker, CI/CD frontend test/build/rsync/smoke, Railway manuel contrôlé. | runs 39165116209 et 39165084863. | PARTIAL | pas de CD backend, métriques/alertes ou rollback testé. |
+
+Les captures de production des uploads JPEG/PNG/GIF/BMP, les traces HTTP E2E,
+l'audit RGAA formel, la gouvernance RGPD, la restauration de sauvegarde,
+l'observabilité, l'E2E STOMP et l'harmonisation avatar restent des écarts ouverts.
+
+### Consolidation finale Phase 18
+
+`18_PREUVES_RNCP_FINALES.md` relie chaque compétence aux preuves exploitables,
+à leur portée et à leurs limites. C6 est **PASS documentaire** par les
+architectures et flux versionnés; C1–C5 et C7–C11 restent **PARTIAL** : les
+preuves disponibles sont réelles, mais aucune compétence ne doit être déclarée
+globale/complète sans les captures, restaurations, audits ou opérations encore
+manquants.
+
+## Historique de planification et mises à jour datées
 
 | Compétence | État au 07/10 | Tâches restantes prioritaires | Preuves attendues | Date cible | Risque |
 |---|---|---|---|---:|---|

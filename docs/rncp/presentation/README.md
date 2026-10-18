@@ -1,5 +1,9 @@
 # Présentation RNCP6
 
+> Mise à jour Phase 17 — 18/10/2026 : les éléments ci-dessous sont des sources
+> de contenu pour une présentation à régénérer, pas une modification du PPTX
+> binaire. L'état courant est résumé dans `../17_DOCUMENTATION_FINALE.md`.
+
 Emplacement de travail pour les éléments sources du support de présentation. Le livrable final PPTX V0.2 sera déposé dans `../livrables/` lorsqu'il sera fourni et vérifié.
 
 ## Éléments Phase 13 à intégrer au support oral
@@ -11,7 +15,7 @@ Emplacement de travail pour les éléments sources du support de présentation. 
 | Difficulté | table `transaction` initialement quotée, incompatibilité de casse H2/Hibernate | « Un test d'unicité a révélé une divergence de nommage ; j'ai corrigé la migration plutôt que de masquer le test. » |
 | Résolution | nom non quoté, V1 testée sur PostgreSQL 16.15 vide | « La solution est validée à la fois par la suite Maven et par PostgreSQL réel éphémère. » |
 | Preuve | Flyway V1, 14 tables, `1:true`, validate, backend prod, 5/5 PostgreSQL | « Je peux montrer la preuve textuelle versionnée et la PR #33, sans exposer de secret. » |
-| Limite | CI prouvée, mais pas de CD Railway automatique, de restauration, rollback, observabilité ni adoption de base non vide | « Je distingue la CI et le redeploy prouvés des opérations DevOps qui restent à démontrer. » |
+| Limite | CI prouvée, mais pas de CD Railway automatique, de restauration, rollback ni observabilité; l'adoption V2/V3 d'une base non vide est validée localement | « Je distingue la CI et le redeploy prouvés des opérations DevOps qui restent à démontrer. » |
 
 Compétences à citer avec nuance : C7 (schéma relationnel versionné et validé), C10 (déploiement Docker/migration/volume Railway prouvés), C11 (CI exécutée, démarche reproductible et moindre privilège). C10 et C11 restent partielles faute de preuve de CD Railway automatique, observabilité, restauration et rollback.
 
@@ -38,6 +42,6 @@ Compétences à citer avec nuance : C7 (schéma relationnel versionné et valid�
 | Angle | Élément vérifiable | Formulation jury |
 |---|---|---|
 | Difficulté | WebP annoncé par MIME mais aucun lecteur ImageIO WebP, donc échec de décodage et HTTP 500 | « J'ai distingué le type déclaré de la capacité réelle du runtime à décoder l'image. » |
-| Décision | JPEG/PNG uniquement, pas de dépendance WebP | « J'ai réduit le contrat à des formats réellement supportés au lieu de promettre un format non exploitable. » |
+| Décision | JPEG/PNG/GIF/BMP, 10 Mo; pas de dépendance WebP | « J'ai retenu les formats réellement décodés et testés, plutôt que de promettre un format non exploitable. » |
 | Résolution | fichier temporaire, déplacement après conversion JPG, `IllegalArgumentException` pour image illisible | « Une image corrompue devient un 400 explicite et ne publie pas de fichier partiel. » |
-| Preuve | 7 tests HTTP ciblés, CI GitHub Actions [#38943060289](https://github.com/kanga-prog/watyouface-backend/actions/runs/38943060289) SUCCESS, recette Railway JPEG/PNG PASS, WebP refusé ; frontend aligné, 35 tests/build Vite PASS et uploads confirmés en production | « La règle est automatisée, versionnée, passée en CI et vérifiée sur l'API de production jusqu'au frontend. » |
+| Preuve | Tests réels JPEG/PNG/GIF/BMP et invalides; CI backend [#39165116209](https://github.com/kanga-prog/watyouface-backend/actions/runs/39165116209) SUCCESS; frontend 47 tests/build et CI/CD Hostinger [#39165084863](https://github.com/kanga-prog/watyouface-frontend/actions/runs/39165084863) SUCCESS; formats autorisés fonctionnels en production, captures à ajouter | « La règle est automatisée, versionnée, passée en CI et vérifiée en production; je distingue la validation fonctionnelle des captures encore attendues. » |

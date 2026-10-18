@@ -1,0 +1,46 @@
+WatYouFace — index final des preuves backend RNCP
+Date : 2026-10-18
+
+But : orienter le jury vers les preuves versionnées, sans transformer une
+validation fonctionnelle sans capture/trace en preuve documentaire complète.
+
+Tests réellement consignés
+- Maven global : 104 tests rapportés, 0 failure, 0 error, 5 tests PostgreSQL
+  conditionnels skipped hors profil dédié. Ce résultat ne signifie pas 104/104 exécutés.
+- PostgresPaymentIntegrationTests : 5/5 exécutés, 0 skipped, 0 failure, 0 error.
+- Frontend : 47/47 PASS; build Vite PASS; lint 0 erreur, 1 warning documenté.
+
+CI réellement identifiée
+- Backend : commit 089f141, GitHub Actions run 39165116209, Maven + Docker SUCCESS.
+- Frontend : commit 6b50af2, GitHub Actions run 39165084863, tests + build +
+  rsync Hostinger + smoke SUCCESS.
+- Le backend Railway est déployé de façon contrôlée/manuelle : aucun CD backend
+  automatique n'est prouvé.
+
+Preuves à consulter
+- BE-ADMIN-01-rbac-wallet-moderation-media.txt : RBAC, dernier ADMIN, wallet,
+  modération, uploads et validation PostgreSQL V2/V3.
+- BE-DATA-03-flyway-railway-baseline.txt : Flyway V1, base PostgreSQL vide,
+  14 tables et Hibernate validate.
+- BE-DEP-03-railway-media-volume-permissions.txt : Docker non-root, volume
+  média Railway, persistance et smoke 401.
+- BE-E2E-01-production-recipe.txt : recette fonctionnelle production; captures
+  et traces HTTP manquent encore.
+- BE-QUAL-01-conformite-qualite.txt : audit proportionné et limites conformité.
+- BE-VEILLE-01-veille-technologique.txt : veille documentée et décisions.
+
+Production et E2E
+- Smoke sans session /api/users/me : HTTP 401 validé fonctionnellement.
+- CSRF /api/auth/csrf : HTTP 200 + XSRF-TOKEN validé fonctionnellement.
+- ADMIN, Feed, Marketplace nominal/refusé et modération : validés
+  fonctionnellement; pièces visuelles et traces réseau à archiver.
+- JPEG/PNG/GIF/BMP : fonctionnels validés. Les quatre captures de production
+  restent à ajouter dans evidence/production/.
+
+Gaps non masqués
+- backup/restauration et rollback réels non testés;
+- observabilité complète absente;
+- conformité RGPD/RGAA non certifiée;
+- révocation JWT centrale et antivirus média absents;
+- avatar à harmoniser;
+- warning Flyway/PostgreSQL 18 à traiter par test avant évolution.

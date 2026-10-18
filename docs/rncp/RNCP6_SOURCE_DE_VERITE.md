@@ -1,6 +1,46 @@
 # WatYouFace — Source de vérité RNCP 6 CDA
 
-Ce fichier indexe les décisions et preuves RNCP. En cas de divergence, le code versionné prouve l'implémentation ; les documents RNCP expliquent l'intention, le périmètre et les limites. Toute divergence doit être relevée comme une question ouverte, jamais masquée.
+> **Référence courante — 18/10/2026.** Cette section prévaut sur les jalons
+> chronologiques qui suivent. Ceux-ci conservent l'historique de la démarche,
+> mais ne décrivent pas nécessairement l'état final. En cas de divergence, le
+> code versionné et une preuve d'exécution datée priment ; une absence de preuve
+> reste une limite, jamais une réussite implicite.
+
+## État courant consolidé
+
+### Production et déploiement
+
+| Sujet | État factuel | Verdict |
+|---|---|---|
+| Frontend | [watyouface.com](https://watyouface.com), hébergé sur Hostinger. Déploiement automatisé par GitHub Actions : tests/build Vite puis `rsync` SSH. | PASS |
+| Backend | [api.watyouface.com](https://api.watyouface.com), Spring Boot sur Railway en conteneur Docker Java 17. Le déploiement Railway est **contrôlé et manuel**, non automatique. | PASS fonctionnel / PARTIAL DevOps |
+| Données | PostgreSQL Railway ; Flyway V1 à V3 appliquées, dont V2 `created_at` et V3 `hidden`. | PASS fonctionnel |
+| Média | Volume Railway persistant sous `/app/media`; processus Java `spring` non-root et volume validé en production. | PASS |
+
+### Tests et intégration continue
+
+| Exécution réellement obtenue | Résultat | Limite à conserver |
+|---|---|---|
+| Suite backend Maven | 104 tests rapportés, 0 échec, 0 erreur ; 5 tests PostgreSQL conditionnels ignorés sans profil dédié. | Ne pas la présenter comme l'exécution PostgreSQL réelle. |
+| `PostgresPaymentIntegrationTests` dédié | 5/5 exécutés, 0 skipped, 0 échec, 0 erreur sur PostgreSQL local. | Ce résultat ne remplace pas une restauration de sauvegarde. |
+| Suite frontend | 47/47 tests PASS ; build Vite PASS ; ESLint 0 erreur et 1 avertissement documenté. | Audit RGAA complet non réalisé. |
+| CI frontend | Run GitHub Actions **39165084863** : tests, build, déploiement Hostinger et smoke test SUCCESS. | Ne prouve pas le CD backend. |
+| CI backend | Run GitHub Actions **39165116209** : Maven et build Docker SUCCESS. | Aucun job Railway de déploiement. |
+
+### Fonctionnel, sécurité et limites
+
+| Domaine | État actuel prouvé | Statut |
+|---|---|---|
+| ADMIN / RBAC | Un seul ADMIN utilisé : `demo`. Changement de rôle retiré, dernier ADMIN protégé, routes ADMIN en 401/403/autorisé selon identité et CSRF sur mutations. | PASS par tests / PARTIAL captures UI |
+| Wallet démo | Crédit manuel uniquement par `POST /api/admin/users/{userId}/wallet/credit`; montant positif et écriture transactionnelle. Aucun crédit manuel USER. | PASS par audit et tests |
+| Marketplace | Cycle nominal `AVAILABLE → PENDING → ACCEPTED → PAID → SHIPPED → RECEIVED` et variante `PENDING → REFUSED` validés fonctionnellement. Solde insuffisant : 409. | PASS fonctionnel / PARTIAL traces |
+| Modération Marketplace | `AVAILABLE`/`REFUSED` supprimables; annonces engagées masquées `hidden=true`. Tiers exclu, vendeur/acheteur/ADMIN conservent l'accès nécessaire. | PASS production/tests / PARTIAL captures |
+| Upload Feed / Marketplace | JPEG/PNG/GIF/BMP, 10 Mo, MIME puis décodage réel, fichier temporaire/nettoyage et sortie JPEG. GIF : première image. | Fonctionnel validé / preuve visuelle à ajouter |
+| Formats refusés | WebP, AVIF et HEIC/HEIF ne sont pas supportés intentionnellement. L'upload avatar reste un flux séparé à harmoniser. | PASS décision / GAP avatar |
+| Sécurité résiduelle | JWT HttpOnly (`Secure` production, `SameSite=Lax`), CSRF, CORS explicite, RBAC et ownership/BOLA. Limiteur in-memory mono-instance, pas de révocation JWT centrale, pas d'AV/quarantaine média. | PARTIAL |
+| Conformité/exploitation | RGPD PARTIAL/GAP, RGAA PARTIAL, RGESN PARTIAL, backup/restore GAP, rollback PARTIAL, observabilité PARTIAL. | PARTIAL / GAP |
+
+Ce fichier indexe les décisions et preuves RNCP. Les documents ci-dessous retracent les phases antérieures; les termes « à produire », « non exécuté » ou les anciens volumes de tests y sont historiques sauf lorsqu'ils sont repris dans la section courante ci-dessus.
 
 ## Références
 
@@ -373,7 +413,7 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 | Preuve CI | Run GitHub Actions [#38943060289](https://github.com/kanga-prog/watyouface-backend/actions/runs/38943060289), 17/10/2026 : Maven tests et Docker build **SUCCESS** pour le correctif Marketplace sur `main` |
 | CD Railway | **PARTIEL** : le correctif Marketplace a été redéployé sur Railway après son arrivée sur `main`, mais le workflow ne contient aucun job de déploiement ni token Railway. Le mode automatique ou manuel n'est pas prouvé par ce dépôt ; il n'est donc pas déclaré comme CD automatique. |
 | Statut | **PASS** pour le schéma neuf reproductible, le volume media Railway production et la CI backend; **PARTIEL** pour le CD/opérations DevOps non démontrés |
-| Limites | CD Railway automatique, sauvegarde/restauration, rollback et observabilité non prouvés; l'adoption d'une base non vide reste une procédure distincte |
+| Limites | **Constat Phase 13 historique** : CD Railway automatique, sauvegarde/restauration, rollback et observabilité non prouvés; l'adoption d'une base non vide était alors une procédure distincte. V2/V3 ont depuis été validées sur PostgreSQL 16 avec 37 listings, sans suppression et 0 NULL. |
 | Étape suivante | prouver ou configurer le CD Railway depuis une branche contrôlée, puis compléter observabilité et procédure testée de sauvegarde/restauration/rollback; compléter la preuve WebSocket si nécessaire |
 
 ### Compétences RNCP — preuve nouvelle Phase 13
@@ -394,17 +434,17 @@ JWT d'auth dans localStorage/sessionStorage : ABSENT; appels API `credentials: i
 
 La Phase 13 ne transforme aucune compétence en « complète » sans preuve supplémentaire. Elle remplace l'ancienne recommandation Flyway par une preuve d'exécution sur base vide et conserve explicitement les limites opérationnelles.
 
-### Correctif upload Marketplace — état de production (17/10/2026)
+### Archive — correctif upload Marketplace initial (17/10/2026)
 
 | Champ | État réel vérifié |
 |---|---|
 | Incident | Le contrat MIME annonçait `image/webp`, sans lecteur ImageIO WebP. Selon l'image, Thumbnailator remontait une `IOException` au handler générique et le client recevait HTTP 500. |
-| Décision | Limiter l'upload Marketplace à `image/jpeg` et `image/png`; ne pas ajouter de dépendance WebP ni assouplir les validations. |
+| Décision | **Contrat initial, remplacé depuis** : limiter Marketplace à `image/jpeg` et `image/png`; ne pas ajouter de dépendance WebP ni assouplir les validations. |
 | Solution | Conserver les contrôles vide, 10 Mo et MIME. Convertir JPEG/PNG en JPG via un fichier temporaire dans `media/marketplace/`, déplacer seulement après succès et convertir les erreurs ImageIO/Thumbnailator de décodage en `IllegalArgumentException("Image invalide ou format non lisible")`. |
 | Handler | `ApiExceptionHandler` existant confirme `IllegalArgumentException` → HTTP 400 JSON `{"error":"..."}`; aucun autre mapping modifié. |
 | Tests | `MarketplaceImageUploadTests` : 7/7 PASS (JPEG, PNG, WebP, MIME arbitraire, vide, >10 Mo, PNG illisible sans fichier partiel). La CI GitHub Actions [run 38943060289](https://github.com/kanga-prog/watyouface-backend/actions/runs/38943060289) confirme Maven tests et Docker build **SUCCESS**. |
 | Production | Correctif `e892ae8` commité sur `main`, poussé et redéployé sur Railway. L'API `https://api.watyouface.com` répond ; `/api/users/me` sans session retourne HTTP 401 attendu. Les uploads JPEG et PNG sont validés ; WebP est volontairement refusé proprement en HTTP 400. |
-| Frontend associé | Le sélecteur impose JPEG/PNG et 10 Mo, refuse WebP avant l'appel API ; 35 tests et build Vite PASS, pipeline GitHub Actions vers Hostinger déclenché. L'utilisateur confirme les uploads fonctionnels en production. |
+| Frontend associé | **État historique du premier correctif** : JPEG/PNG, 10 Mo et WebP refusé; 35 tests/build. Le contrat courant Feed/Marketplace est JPEG/PNG/GIF/BMP à 10 Mo et le frontend compte désormais 47 tests PASS. |
 | Preuve | `evidence/backend/BE-API-02-marketplace-image-upload.txt`, run CI 38943060289 et validation de production fournie. |
 | Limites | Le MIME fourni par le client reste le premier filtre ; le décodage effectif protège les faux JPEG/PNG. Le CD Railway automatique, l'observabilité, le rollback et la restauration de sauvegarde ne sont pas prouvés. |
 | Compétences | C3 : validation sécurisée d'upload ; C8 : stockage media borné et anti-path traversal conservé ; C9 : sept cas HTTP automatisés ; C10 : déploiement documenté et validé ; C11 : CI exécutée et mise en production contrôlée. C10/C11 restent PARTIELLES faute de CD automatique, observabilité, sauvegarde/restauration et rollback prouvés. |
@@ -422,7 +462,7 @@ Le correctif est **VALIDÉ** pour son périmètre : il est versionné, passé en
 | Upload Feed + Marketplace | JPEG/PNG/GIF/BMP, 10 Mo, MIME puis décodage ImageIO réel. GIF première image et BMP sont normalisés en JPEG ; sortie UUID JPEG, temporaire puis déplacement et nettoyage en cas d'échec. WebP/AVIF/HEIC ne sont volontairement pas supportés. | Fonctionnel validé production ; preuve visuelle à ajouter |
 | Flyway / PostgreSQL | V2 ajoute `created_at`, V3 `hidden`, avec défauts compatibles table non vide. Validation PostgreSQL 16 sur 37 listings : aucune donnée supprimée, 0 NULL après migrations. `PostgresPaymentIntegrationTests` dédié : 5/5 PASS, 0 failure/error/skip. | PASS, preuve locale réelle |
 | Suite Maven globale | 104 tests rapportés ; les 5 tests PostgreSQL conditionnels sont ignorés dans ce run sans variables de profil. Ne pas confondre cette exécution avec le run PostgreSQL dédié. | PASS hors tests conditionnels ; preuve PostgreSQL séparée |
-| CI / déploiement de ce lot | Backend CI run 39143755010 : Maven/Docker SUCCESS. Frontend CI/CD run 39143768559 : tests/build/déploiement Hostinger/smoke SUCCESS. Backend Railway déployé de manière contrôlée/manuelle. | PASS ; CD backend automatique non prouvé |
+| CI / déploiement de ce lot | Backend CI run 39165116209 : Maven/Docker SUCCESS. Frontend CI/CD run 39165084863 : tests/build/déploiement Hostinger/smoke SUCCESS. Backend Railway déployé de manière contrôlée/manuelle. | PASS ; CD backend automatique non prouvé |
 
 ### Preuves et compétences concernées
 
@@ -464,11 +504,11 @@ Le correctif est **VALIDÉ** pour son périmètre : il est versionné, passé en
 | 12 | Tests | DONE |
 | 13 | Déploiement | DONE / PARTIAL rollback-backup |
 | 14 | DevOps CI-CD | DONE / PARTIAL backend CD manuel |
-| 15 | Conformité qualité | EN COURS — audit technique PARTIAL documenté |
+| 15 | Conformité qualité | DONE documentaire — audit technique PARTIAL/GAP explicitement conservé |
 | 16 | Veille | DONE documentaire — relevé daté et méthode définie |
-| 17 | Documentation finale | EN COURS |
-| 18 | Preuves RNCP | EN COURS AVANCÉ |
-| 19 | Dossier Projet | À FINALISER |
+| 17 | Documentation finale | DONE documentaire — synthèse et sources Dossier Projet/Professionnel/Présentation synchronisées; livrables binaires à régénérer |
+| 18 | Preuves RNCP | DONE documentaire — index, matrice E2E, checklist de captures et gaps consolidés; artefacts manquants restent à produire |
+| 19 | Dossier Projet | DONE documentaire — source 40 sections et annexes à prévoir; DOCX/PDF à générer sur instruction dédiée |
 | 20 | Dossier Professionnel | À FINALISER |
 | 21 | Support | À FINALISER |
 | 22–25 | Préparation jury | À FAIRE |
@@ -487,7 +527,7 @@ La recette fonctionnelle ne vaut pas à elle seule preuve visuelle complète. Le
 | Rollback | Procédure frontend/backend documentée ; migrations Flyway à corriger vers l'avant ; aucun rollback réel. | PARTIAL |
 | Observabilité | Logs Spring/Railway/CI et smoke tests présents ; pas d'actuator/health, métriques, alerting ou centralisation prouvés. | PARTIAL |
 
-Preuves : `15_CONFORMITE_QUALITE.md` et `evidence/backend/BE-QUAL-01-conformite-qualite.txt`. Cette phase ne déclare ni conformité juridique exhaustive, ni audit RGAA certifiant, ni sauvegarde/restauration testée. La prochaine étape est la Phase 16 — veille technologique, tout en gardant les gaps de conformité au plan de finalisation.
+Preuves : `15_CONFORMITE_QUALITE.md` et `evidence/backend/BE-QUAL-01-conformite-qualite.txt`. Cette phase ne déclare ni conformité juridique exhaustive, ni audit RGAA certifiant, ni sauvegarde/restauration testée. Phase 15 validée documentaires; les gaps restent au plan de finalisation.
 
 ## Phase 16 — veille technologique (18/10/2026)
 
@@ -500,4 +540,30 @@ Preuves : `15_CONFORMITE_QUALITE.md` et `evidence/backend/BE-QUAL-01-conformite-
 | Observabilité, backup, déploiement | Actuator/Micrometer, restore testé et CD Railway automatique restent futurs ; backend manuel contrôlé maintenu avant soutenance. | PARTIAL |
 | Méthode | Sources officielles, fréquence, analyse d'impact, test isolé et décision documentés. | PASS documentaire |
 
-Preuves : `16_VEILLE_TECHNOLOGIQUE.md`, `evidence/backend/BE-VEILLE-01-veille-technologique.txt`. Aucune mise à niveau, migration, activation Dependabot ou modification de code n'est revendiquée par cette phase. La Phase 17 — documentation finale peut commencer avec les gaps déjà consignés.
+Preuves : `16_VEILLE_TECHNOLOGIQUE.md`, `evidence/backend/BE-VEILLE-01-veille-technologique.txt`. Aucune mise à niveau, migration, activation Dependabot ou modification de code n'est revendiquée par cette phase. Phase 16 validée documentaire; Phase 17 a consolidé les sources et conserve les gaps consignés.
+
+## Phase 18 — consolidation finale des preuves RNCP (18/10/2026)
+
+| Sujet | État consolidé | Statut |
+|---|---|---|
+| Index unique | `18_PREUVES_RNCP_FINALES.md` recense 20 unités : 15 PASS et 5 PARTIAL; la portée et les limites sont explicites. | PASS documentaire |
+| E2E production | Matrice des scénarios infra, ADMIN, Feed, Marketplace nominal/refusé, wallet et modération. Les résultats sans capture ou trace archivée sont PARTIAL. | PARTIAL documentaire |
+| Tests | Maven : 104 rapportés, 0 failure/error, 5 conditionnels PostgreSQL skipped; PostgreSQL dédié : 5/5; frontend : 47/47. | PASS pour les exécutions citées |
+| CI/CD | Backend run 39165116209 Maven/Docker; frontend run 39165084863 tests/build/rsync/smoke. Railway backend manuel contrôlé. | PASS, sans CD backend |
+| Production visuelle | `evidence/production/README.md` liste les captures à déposer. Aucun artefact visuel nouveau n'est inventé. | PARTIAL |
+| Gaps | Backup/restore, rollback réel, observabilité, conformité certifiée, CD backend, révocation JWT, AV média, avatar et warning Flyway/PG18 restent ouverts. | GAP |
+
+Preuves : `18_PREUVES_RNCP_FINALES.md`,
+`evidence/backend/BE-RNCP-01-final-evidence-index.txt` et
+`evidence/production/README.md`. La Phase 19 peut préparer le Dossier Projet
+final à partir de cet index, sans effacer les preuves manquantes.
+
+## Phase 19 — Dossier Projet final (18/10/2026)
+
+La source `19_DOSSIER_PROJET_FINAL.md` structure le futur dossier en 40 sections :
+contexte, besoins, architecture, données, sécurité, fonctionnalités, tests, CI,
+déploiement, conformité, veille, recette, difficultés, limites, mapping RNCP,
+preuves et annexes. Elle sélectionne les preuves Phase 18 sans les dupliquer et
+prévoit des emplacements pour les captures absentes. Elle ne constitue pas la
+génération du DOCX/PDF ni une preuve supplémentaire de conformité, backup,
+rollback ou CD backend.

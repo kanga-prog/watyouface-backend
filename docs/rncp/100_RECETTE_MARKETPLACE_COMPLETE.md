@@ -1,6 +1,11 @@
-# Recette complète Marketplace — état avant déploiement
+# Recette complète Marketplace — historique et référence consolidée
 
-Date de réévaluation : 2026-10-10. Périmètre : backend et frontend sur `main`, puis corrections isolées sur `fix/marketplace-final-validation`.
+Les sections jusqu'à « État de référence » conservent les constats datés de la
+recette initiale (10–17/10/2026). Elles ne décrivent plus le contrat courant.
+La référence actuelle est la section du 18/10/2026, complétée par
+`BE-E2E-01-production-recipe.txt` et `RNCP6_SOURCE_DE_VERITE.md`.
+
+Date de réévaluation initiale : 2026-10-10. Périmètre historique : backend et frontend sur `main`, puis corrections isolées sur `fix/marketplace-final-validation`.
 
 ## Périmètre observé
 
@@ -21,7 +26,7 @@ Statuts : **PASS** = preuve automatisée au niveau indiqué; **PARTIEL** = une p
 | MKT-05 | Consulter la liste | liste issue du repository | endpoint GET constaté; pas de scénario dédié de liste non vide | PARTIEL |
 | MKT-06 | Consulter une annonce créée | détail et statut persisté | test MKT-01 relit le détail — API/H2 | PASS |
 | MKT-07 | Lire un ID absent | HTTP 404 | `missingMarketplaceResourceIs404AndInvalidPaymentStateIs409` — API/H2 | PASS |
-| MKT-08 | Recharger le navigateur et vérifier la persistance UI | UI rechargée depuis l’API | navigateur graphique indisponible; aucun test E2E | NON TESTE |
+| MKT-08 | Recharger le navigateur et vérifier la persistance UI | UI rechargée depuis l’API | **Constat historique du 10/10** : navigateur graphique indisponible | HISTORIQUE — remplacé par recette manuelle 18/10, traces à archiver |
 | MKT-09 | Vendeur effectue une action de son annonce | action autorisée selon état | API/H2: vendeur modifie/supprime; cycle API accepte/expédie — navigateur non exécuté | PARTIEL |
 | MKT-10 | Un tiers tente une action réservée au vendeur | HTTP 403 | tests API/H2 modification/suppression/acceptation + service — UI non testée | PASS API |
 | MKT-11 | Utilisateur anonyme tente une action protégée | HTTP 401 | création anonyme MKT-03; endpoint de transition anonyme non dédié | PARTIEL |
@@ -64,7 +69,7 @@ Les autres transitions sont refusées par la vérification d’état du service 
 
 - PostgreSQL 16.15, base `watyouface_db`, utilisateur `watuser`: connexion locale confirmée. La suite ciblée `PostgresPaymentIntegrationTests` a été rejouée avec **5 tests, 0 échec, 0 erreur, 0 ignoré**. Elle couvre commit, contrainte unique `uq_transaction_listing_id`, rollback forcé, solde insuffisant et paiements concurrents; la contrainte a rejeté la seconde écriture. Les valeurs sensibles ne sont pas consignées.
 - Cause des skips JUnit: `@EnabledIfEnvironmentVariable` exige `DB_URL` correspondant à `jdbc:postgresql:.*`, `DB_USERNAME` non vide, `DB_PASSWORD` défini (vide permis) et `JWT_SECRET` d’au moins 32 caractères. Sans ces variables dans le processus Maven, les cinq méthodes sont ignorées même si PostgreSQL fonctionne. Exécuter séparément la classe PostgreSQL: l’injection de `DB_URL` dans toute la suite ferait utiliser l’URL PostgreSQL à des tests `dev` qui attendent H2.
-- Upload image — **validé en production le 17/10/2026** : le correctif est commité et poussé sur `main` (`e892ae8`). Le contrat est JPEG/PNG uniquement (10 Mo maximum) ; WebP est volontairement non supporté car aucun lecteur ImageIO WebP n'est installé et il est refusé proprement en HTTP 400. Le POST multipart `/api/marketplace/listings/upload` ne renvoie une URL `/media/marketplace/...` qu'après décodage effectif ImageIO/Thumbnailator et conversion JPG. Une image illisible renvoie HTTP 400 JSON, jamais le 500 générique ; le fichier est d'abord écrit sous un nom temporaire dans `media/marketplace/`, déplacé seulement après succès et nettoyé en cas d'échec. Les contrôles MIME, taille, chemin `MediaStorageService` et nom UUID sont conservés. Les 7 scénarios HTTP ciblés ont passé localement ; la CI GitHub Actions [run 38943060289](https://github.com/kanga-prog/watyouface-backend/actions/runs/38943060289) a validé Maven et le build Docker avec succès. Après redéploiement Railway, l'API publique répond, les uploads JPEG et PNG passent et WebP reste refusé comme prévu. Le frontend applique le même contrat avant upload, sa suite de 35 tests et son build Vite passent, puis son pipeline GitHub Actions vers Hostinger a été déclenché ; l'utilisateur confirme le bon fonctionnement des uploads en production.
+- Upload image — **jalon historique du 17/10/2026** : le premier correctif a réduit le contrat Marketplace à JPEG/PNG (10 Mo) et refusé WebP. Il a été validé par le run CI 38943060289. Ce jalon explique l'incident WebP, mais il est **supersédé** par la politique commune actuelle Feed/Marketplace : JPEG/PNG/GIF/BMP, 10 Mo, décodage réel et sortie JPEG, décrite plus bas. WebP, AVIF et HEIC/HEIF restent volontairement refusés.
 - Demande d’achat: `POST /api/marketplace/listings/{id}/request`. Le transport frontend commun envoie `credentials: "include"`, récupère le jeton CSRF et le transmet dans `X-XSRF-TOKEN`; le cookie auth est joint par le navigateur. Le test avec cookie valide passe à `PENDING`; sans cookie, la réponse est 401; avec cookie mais sans CSRF, 403. Ainsi, le 401 observé correspond au refus par Spring Security faute d’un principal établi (cookie absent, invalide ou expiré). Le code ne permet pas d’identifier lequel s’est produit dans le navigateur sans examiner la requête réseau concernée.
 - Contact vendeur: le clic créait déjà/récupérait la conversation privée via `/api/conversations/with/{sellerId}`, mais la page Marketplace ne fournissait aucun callback de navigation. Correction UI: passage vers `/messages` avec l’identifiant de conversation; la page Chat sélectionne cette conversation. Un test API confirme création/réutilisation et membership vendeur + acheteur. La conversation demeure générique; aucun lien `Listing`–`Conversation` n’est ajouté. Le droit de lecture/envoi reste borné aux membres par les contrôles Chat existants.
 - Résultats complets: backend `./mvnw clean test` **79 tests rapportés, 74 succès, 0 échec/erreur, 5 tests PostgreSQL ignorés** car variables absentes pour cette exécution H2; la suite PostgreSQL séparée est **5/5 PASS**. Frontend lint PASS (un avertissement préexistant `Admin.jsx`), 10 fichiers / 30 tests PASS, build PASS, `npm audit --omit=dev`: 0 vulnérabilité.
@@ -80,7 +85,7 @@ Les autres transitions sont refusées par la vérification d’état du service 
 
 ## Résultat de clôture Marketplace
 
-**Blocage upload image levé : OUI.** Le correctif est commité, contrôlé par CI, redéployé sur Railway et validé en production (JPEG/PNG PASS, WebP refusé proprement). La clôture Marketplace complète reste **PARTIELLE** : le parcours navigateur complet avec deux comptes, la confirmation de persistance après refresh, les messages de chat liés au parcours et les captures de recette restent à documenter par une recette manuelle réelle.
+**Clôture historique (avant la recette du 18/10) :** blocage upload levé, mais E2E navigateur encore PARTIEL. Ce statut est remplacé par la recette production consolidée ci-dessous : les parcours sont fonctionnels validés, tandis que les captures/traces réutilisables restent PARTIAL.
 
 ## État de référence — administration, médias et migrations (18/10/2026)
 

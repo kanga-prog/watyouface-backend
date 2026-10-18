@@ -4,7 +4,7 @@ Nature de la preuve : compte rendu de recette manuelle validée. Les captures et
 
 Infrastructure
 | Scénario | Acteur | Endpoint/action | Avant -> après | HTTP connu | Verdict | Preuve |
-| Frontend Hostinger | système | GitHub Actions -> build Vite -> rsync SSH | build -> site déployé | n/a | PASS | run 39143768559 SUCCESS |
+| Frontend Hostinger | système | GitHub Actions -> build Vite -> rsync SSH | build -> site déployé | n/a | PASS | run 39165084863 SUCCESS |
 | Backend Railway | système | déploiement contrôlé Railway | version précédente -> backend démarré | n/a | PASS fonctionnel | confirmation de recette ; journal à centraliser |
 | Migrations | système | Flyway V2 puis V3 | schéma V1 -> V3 | n/a | PASS fonctionnel | validation Railway déclarée ; preuve locale V2/V3 existante |
 | Smoke non authentifié | visiteur | GET /api/users/me | sans session -> refus | 401 | PASS | trace à ajouter |

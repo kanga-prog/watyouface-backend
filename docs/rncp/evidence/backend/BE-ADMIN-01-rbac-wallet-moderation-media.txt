@@ -1,6 +1,8 @@
 WatYouFace — preuve backend ADMIN, wallet, modération et médias
 Date : 2026-10-18
-Périmètre : lot non déployé, préparé pour commit et CI.
+Périmètre initial : lot préparé pour commit et CI. État final : le lot a ensuite
+été commité, passé en CI et validé dans la recette production consolidée ; voir
+`BE-E2E-01-production-recipe.txt` et `RNCP6_SOURCE_DE_VERITE.md`.
 
 RBAC et dernier ADMIN
 - /api/admin/** : sans authentification = 401 ; utilisateur USER = 403 ; ADMIN = accès autorisé.

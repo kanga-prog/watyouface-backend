@@ -1,5 +1,11 @@
 # Phase 15 — Conformité et qualité
 
+> Relecture Phase 17 (18/10/2026) : cet audit reste la référence détaillée de
+> conformité/qualité. Son statut demeure **PARTIAL/GAP**; il est synchronisé avec
+> `RNCP6_SOURCE_DE_VERITE.md`, `24_PLAN_PREUVES.md` et
+> `17_DOCUMENTATION_FINALE.md`. Aucun audit juridique, RGAA certifiant, restore
+> ou rollback réel n'est déduit de cette relecture.
+
 Date d'audit : 18/10/2026. Ce document est un audit technique proportionné au MVP WatYouFace ; il ne constitue ni avis juridique, ni audit RGPD/RGAA certifiant, ni preuve de sauvegarde/restauration production.
 
 Références de cadrage : [principes RGPD de la CNIL](https://www.cnil.fr/fr/comprendre-le-rgpd/les-six-grands-principes-du-rgpd), [registre des activités de traitement](https://cnil.fr/fr/RGPD-le-registre-des-activites-de-traitement), [critères RGAA](https://accessibilite.numerique.gouv.fr/methode/criteres-et-tests/) et [RGESN 2024](https://ecoresponsable.numerique.gouv.fr/publications/referentiel-general-ecoconception/).

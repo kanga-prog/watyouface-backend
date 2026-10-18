@@ -13,7 +13,7 @@
 | Conversation | `GET /api/conversations`, `POST /api/conversations/with/{userId}` | USER | liste / conversation | participant | 401/403 |
 | Message | `GET/POST /api/messages/conversations/{id}…` | participant | message / DTO | appartenance obligatoire | 401/403 |
 | Listing | `GET/POST /api/marketplace/listings` | USER | `ListingDTO` | vendeur courant création | 400/401 |
-| Listing | `POST /{id}/request|accept|refuse|pay|ship|receive` | buyer/seller/ADMIN | listing DTO ou vide | machine à états | 403/409 |
-| Wallet | `GET /api/wallet/me`, `POST /api/wallet/me/credit` | USER/ADMIN | wallet / crédit démo | crédit ADMIN uniquement | 403/400 |
+| Listing | `POST /{id}/request|accept|refuse|pay|ship|receive` | acheteur/vendeur concernés | listing DTO ou vide | machine à états; ADMIN modérateur sans bypass transactionnel | 403/409 |
+| Wallet | `GET /api/wallet/me`, `POST /api/admin/users/{userId}/wallet/credit` | USER pour lecture propre; ADMIN pour crédit | wallet / montant positif → nouveau solde | seul crédit manuel; transactionnel; route ADMIN + CSRF | 400/401/403/404 |
 
 Les détails exhaustifs restent à normaliser en OpenAPI ultérieurement. Les endpoints `/{conversationId}/all`, `POST /api/likes/post/{postId}` et autres variantes doivent être inventoriés puis supprimés/sécurisés s’ils contournent le contrat cible.

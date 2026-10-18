@@ -1,4 +1,39 @@
-# Plan de collecte des preuves RNCP
+# Plan de collecte des preuves RNCP — référence consolidée
+
+> **État courant au 18/10/2026.** Les lignes suivantes sont le plan exploitable
+> pour le jury. Les tableaux historiques conservés ensuite servent uniquement à
+> tracer la préparation initiale et ne remplacent pas les résultats ci-dessous.
+
+| ID | Catégorie | Preuve disponible | Verdict documentaire | Reste à ajouter |
+|---|---|---|---|---|
+| EV-01 | Pilotage | documents de cadrage, backlog, risques, Git et commits atomiques | PARTIAL | livrables jury finalisés |
+| EV-06 | Données | V1–V3 Flyway; PostgreSQL 16, 37 listings existants, 0 NULL après V2/V3; tests paiement 5/5 | PASS pour le périmètre testé | restore/backup non testés |
+| EV-07 | Tests applicatifs | Maven : 104 rapportés, 0 failure/error, 5 PostgreSQL conditionnels skipped; frontend : 47/47 | PASS | ne pas confondre avec le run PostgreSQL dédié |
+| EV-09 | Déploiement backend | Docker Java 17, Java non-root, volume `/app/media` persistant et smoke Railway | PASS fonctionnel | rollback et restauration |
+| EV-10 | CI backend | GitHub Actions run **39165116209** : Maven + Docker SUCCESS | PASS | pas de déploiement Railway dans le workflow |
+| EV-14 | ADMIN/RBAC/wallet | `BE-ADMIN-01-rbac-wallet-moderation-media.txt` : 401/403, seul ADMIN, wallet transactionnel, modération | PASS tests | captures UI complémentaires |
+| EV-15 | Uploads | JPEG/PNG/GIF/BMP : 10 Mo, MIME+décodage, sortie JPEG, temporaires nettoyés; formats modernes refusés | PASS tests / fonctionnel | preuve visuelle production |
+| EV-16 | PostgreSQL dédié | `PostgresPaymentIntegrationTests` 5/5, 0 skipped/fail/error | PASS | pas une preuve de restauration |
+| EV-17 | E2E production | `BE-E2E-01-production-recipe.txt` : admin, feed, cycles Marketplace, modération, smoke | PASS fonctionnel / PARTIAL documentaire | captures et traces HTTP archivables |
+| EV-18 | Captures uploads | JPEG/PNG/GIF/BMP validés manuellement | **À AJOUTER** | captures de production sans données sensibles |
+| EV-19 | Conformité/qualité | audit RGPD/RGAA/RGESN, risques, backup/rollback/observabilité | PARTIAL | audit formel, politique/registre, restore réel |
+| EV-20 | Contrôles Phase 15 | 47/47 frontend, build; Maven et lint 0 erreur / 1 warning documenté | PASS | aucune certification RGAA déduite |
+| EV-21 | Veille | veille datée, sources officielles et décisions documentées | PASS documentaire | aucune mise à niveau/scan implicite |
+| EV-22 | CI/CD frontend | GitHub Actions run **39165084863** : tests, build, rsync Hostinger et smoke SUCCESS | PASS | mécanisme limité au frontend |
+| EV-23 | Documentation finale | `17_DOCUMENTATION_FINALE.md` et les sources Dossier Projet/Professionnel/Présentation synchronisées. | PASS documentaire | régénérer les livrables DOCX/PPTX sur instruction dédiée |
+| EV-24 | Index final des preuves | `18_PREUVES_RNCP_FINALES.md` et `evidence/backend/BE-RNCP-01-final-evidence-index.txt` : inventaire, matrice E2E, sécurité, DB, CI et gaps. | PASS documentaire | consolider les captures/traces listées dans `evidence/production/README.md` |
+| EV-25 | Source Dossier Projet | `19_DOSSIER_PROJET_FINAL.md` : 40 sections, preuves sélectionnées, emplacements de captures et limites explicites. | PASS documentaire | générer DOCX/PDF sur instruction dédiée et compléter annexes visuelles |
+
+## Règles d'utilisation des preuves
+
+- Une capture complète un test ou une recette; elle ne les remplace pas.
+- Une recette fonctionnelle sans trace/capture archivée est **PARTIAL** sur le plan documentaire.
+- Les secrets, mots de passe, cookies, JWT, clés SSH, e-mails réels et identifiants d'infrastructure ne sont jamais intégrés aux preuves.
+- Aucun résultat CI ne prouve un CD Railway automatique en l'absence de job de déploiement correspondant.
+- `evidence/production/` est une structure d'accueil : aucun fichier visuel n'y
+  est déclaré présent tant qu'il n'est pas versionné et vérifié.
+
+## Historique de collecte et jalons initiaux
 
 | ID | Preuve à collecter | Source / condition | Date cible | Usage dossier | Usage slide | Usage oral |
 |---|---|---|---:|---|---|---|
