@@ -1,0 +1,42 @@
+WatYouFace — recette fonctionnelle production consolidée
+Date : 2026-10-18
+Nature de la preuve : compte rendu de recette manuelle validée. Les captures et traces HTTP non jointes sont signalées PARTIAL ; aucune capture n'est inventée.
+
+Infrastructure
+| Scénario | Acteur | Endpoint/action | Avant -> après | HTTP connu | Verdict | Preuve |
+| Frontend Hostinger | système | GitHub Actions -> build Vite -> rsync SSH | build -> site déployé | n/a | PASS | run 39143768559 SUCCESS |
+| Backend Railway | système | déploiement contrôlé Railway | version précédente -> backend démarré | n/a | PASS fonctionnel | confirmation de recette ; journal à centraliser |
+| Migrations | système | Flyway V2 puis V3 | schéma V1 -> V3 | n/a | PASS fonctionnel | validation Railway déclarée ; preuve locale V2/V3 existante |
+| Smoke non authentifié | visiteur | GET /api/users/me | sans session -> refus | 401 | PASS | trace à ajouter |
+| CSRF | visiteur | GET /api/auth/csrf | sans jeton -> XSRF-TOKEN | 200 | PASS | trace à ajouter |
+
+ADMIN / wallet
+| Scénario | Acteur | Action | Avant -> après | HTTP connu | Verdict | Preuve |
+| Connexion/dashboard | ADMIN demo | connexion puis /admin | non connecté -> tableau accessible | non consigné | PASS fonctionnel | capture à ajouter |
+| Utilisateurs / solde | ADMIN demo | consulter liste et wallet | liste -> données/soldes visibles | non consigné | PASS fonctionnel | capture à ajouter |
+| Crédit wallet | ADMIN demo | crédit manuel positif | solde N -> N + montant | non consigné | PASS fonctionnel | capture/trace à ajouter |
+| Crédit USER refusé | USER | tentative route manuelle | interdit -> refus | 403 attendu par tests | PASS tests | SecurityApiIntegrationTests |
+| Dernier ADMIN / rôle | ADMIN/USER | suppression, rétrogradation, promotion | protections -> refus | non consigné | PASS tests | tests backend ; aucun second ADMIN créé |
+
+Feed et Marketplace
+| Scénario | Acteur | Action | Avant -> après | HTTP connu | Verdict | Preuve |
+| Modération post | ADMIN demo | supprimer post de test | visible -> supprimé | non consigné | PASS fonctionnel | capture à ajouter |
+| Modération commentaire | ADMIN demo | supprimer commentaire de test | visible -> supprimé | non consigné | PASS fonctionnel | capture à ajouter |
+| Cycle nominal | USER vendeur/acheteur | AVAILABLE -> PENDING -> ACCEPTED -> PAID -> SHIPPED -> RECEIVED | états successifs | non consignés | PASS fonctionnel | captures/traces à ajouter |
+| Cycle refusé | vendeur/acheteur | AVAILABLE -> PENDING -> REFUSED | demande -> refus | non consigné | PASS fonctionnel | capture à ajouter |
+| Solde insuffisant | acheteur | payer sans solde suffisant | ACCEPTED -> refus | 409 | PASS fonctionnel | trace à ajouter |
+| Listing REFUSED | ADMIN demo | suppression modération | REFUSED -> suppression physique | non consigné | PASS fonctionnel | capture à ajouter |
+| Listing engagé | ADMIN demo/tiers | masquage hidden puis catalogue tiers | visible -> absent tiers, visible ADMIN | non consigné | PASS fonctionnel + tests | capture à ajouter ; tests backend |
+
+Uploads
+| Format | Acteur | Action | Résultat | Verdict | Preuve |
+| JPEG | USER | upload Feed/Marketplace | fichier accepté et affichable | FONCTIONNEL VALIDÉ | PREUVE VISUELLE PRODUCTION À AJOUTER |
+| PNG | USER | upload Feed/Marketplace | fichier accepté et affichable | FONCTIONNEL VALIDÉ | PREUVE VISUELLE PRODUCTION À AJOUTER |
+| GIF | USER | upload Feed/Marketplace | fichier accepté ; première image normalisée JPEG | FONCTIONNEL VALIDÉ | PREUVE VISUELLE PRODUCTION À AJOUTER |
+| BMP | USER | upload Feed/Marketplace | fichier accepté ; normalisé JPEG | FONCTIONNEL VALIDÉ | PREUVE VISUELLE PRODUCTION À AJOUTER |
+| WebP/AVIF/HEIC | USER | upload | volontairement non supporté | PASS par contrat/tests | pas de support revendiqué |
+
+Limites
+- Les résultats HTTP exacts ne sont consignés que lorsqu'ils ont été communiqués (401, 200, 409).
+- Les captures de recette, logs Railway et traces réseau restent à ajouter.
+- Cette preuve ne démontre pas un CD backend Railway automatique ; ce déploiement est contrôlé/manuellement réalisé.

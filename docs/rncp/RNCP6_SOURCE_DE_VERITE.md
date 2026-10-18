@@ -418,11 +418,11 @@ Le correctif est **VALIDÉ** pour son périmètre : il est versionné, passé en
 | ADMIN / RBAC | L'ADMIN `demo` reste le seul ADMIN utilisé. Toutes les routes `/api/admin/**` exigent ADMIN (401 sans authentification, 403 pour USER), avec CSRF sur les mutations. La route de changement de rôle est retirée ; inscription et DTO empêchent l'assignation de rôle. Le dernier ADMIN ne peut être supprimé ni rétrogradé, et ne peut supprimer son propre compte. | PASS par tests backend ; aucune création de second ADMIN |
 | Wallet | Seul `POST /api/admin/users/{userId}/wallet/credit` permet un crédit manuel. Montant strictement positif, utilisateur inexistant en 404, écriture transactionnelle et réponse avec nouveau solde. Aucun endpoint USER ne crédite, ne crée arbitrairement ou ne définit un solde. | PASS par audit de routes et tests backend |
 | Modération Feed | L'ADMIN consulte et supprime posts/commentaires ; il ne modifie pas arbitrairement le contenu d'autrui. Les ressources absentes sont traitées en 404. | PASS par tests backend / UI préparée |
-| Modération Marketplace | L'ADMIN n'est plus un acteur transactionnel. `AVAILABLE`/`REFUSED` sont supprimables ; les annonces engagées (`PENDING` à `RECEIVED`) sont masquées par `hidden=true`. Le tiers ne les voit plus, vendeur/acheteur/ADMIN gardent l'accès nécessaire. | PASS par tests backend ; E2E production non exécutée |
-| Upload Feed + Marketplace | JPEG/PNG/GIF/BMP, 10 Mo, MIME puis décodage ImageIO réel. GIF première image et BMP sont normalisés en JPEG ; sortie UUID JPEG, temporaire puis déplacement et nettoyage en cas d'échec. WebP/AVIF/HEIC ne sont volontairement pas supportés. | PASS par tests backend ; E2E production non exécutée |
+| Modération Marketplace | L'ADMIN n'est plus un acteur transactionnel. `AVAILABLE`/`REFUSED` sont supprimables ; les annonces engagées (`PENDING` à `RECEIVED`) sont masquées par `hidden=true`. Le tiers ne les voit plus, vendeur/acheteur/ADMIN gardent l'accès nécessaire. | PASS fonctionnel production + tests ; captures à ajouter |
+| Upload Feed + Marketplace | JPEG/PNG/GIF/BMP, 10 Mo, MIME puis décodage ImageIO réel. GIF première image et BMP sont normalisés en JPEG ; sortie UUID JPEG, temporaire puis déplacement et nettoyage en cas d'échec. WebP/AVIF/HEIC ne sont volontairement pas supportés. | Fonctionnel validé production ; preuve visuelle à ajouter |
 | Flyway / PostgreSQL | V2 ajoute `created_at`, V3 `hidden`, avec défauts compatibles table non vide. Validation PostgreSQL 16 sur 37 listings : aucune donnée supprimée, 0 NULL après migrations. `PostgresPaymentIntegrationTests` dédié : 5/5 PASS, 0 failure/error/skip. | PASS, preuve locale réelle |
 | Suite Maven globale | 104 tests rapportés ; les 5 tests PostgreSQL conditionnels sont ignorés dans ce run sans variables de profil. Ne pas confondre cette exécution avec le run PostgreSQL dédié. | PASS hors tests conditionnels ; preuve PostgreSQL séparée |
-| CI / déploiement de ce lot | Les changements sont prêts pour commit puis CI. Aucun run CI ni déploiement de ce lot n'est encore déclaré à cette étape. | À confirmer après push |
+| CI / déploiement de ce lot | Backend CI run 39143755010 : Maven/Docker SUCCESS. Frontend CI/CD run 39143768559 : tests/build/déploiement Hostinger/smoke SUCCESS. Backend Railway déployé de manière contrôlée/manuelle. | PASS ; CD backend automatique non prouvé |
 
 ### Preuves et compétences concernées
 
@@ -434,4 +434,43 @@ Le correctif est **VALIDÉ** pour son périmètre : il est versionné, passé en
 - C10 : stockage persistant, migrations et stratégie d'upload documentés — **renforcée, PARTIEL**.
 - C11 : aucune couverture complète n'est revendiquée : le CD Railway automatique, l'observabilité, la sauvegarde/restauration et le rollback restent non prouvés.
 
-La prochaine preuve autorisée est le passage CI après push. L'E2E de production reste explicitement hors de ce lot jusqu'à validation CI.
+## Recette production consolidée (18/10/2026)
+
+| Élément | État réel | Preuve / limite |
+|---|---|---|
+| Infrastructure | Hostinger frontend, Railway backend, Flyway V2/V3 et Spring Boot/Tomcat : PASS. `/api/users/me` sans session : 401 ; `/api/auth/csrf` : 200 + cookie XSRF. | Recette fonctionnelle déclarée ; traces à archiver |
+| ADMIN / wallet | Connexion `demo`, dashboard, utilisateurs, solde et crédit ADMIN : PASS. Crédit USER, dernier ADMIN et changement de rôle : protections PASS par tests. | UI production PARTIAL captures ; tests backend PASS |
+| Feed | Consultation Admin et suppressions post/commentaire : PASS production. | Captures/actions réseau à ajouter |
+| Marketplace | Cycle nominal jusqu'à RECEIVED, cycle REFUSED et insuffisance de solde 409 : PASS production. | Traces/captures à ajouter |
+| Masquage modération | Listing engagé masqué, absent du tiers et présent pour ADMIN ; intégrité transactionnelle préservée. | PASS production + tests ; captures à ajouter |
+| JPEG / PNG / GIF / BMP | **FONCTIONNEL VALIDÉ** ; GIF première frame et BMP normalisés en JPEG. | **PREUVE VISUELLE PRODUCTION À AJOUTER** |
+| WebP / AVIF / HEIC | Non supportés volontairement. | Contrat et tests backend |
+
+### Suivi cahier des charges (18/10/2026)
+
+| # | Domaine | État |
+|---:|---|---|
+| 1 | Cadrage | DONE / PARTIAL docs |
+| 2 | Analyse besoins | DONE / PARTIAL docs |
+| 3 | Gestion projet | DONE / PARTIAL docs |
+| 4 | UX | PARTIAL docs |
+| 5 | UI | PARTIAL docs |
+| 6 | Prototype | DONE de fait |
+| 7 | Architecture | DONE / PARTIAL docs |
+| 8 | Données | DONE / PARTIAL sauvegarde-restauration |
+| 9 | Frontend | DONE |
+| 10 | Backend | DONE |
+| 11 | Sécurité | DONE / PARTIAL limitations |
+| 12 | Tests | DONE |
+| 13 | Déploiement | DONE / PARTIAL rollback-backup |
+| 14 | DevOps CI-CD | DONE / PARTIAL backend CD manuel |
+| 15 | Conformité qualité | À TRAITER ENSUITE |
+| 16 | Veille | À TRAITER ENSUITE |
+| 17 | Documentation finale | EN COURS |
+| 18 | Preuves RNCP | EN COURS AVANCÉ |
+| 19 | Dossier Projet | À FINALISER |
+| 20 | Dossier Professionnel | À FINALISER |
+| 21 | Support | À FINALISER |
+| 22–25 | Préparation jury | À FAIRE |
+
+La recette fonctionnelle ne vaut pas à elle seule preuve visuelle complète. Les captures upload, les traces HTTP et les livrables de soutenance restent à finaliser. Aucun CD backend automatique n'est déclaré.

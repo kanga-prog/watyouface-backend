@@ -38,4 +38,13 @@ La preuve `evidence/backend/BE-API-02-marketplace-image-upload.txt` couvre 7 cas
 | EV-15 | Tests image Feed + Marketplace avec fichiers réels | JPEG/PNG/GIF/BMP acceptés à 10 Mo ; MIME falsifié, vide, taille excessive et contenu corrompu refusés ; sortie JPEG, temporaire nettoyé. WebP/AVIF/HEIC non supportés volontairement. | C2, C3, C8, C9 |
 | EV-16 | Validation PostgreSQL locale dédiée | `PostgresPaymentIntegrationTests` : 5/5, 0 failure/error/skip ; V2/V3 Flyway sur PostgreSQL 16 et 37 listings, aucune suppression, 0 NULL après migration. La suite globale garde 5 tests conditionnels ignorés hors profil PostgreSQL. | C7, C8, C9, C10 |
 
-Ces preuves ne constituent pas une E2E navigateur en production ni une preuve de CD Railway automatique. Elles doivent être complétées après le passage CI de ce lot, puis par la recette E2E autorisée avec données de test.
+Ces preuves ne constituent pas une preuve de CD Railway automatique. La recette E2E navigateur a depuis été validée fonctionnellement ; ses captures et traces HTTP restent à centraliser dans la preuve EV-17.
+
+## Preuve de recette production consolidée (18/10/2026)
+
+| ID | Preuve réelle | Résultat / limites | Compétences |
+|---|---|---|---|
+| EV-17 | `evidence/backend/BE-E2E-01-production-recipe.txt` | Parcours ADMIN, Feed, Marketplace nominal/refusé, modération et smoke API validés fonctionnellement en production. Résultats sans capture/trace archivée = PARTIAL documentaire. | C2, C3, C8, C9, C10, C11 |
+| EV-18 | Captures uploads production JPEG/PNG/GIF/BMP | **À AJOUTER** : les quatre formats sont fonctionnels validés manuellement ; aucune capture n'est inventée ni jointe à ce stade. | C2, C3, C8, C9, C10 |
+
+Le run backend [39143755010](https://github.com/kanga-prog/watyouface-backend/actions/runs/39143755010) est SUCCESS (Maven tests, Docker build). Le run frontend [39143768559](https://github.com/kanga-prog/watyouface-frontend/actions/runs/39143768559) est SUCCESS (tests, build, déploiement Hostinger et smoke test). Ces résultats ne prouvent pas un CD Railway automatique.

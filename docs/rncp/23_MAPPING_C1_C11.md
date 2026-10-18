@@ -36,6 +36,24 @@ Le correctif `e892ae8` est sur `main`, poussé et validé par la CI GitHub Actio
 | C8 | Endpoint de crédit unique sous `/api/admin`, transactionnalité wallet, DTO sans secret/rôle mutable et accès annonces masquées borné aux acteurs légitimes. | renforcée, PARTIEL |
 | C9 | Suite Maven : 104 rapportés avec 5 conditionnels ignorés ; preuve séparée `PostgresPaymentIntegrationTests` : 5/5 exécutés, 0 failure/error/skip ; tests image réels JPEG/PNG/GIF/BMP et entrées invalides. | renforcée, PARTIEL |
 | C10 | Politique d'upload documentée (décodage réel, temporaire/nettoyage, persistance media) et migrations compatibles avec une base Railway non vide. | renforcée, PARTIEL |
-| C11 | Changements préparés pour CI, mais aucune nouvelle exécution CI ou CD de ce lot n'est encore revendiquée dans cette section. | PARTIEL |
+| C11 | CI backend et frontend exécutées avec succès sur les commits du lot ; déploiement frontend Hostinger automatisé, backend Railway contrôlé/manuellement déployé. | renforcée, PARTIEL |
 
 WebP, AVIF et HEIC/HEIF ne sont pas déclarés supportés : aucun décodeur Java correspondant n'a été ajouté. GIF est converti en JPEG sur sa première image et BMP en JPEG. Les preuves C10/C11 demeurent partielles tant que CD Railway automatique, observabilité, sauvegarde/restauration et rollback testés ne sont pas démontrés.
+
+### Recette production consolidée — impact C1 à C11 (18/10/2026)
+
+| Compétence | Apport réellement validé | État de preuve |
+|---|---|---|
+| C1 | Déploiement exécuté sur les environnements Hostinger/Railway et smoke API/CSRF validés. | renforcée, PARTIEL |
+| C2 | Interfaces Admin, Feed et Marketplace utilisées en production ; validations UI de format/taille cohérentes avec le backend. | PASS fonctionnel, PARTIAL captures |
+| C3 | Cycle Marketplace nominal et refusé, modération, wallet de démonstration et messages d'erreur validés fonctionnellement. | PASS fonctionnel, PARTIAL traces |
+| C4 | Lot traçable par commits, CI, plan et preuve de recette. | renforcée, PARTIEL |
+| C5 | Parcours administrateur, vendeur et acheteur confrontés à la recette réelle. | renforcée, PARTIEL |
+| C6 | Architecture multicouche et séparation frontend/REST/Spring/PostgreSQL confirmées par les parcours déployés. | renforcée, PARTIEL |
+| C7 | Flyway V2/V3 appliquées et PostgreSQL opérationnel en production ; validation non vide locale déjà archivée. | renforcée, PARTIEL |
+| C8 | Repositories/services transactionnels, ownership, RBAC et protection BOLA/IDOR vérifiés par tests et scénarios de masquage. | renforcée, PARTIEL |
+| C9 | Tests automatisés + recette fonctionnelle production ; captures et traces HTTP restent à compléter. | renforcée, PARTIEL |
+| C10 | Docker/Railway, migrations, smoke tests et déploiement Hostinger prouvés fonctionnellement. | renforcée, PARTIEL |
+| C11 | GitHub Actions : backend tests/build Docker ; frontend tests/build/déploiement Hostinger/smoke test. Railway est contrôlé/manuellement déployé, pas de CD backend automatique revendiqué. | renforcée, PARTIEL |
+
+Les uploads JPEG, PNG, GIF et BMP sont **fonctionnels validés** en production ; leurs captures visuelles restent une preuve à ajouter. Aucune compétence n'est déclarée complète sur la seule base d'une recette manuelle sans l'ensemble des livrables de certification.

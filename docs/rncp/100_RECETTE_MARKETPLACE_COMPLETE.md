@@ -116,4 +116,26 @@ Cette section remplace les mentions antérieures contradictoires sur le contrat 
 
 ### Limites de recette
 
-Les tests unitaires/intégration et les migrations sont prouvés. Le parcours E2E navigateur de production, avec deux comptes USER et les captures correspondantes, n'a pas été lancé dans cette phase et reste à effectuer après déploiement/CI.
+Les tests unitaires/intégration et les migrations sont prouvés. La recette fonctionnelle E2E de production décrite ci-dessous a ensuite été validée manuellement ; les captures et traces HTTP réutilisables pour le jury restent à ajouter, notamment pour les uploads.
+
+## Recette fonctionnelle production consolidée (18/10/2026)
+
+La validation ci-dessous est une recette manuelle de production rapportée après les CI vertes. **PASS fonctionnel** signifie que le comportement a été validé ; lorsqu'aucune capture/trace n'est encore archivée, la preuve documentaire est explicitement **PARTIAL**.
+
+| Domaine | Scénario / résultat | Verdict fonctionnel | Preuve documentaire |
+|---|---|---|---|
+| Infrastructure | Frontend Hostinger déployé par GitHub Actions ; Backend Railway déployé ; Flyway V2 et V3 appliquées ; Spring Boot/Tomcat démarré. | PASS | PASS : run frontend et recette déclarée ; journal Railway/captures à centraliser |
+| Smoke API | `GET /api/users/me` sans session → 401 ; `GET /api/auth/csrf` → 200 avec `XSRF-TOKEN`. | PASS | PARTIAL : résultat fonctionnel validé, trace HTTP à archiver |
+| ADMIN / wallet | Connexion `demo`, dashboard, liste utilisateurs, solde et crédit par ADMIN. Crédit USER interdit par architecture ; dernier ADMIN protégé et changement de rôle retiré par tests. | PASS | PASS tests backend ; PARTIAL pour captures de l'interface |
+| Feed | Listes Admin, suppression d'un post et suppression d'un commentaire. | PASS production | PARTIAL : captures/actions réseau à ajouter |
+| Marketplace nominal | `AVAILABLE → PENDING → ACCEPTED → PAID → SHIPPED → RECEIVED`. | PASS production | PARTIAL : scénario validé, traces/captures à ajouter |
+| Marketplace alternatif | `AVAILABLE → PENDING → REFUSED`. | PASS production | PARTIAL : scénario validé, traces/captures à ajouter |
+| Négatifs Marketplace | Solde insuffisant → 409 ; ADMIN sans bypass vendeur/acheteur ; tiers exclu d'un listing masqué. | PASS production/tests | PASS pour tests automatisés ; PARTIAL pour trace production 409 |
+| Modération Marketplace | `REFUSED` supprimé physiquement. Listing engagé masqué (`hidden=true`), absent du catalogue tiers et conservé au dashboard ADMIN sans casser la transaction. | PASS production/tests | PARTIAL : captures/trace à ajouter |
+| Upload JPEG | Upload réel à 10 Mo maximum, normalisé en JPEG selon la politique serveur. | **FONCTIONNEL VALIDÉ** | **PREUVE VISUELLE PRODUCTION À AJOUTER** |
+| Upload PNG | Upload réel à 10 Mo maximum, normalisé en JPEG selon la politique serveur. | **FONCTIONNEL VALIDÉ** | **PREUVE VISUELLE PRODUCTION À AJOUTER** |
+| Upload GIF | Upload réel à 10 Mo maximum ; première image normalisée en JPEG. | **FONCTIONNEL VALIDÉ** | **PREUVE VISUELLE PRODUCTION À AJOUTER** |
+| Upload BMP | Upload réel à 10 Mo maximum, normalisé en JPEG. | **FONCTIONNEL VALIDÉ** | **PREUVE VISUELLE PRODUCTION À AJOUTER** |
+| Formats volontairement refusés | WebP, AVIF et HEIC/HEIF ne sont pas supportés. | PASS par contrat/tests | PASS tests ; pas de support à démontrer |
+
+Cette recette ne prétend pas prouver un CD backend automatique : le déploiement Railway reste contrôlé/manuellement déclenché. Elle ne remplace pas les futures captures, mais établit le statut fonctionnel validé pour les scénarios listés.
