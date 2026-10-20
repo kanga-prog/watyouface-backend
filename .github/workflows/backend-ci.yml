@@ -2,13 +2,16 @@ name: Backend CI
 
 on:
   push:
+    branches:
+      - main
+      - 'feature/**'
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  test-and-build:
+  ci:
     name: Maven tests and Docker build
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -33,3 +36,52 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t watyouface-backend:ci .
+
+  deploy-production:
+    name: Deploy Railway production
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: railway-production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://api.watyouface.com
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js for Railway CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli@5.70.0
+
+      - name: Deploy the audited Railway service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -z "${RAILWAY_TOKEN:-}" ]; then
+            echo "RAILWAY_TOKEN is required as a production environment secret." >&2
+            exit 1
+          fi
+          railway up --ci \
+            --service watyouface-backend \
+            --environment production \
+            --message "GitHub Actions ${GITHUB_SHA}"
+
+      - name: Smoke test the production API
+        run: |
+          curl --fail --silent --show-error --location \
+            --retry 18 --retry-all-errors --retry-delay 5 \
+            --connect-timeout 10 --max-time 20 \
+            https://api.watyouface.com/api/auth/csrf > /dev/null
