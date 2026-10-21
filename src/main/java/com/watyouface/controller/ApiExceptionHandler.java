@@ -10,6 +10,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.watyouface.exception.ResourceNotFoundException;
+import com.watyouface.exception.StepUpDeliveryException;
+import com.watyouface.exception.StepUpRateLimitException;
 
 import java.util.Map;
 
@@ -34,6 +36,18 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<?> conflict(IllegalStateException e) {
         return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+    }
+
+    @ExceptionHandler(StepUpRateLimitException.class)
+    public ResponseEntity<?> stepUpRateLimited(StepUpRateLimitException e) {
+        return ResponseEntity.status(429)
+                .header("Retry-After", Long.toString(e.getRetryAfterSeconds()))
+                .body(Map.of("error", e.getMessage()));
+    }
+
+    @ExceptionHandler(StepUpDeliveryException.class)
+    public ResponseEntity<?> stepUpDeliveryUnavailable(StepUpDeliveryException e) {
+        return ResponseEntity.status(503).body(Map.of("error", e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

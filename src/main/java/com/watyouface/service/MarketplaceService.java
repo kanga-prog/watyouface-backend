@@ -8,6 +8,7 @@ import com.watyouface.repository.ListingRepository;
 import com.watyouface.repository.TransactionRepository;
 import com.watyouface.repository.UserRepository;
 import com.watyouface.exception.ResourceNotFoundException;
+import com.watyouface.media.MediaReferenceCleanupService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,9 @@ public class MarketplaceService {
     private final UserRepository userRepository;
     private final TransactionService transactionService;
     private final TransactionRepository transactionRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private MediaReferenceCleanupService mediaCleanup;
 
     public MarketplaceService(
             ListingRepository listingRepository,
@@ -79,12 +83,15 @@ public class MarketplaceService {
             throw new IllegalStateException("Modification impossible dans l'état " + listing.getStatus());
         }
 
+        String previousImage = listing.getImage();
         listing.setTitle(dto.title);
         listing.setDescription(dto.description);
         listing.setPrice(dto.price);
         listing.setImage(dto.image);
 
-        return toDTO(listingRepository.save(listing));
+        ListingDTO updated = toDTO(listingRepository.save(listing));
+        scheduleMediaCleanup(previousImage);
+        return updated;
     }
 
     // DELETE sécurisé
@@ -103,7 +110,9 @@ public class MarketplaceService {
             throw new IllegalStateException("Suppression impossible après paiement/expédition");
         }
 
+        String previousImage = listing.getImage();
         listingRepository.delete(listing);
+        scheduleMediaCleanup(previousImage);
     }
 
     /**
@@ -116,7 +125,9 @@ public class MarketplaceService {
         Listing listing = listingRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
         if (listing.getStatus() == ListingStatus.AVAILABLE || listing.getStatus() == ListingStatus.REFUSED) {
+            String previousImage = listing.getImage();
             listingRepository.delete(listing);
+            scheduleMediaCleanup(previousImage);
             return;
         }
         listing.setHidden(true);
@@ -311,5 +322,11 @@ public class MarketplaceService {
         if (actorId == null) return false;
         return listing.getSeller().getId().equals(actorId)
                 || (listing.getBuyer() != null && listing.getBuyer().getId().equals(actorId));
+    }
+
+    private void scheduleMediaCleanup(String publicUrl) {
+        if (mediaCleanup != null && publicUrl != null && !publicUrl.isBlank()) {
+            mediaCleanup.deleteIfUnreferencedAfterCommit(List.of(publicUrl));
+        }
     }
 }

@@ -7,10 +7,13 @@ import com.watyouface.repository.UserRepository;
 import com.watyouface.repository.VideoRepository;
 import com.watyouface.repository.VideoShareRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -21,6 +24,9 @@ public class VideoService {
     private final VideoRepository videoRepository;
     private final UserRepository userRepository;
     private final VideoShareRepository videoShareRepository;
+
+    @Autowired
+    private MediaReferenceCleanupService mediaCleanup;
 
     public VideoService(MediaStorageService storage,
                         VideoRepository videoRepository,
@@ -39,47 +45,42 @@ public class VideoService {
         String outputPath = storage.resolvePath(outputRelative);
 
         File originalFile = new File(rawPath);
-        file.transferTo(originalFile);
+        File outputFile = new File(outputPath);
+        boolean completedSuccessfully = false;
+        try {
+            file.transferTo(originalFile);
 
-        // ✅ Resize intelligent :
-        // - garde le ratio
-        // - limite à 720p max
-        // - force dimensions paires (nécessaire pour H.264)
-        String scaleFilter = "scale='min(1280,iw)':'-2'";
+            // ✅ Resize intelligent :
+            // - garde le ratio
+            // - limite à 720p max
+            // - force dimensions paires (nécessaire pour H.264)
+            String scaleFilter = "scale='min(1280,iw)':'-2'";
 
-        ProcessBuilder pb = new ProcessBuilder(
-                "ffmpeg",
-                "-y",
-                "-i", originalFile.getAbsolutePath(),
-                "-vf", scaleFilter,
-                "-c:v", "libx264",
-                "-preset", "veryfast",
-                "-crf", "23",
-                "-c:a", "aac",
-                "-b:a", "128k",
-                "-movflags", "+faststart",
-                outputPath
-        );
+            ProcessBuilder pb = new ProcessBuilder(
+                    "ffmpeg", "-y", "-i", originalFile.getAbsolutePath(), "-vf", scaleFilter,
+                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+                    "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", outputPath
+            );
 
-        pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
-        pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-        Process process = pb.start();
-        boolean completed = process.waitFor(120, TimeUnit.SECONDS);
-        if (!completed) {
-            process.destroyForcibly();
-            originalFile.delete();
-            throw new IllegalArgumentException("Traitement vidéo interrompu (délai dépassé)");
+            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            Process process = pb.start();
+            boolean completed = process.waitFor(120, TimeUnit.SECONDS);
+            if (!completed) {
+                process.destroyForcibly();
+                throw new IllegalArgumentException("Traitement vidéo interrompu (délai dépassé)");
+            }
+            if (process.exitValue() != 0) {
+                throw new IllegalArgumentException("Vidéo invalide ou transcodage impossible");
+            }
+            completedSuccessfully = true;
+            return storage.publicUrl(outputRelative);
+        } finally {
+            Files.deleteIfExists(originalFile.toPath());
+            if (!completedSuccessfully) {
+                Files.deleteIfExists(outputFile.toPath());
+            }
         }
-        int code = process.exitValue();
-
-        if (code != 0) {
-            originalFile.delete();
-            throw new IllegalArgumentException("Vidéo invalide ou transcodage impossible");
-        }
-
-        originalFile.delete();
-
-        return storage.publicUrl(outputRelative); // "/media/videos/post_<id>.mp4"
     }
 
     // 🔹 Gestion CRUD vidéo
@@ -92,7 +93,7 @@ public class VideoService {
     }
 
     public Video createVideoAs(Video video, Long uploaderId) {
-        User uploader = userRepository.findById(uploaderId)
+        User uploader = userRepository.findByIdAndDeletedAtIsNull(uploaderId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
         video.setUploader(uploader);
         return videoRepository.save(video);
@@ -110,10 +111,15 @@ public class VideoService {
         return videoRepository.save(video);
     }
 
+    @Transactional
     public void deleteVideoAs(Long id, Long actorId, boolean isAdmin) {
         Video video = getVideoOrThrow(id);
         assertOwnerOrAdmin(video, actorId, isAdmin);
+        String previousUrl = video.getUrl();
         videoRepository.delete(video);
+        if (mediaCleanup != null && previousUrl != null && !previousUrl.isBlank()) {
+            mediaCleanup.deleteIfUnreferencedAfterCommit(List.of(previousUrl));
+        }
     }
 
     private void assertOwnerOrAdmin(Video video, Long actorId, boolean isAdmin) {
@@ -127,9 +133,9 @@ public class VideoService {
     public VideoShare shareVideo(Long videoId, Long senderId, Long receiverId) {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> new RuntimeException("Vidéo non trouvée"));
-        User sender = userRepository.findById(senderId)
+        User sender = userRepository.findByIdAndDeletedAtIsNull(senderId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur expéditeur non trouvé"));
-        User receiver = userRepository.findById(receiverId)
+        User receiver = userRepository.findByIdAndDeletedAtIsNull(receiverId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur destinataire non trouvé"));
 
         VideoShare videoShare = new VideoShare(video, sender, receiver);

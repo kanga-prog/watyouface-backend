@@ -9,4 +9,5 @@ import org.springframework.data.domain.Pageable;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByPostId(Long postId);
     Page<Comment> findByContentContainingIgnoreCase(String content, Pageable pageable);
+    List<Comment> findByAuthor_Id(Long authorId);
 }

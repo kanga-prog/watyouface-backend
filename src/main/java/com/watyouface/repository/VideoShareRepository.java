@@ -11,4 +11,5 @@ public interface VideoShareRepository extends JpaRepository<VideoShare, Long> {
 
     // Récupérer toutes les vidéos envoyées par un utilisateur
     List<VideoShare> findBySenderId(Long senderId);
+    List<VideoShare> findBySender_IdOrReceiver_Id(Long senderId, Long receiverId);
 }

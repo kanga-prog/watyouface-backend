@@ -19,4 +19,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p ORDER BY p.createdAt DESC")
     List<Post> findAllOrderedByDateDesc();
     Page<Post> findByContentContainingIgnoreCase(String content, Pageable pageable);
+    List<Post> findByAuthor_Id(Long authorId);
+    boolean existsByImageUrl(String imageUrl);
+    boolean existsByVideoUrl(String videoUrl);
 }

@@ -35,7 +35,7 @@ public class CookieJwtHandshakeInterceptor implements HandshakeInterceptor {
         if (userId == null) return true;
 
         User user = userRepository.findById(userId).orElse(null);
-        if (user != null) {
+        if (user != null && !user.isDeleted()) {
             attributes.put(AUTHENTICATED_PRINCIPAL,
                     new StompPrincipal(user.getUsername(), user.getId(), user.getAvatarUrl()));
         }

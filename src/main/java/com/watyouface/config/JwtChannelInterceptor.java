@@ -80,7 +80,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
             Optional<User> uOpt = userRepository.findById(userId);
 
-            if (uOpt.isEmpty()) {
+            if (uOpt.isEmpty() || uOpt.get().isDeleted()) {
                 return null;
             }
 

@@ -8,11 +8,13 @@ import com.watyouface.repository.PostRepository;
 import com.watyouface.media.ImageService;
 import com.watyouface.media.ImageUploadService;
 import com.watyouface.media.VideoService;
+import com.watyouface.media.MediaReferenceCleanupService;
 import com.watyouface.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,6 +35,9 @@ public class PostService {
 
     @Autowired
     private VideoService videoService;
+
+    @Autowired
+    private MediaReferenceCleanupService mediaCleanup;
 
     // Dossier d'upload par défaut (utilisé pour saveMediaFile)
     private static final String UPLOAD_DIR = "media/";
@@ -55,8 +60,9 @@ public class PostService {
     }
 
     /** Supprime un post par son ID */
+    @Transactional
     public void deletePost(Long id) {
-        postRepository.deleteById(id);
+        deletePostAndCleanup(id, getPostOrThrow(id));
     }
 
     /** Crée un post sans fichier média */
@@ -161,6 +167,7 @@ public class PostService {
      * - ADMIN peut tout supprimer
      * - USER peut supprimer uniquement ses posts
      */
+    @Transactional
     public void deletePostAs(Long postId, Long currentUserId, boolean isAdmin) {
         Post post = getPostOrThrow(postId);
 
@@ -172,11 +179,12 @@ public class PostService {
             }
         }
 
-        postRepository.deleteById(postId);
+        deletePostAndCleanup(postId, post);
     }
 
+    @Transactional
     public void deletePostForModeration(Long postId) {
-        postRepository.delete(getPostOrThrow(postId));
+        deletePostAndCleanup(postId, getPostOrThrow(postId));
     }
 
     /**
@@ -199,5 +207,14 @@ public class PostService {
     @Deprecated(forRemoval = false)
     public Post updatePostAs(Long postId, Long currentUserId, boolean ignoredAdmin, String content) {
         return updatePostAs(postId, currentUserId, content);
+    }
+
+    private void deletePostAndCleanup(Long postId, Post post) {
+        List<String> candidates = java.util.stream.Stream.of(post.getImageUrl(), post.getVideoUrl())
+                .filter(java.util.Objects::nonNull).toList();
+        postRepository.deleteById(postId);
+        if (mediaCleanup != null) {
+            mediaCleanup.deleteIfUnreferencedAfterCommit(candidates);
+        }
     }
 }

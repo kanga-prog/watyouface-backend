@@ -3,6 +3,7 @@ package com.watyouface.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.watyouface.entity.enums.Role;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -33,6 +34,14 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role = Role.USER;
+
+    /**
+     * An account is erased by irreversibly scrubbing identifying fields while
+     * retaining this technical row for transaction and foreign-key integrity.
+     * A non-null value also invalidates pre-existing JWT sessions server-side.
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     // Relations
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL)
@@ -108,5 +117,9 @@ public class User {
 
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+    public boolean isDeleted() { return deletedAt != null; }
 }
 

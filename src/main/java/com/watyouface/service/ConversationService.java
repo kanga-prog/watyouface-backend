@@ -44,7 +44,9 @@ public class ConversationService {
         conversation.setTitle(null);
         conversation = conversationRepository.save(conversation);
 
-        List<User> users = userRepository.findAllById(List.of(userId1, userId2));
+        List<User> users = List.of(
+                activeUser(userId1),
+                activeUser(userId2));
         for (User user : users) {
             ConversationUser cu = new ConversationUser();
             cu.setConversation(conversation);
@@ -65,7 +67,7 @@ public class ConversationService {
         conversation.setTitle(title);
         conversation = conversationRepository.save(conversation);
 
-        List<User> users = userRepository.findAllById(participantIds);
+        List<User> users = participantIds.stream().map(this::activeUser).toList();
         for (User user : users) {
             ConversationUser cu = new ConversationUser();
             cu.setConversation(conversation);
@@ -81,5 +83,10 @@ public class ConversationService {
      */
     public List<Conversation> FindByUser(Long userId) {
         return conversationRepository.findByUserId(userId);
+    }
+
+    private User activeUser(Long userId) {
+        return userRepository.findByIdAndDeletedAtIsNull(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable ou supprimé"));
     }
 }

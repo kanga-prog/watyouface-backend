@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -17,4 +18,6 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     @Query("select l from Listing l where l.id = :id")
     Optional<Listing> findByIdForUpdate(@Param("id") Long id);
     Page<Listing> findByTitleContainingIgnoreCase(String title, Pageable pageable);
+    List<Listing> findBySeller_IdOrBuyer_Id(Long sellerId, Long buyerId);
+    boolean existsByImage(String image);
 }

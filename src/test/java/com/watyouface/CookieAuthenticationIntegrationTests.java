@@ -27,6 +27,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -111,6 +112,23 @@ class CookieAuthenticationIntegrationTests {
 
         Cookie clearedAuth = cookieFromSetCookie(clearedSetCookie, AuthCookieFactory.COOKIE_NAME);
         mvc.perform(get("/api/users/me").cookie(clearedAuth))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void selfErasureClearsCookieAndRejectsThePreviouslyValidJwt() throws Exception {
+        MvcResult csrf = csrfToken();
+        Cookie auth = authCookie(validToken());
+
+        MvcResult erased = mvc.perform(delete("/api/users/{id}", user.getId())
+                        .cookie(auth, csrfCookie(csrf))
+                        .header("X-XSRF-TOKEN", csrfValue(csrf)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(erased.getResponse().getHeaders("Set-Cookie")).anySatisfy(cookie -> assertThat(cookie)
+                .contains("WATYOUFACE_AUTH=", "Max-Age=0", "HttpOnly", "SameSite=Lax"));
+        mvc.perform(get("/api/users/me").cookie(auth))
                 .andExpect(status().isUnauthorized());
     }
 

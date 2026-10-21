@@ -26,6 +26,8 @@ import com.watyouface.repository.WalletRepository;
 import com.watyouface.security.JwtUtil;
 import com.watyouface.security.AuthCookieFactory;
 import com.watyouface.security.LoginRateLimiter;
+import com.watyouface.security.StepUpAction;
+import com.watyouface.service.StepUpCodeSender;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -35,11 +37,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockPart;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.servlet.http.Cookie;
 
 import java.util.Map;
@@ -54,8 +58,11 @@ import java.nio.file.Path;
 import javax.imageio.ImageIO;
 import java.util.ArrayList;
 import java.util.List;
+import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -69,7 +76,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
         "app.jwt.secret=integration-test-secret-that-is-at-least-32-bytes",
-        "app.cors.allowed-origins=http://localhost:5173"
+        "app.cors.allowed-origins=http://localhost:5173",
+        "spring.mail.enabled=true"
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
@@ -93,6 +101,8 @@ class SecurityApiIntegrationTests {
     @Autowired private CommentRepository commentRepository;
     @Autowired private LikeRepository likeRepository;
     @Autowired private JwtUtil jwtUtil;
+    @Autowired private PasswordEncoder passwordEncoder;
+    @MockBean private StepUpCodeSender stepUpCodeSender;
     @Autowired private LoginRateLimiter loginRateLimiter;
     private final List<Path> uploadedMarketplaceFiles = new ArrayList<>();
 
@@ -1014,13 +1024,190 @@ class SecurityApiIntegrationTests {
         assertThat(userRepository.findById(userB.getId()).orElseThrow().isAcceptedContract()).isFalse();
     }
 
+    @Test
+    void authenticatedUserCanChangeEmailWithCurrentPasswordAndEmailIsNormalized() throws Exception {
+        User user = saveUserWithPassword("email-rectify", "old-email@example.test", Role.USER, "CurrentPassword123!");
+        String stepUpToken = requestAndVerifyStepUp(user, StepUpAction.EMAIL_CHANGE, "CurrentPassword123!");
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/email")
+                        .with(csrf()).header("Authorization", bearer(user)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("newEmail", "  NEW-ADDRESS@EXAMPLE.TEST  ",
+                                "currentPassword", "CurrentPassword123!", "stepUpToken", stepUpToken))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("new-address@example.test"))
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getEmail()).isEqualTo("new-address@example.test");
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getPassword()).isNotEqualTo("CurrentPassword123!");
+    }
+
+    @Test
+    void emailChangeRejectsInvalidEmailDuplicateAndWrongCurrentPassword() throws Exception {
+        User user = saveUserWithPassword("email-rectify-errors", "email-errors@example.test", Role.USER, "CurrentPassword123!");
+        saveUserWithPassword("email-rectify-other", "already-used@example.test", Role.USER, "CurrentPassword123!");
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/email")
+                        .with(csrf()).header("Authorization", bearer(user)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"newEmail\":\"invalid-email\",\"currentPassword\":\"CurrentPassword123!\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/email")
+                        .with(csrf()).header("Authorization", bearer(user)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"newEmail\":\"already-used@example.test\",\"currentPassword\":\"CurrentPassword123!\"}"))
+                .andExpect(status().isConflict());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/email")
+                        .with(csrf()).header("Authorization", bearer(user)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"newEmail\":\"another@example.test\",\"currentPassword\":\"WrongPassword123!\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void passwordChangeHashesNewPasswordClearsCurrentCookieAndDoesNotExposeCredentials() throws Exception {
+        String currentPassword = "CurrentPassword123!";
+        String newPassword = "ReplacementPassword456!";
+        User user = saveUserWithPassword("password-rectify", "password-rectify@example.test", Role.USER, currentPassword);
+        String previousHash = user.getPassword();
+        String stepUpToken = requestAndVerifyStepUp(user, StepUpAction.PASSWORD_CHANGE, currentPassword);
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/password")
+                        .with(csrf()).header("Authorization", bearer(user)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("currentPassword", currentPassword,
+                                "newPassword", newPassword, "confirmPassword", newPassword, "stepUpToken", stepUpToken))))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("WATYOUFACE_AUTH=")))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
+
+        String persistedHash = userRepository.findById(user.getId()).orElseThrow().getPassword();
+        assertThat(persistedHash).isNotEqualTo(previousHash).isNotEqualTo(newPassword);
+        assertThat(passwordEncoder.matches(newPassword, persistedHash)).isTrue();
+    }
+
+    @Test
+    void passwordChangeRejectsWrongCurrentPasswordMismatchInvalidPolicyAndSamePassword() throws Exception {
+        String currentPassword = "CurrentPassword123!";
+        User user = saveUserWithPassword("password-rectify-errors", "password-errors@example.test", Role.USER, currentPassword);
+        String path = "/api/users/me/password";
+        String auth = bearer(user);
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(path).with(csrf())
+                        .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"wrong\",\"newPassword\":\"ReplacementPassword456!\",\"confirmPassword\":\"ReplacementPassword456!\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(path).with(csrf())
+                        .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"" + currentPassword + "\",\"newPassword\":\"ReplacementPassword456!\",\"confirmPassword\":\"DifferentPassword789!\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(path).with(csrf())
+                        .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"" + currentPassword + "\",\"newPassword\":\"short\",\"confirmPassword\":\"short\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(path).with(csrf())
+                        .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"" + currentPassword + "\",\"newPassword\":\"" + currentPassword
+                                + "\",\"confirmPassword\":\"" + currentPassword + "\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void emailAndPasswordChangesRequireAuthenticationAndCsrf() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/email")
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"newEmail\":\"new@example.test\",\"currentPassword\":\"CurrentPassword123!\"}"))
+                .andExpect(status().isUnauthorized());
+        User user = saveUserWithPassword("rectify-csrf", "rectify-csrf@example.test", Role.USER, "CurrentPassword123!");
+        Cookie authCookie = new Cookie(AuthCookieFactory.COOKIE_NAME, jwtUtil.generateToken(
+                user.getId(), user.getUsername(), user.getRole().name()));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/password")
+                        .cookie(authCookie).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"CurrentPassword123!\",\"newPassword\":\"ReplacementPassword456!\",\"confirmPassword\":\"ReplacementPassword456!\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void stepUpRequiresAuthenticationAndSensitiveChangesRequireVerifiedProof() throws Exception {
+        mvc.perform(post("/api/users/me/step-up/request").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"action\":\"EMAIL_CHANGE\",\"currentPassword\":\"CurrentPassword123!\"}"))
+                .andExpect(status().isUnauthorized());
+
+        User user = saveUserWithPassword("step-up-required", "step-up-required@example.test", Role.USER, "CurrentPassword123!");
+        String auth = bearer(user);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/email")
+                        .with(csrf()).header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"newEmail\":\"step-up-new@example.test\",\"currentPassword\":\"CurrentPassword123!\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/password")
+                        .with(csrf()).header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"CurrentPassword123!\",\"newPassword\":\"ReplacementPassword456!\",\"confirmPassword\":\"ReplacementPassword456!\"}"))
+                .andExpect(status().isBadRequest());
+
+        mvc.perform(post("/api/users/me/step-up/request").with(csrf())
+                        .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"action\":\"EMAIL_CHANGE\",\"currentPassword\":\"CurrentPassword123!\"}"))
+                .andExpect(status().isAccepted());
+        ArgumentCaptor<String> delivered = ArgumentCaptor.forClass(String.class);
+        verify(stepUpCodeSender).send(eq(user.getEmail()), eq(StepUpAction.EMAIL_CHANGE), delivered.capture());
+        String wrongCode = delivered.getValue().equals("000000") ? "000001" : "000000";
+        mvc.perform(post("/api/users/me/step-up/verify").with(csrf())
+                        .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("action", "EMAIL_CHANGE", "code", wrongCode))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void adminCanChangeOnlyTheirOwnAccountAndErasedAccountIsUnauthenticated() throws Exception {
+        User admin = saveUserWithPassword("rectify-admin", "rectify-admin@example.test", Role.ADMIN, "CurrentPassword123!");
+        User other = saveUserWithPassword("rectify-target", "rectify-target@example.test", Role.USER, "CurrentPassword123!");
+        String stepUpToken = requestAndVerifyStepUp(admin, StepUpAction.EMAIL_CHANGE, "CurrentPassword123!");
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/email")
+                        .with(csrf()).header("Authorization", bearer(admin)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("newEmail", "admin-new@example.test",
+                                "currentPassword", "CurrentPassword123!", "stepUpToken", stepUpToken,
+                                "userId", other.getId()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(admin.getId()));
+        assertThat(userRepository.findById(other.getId()).orElseThrow().getEmail()).isEqualTo("rectify-target@example.test");
+
+        other.setDeletedAt(java.time.LocalDateTime.now());
+        userRepository.save(other);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/users/me/email")
+                        .with(csrf()).header("Authorization", bearer(other)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"newEmail\":\"erased-new@example.test\",\"currentPassword\":\"CurrentPassword123!\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
     private User saveUser(String username, Role role) {
         User user = new User(username, username + "@example.test", "$2a$10$abcdefghijklmnopqrstuvABCDEFGHIJKLMNOPQRSTUV1234567890");
         user.setRole(role);
         return userRepository.save(user);
     }
 
+    private User saveUserWithPassword(String username, String email, Role role, String rawPassword) {
+        User user = new User(username, email, passwordEncoder.encode(rawPassword));
+        user.setRole(role);
+        return userRepository.save(user);
+    }
+
     private String bearer(User user) {
         return "Bearer " + jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole().name());
+    }
+
+    private String requestAndVerifyStepUp(User user, StepUpAction action, String currentPassword) throws Exception {
+        mvc.perform(post("/api/users/me/step-up/request").with(csrf())
+                        .header("Authorization", bearer(user)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "action", action.name(), "currentPassword", currentPassword))))
+                .andExpect(status().isAccepted());
+
+        ArgumentCaptor<String> code = ArgumentCaptor.forClass(String.class);
+        verify(stepUpCodeSender).send(eq(user.getEmail()), eq(action), code.capture());
+
+        String response = mvc.perform(post("/api/users/me/step-up/verify").with(csrf())
+                        .header("Authorization", bearer(user)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("action", action.name(), "code", code.getValue()))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).get("stepUpToken").asText();
     }
 }

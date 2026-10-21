@@ -17,6 +17,8 @@ import java.util.Optional;
 import java.io.IOException;
 import com.watyouface.entity.enums.Role;
 import com.watyouface.exception.ResourceNotFoundException;
+import com.watyouface.media.MediaReferenceCleanupService;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -25,6 +27,12 @@ public class UserService implements UserDetailsService {
 
     @Autowired
     private AvatarService avatarService;
+
+    @Autowired
+    private AccountErasureService accountErasureService;
+
+    @Autowired
+    private MediaReferenceCleanupService mediaCleanup;
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -36,6 +44,9 @@ public class UserService implements UserDetailsService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "Utilisateur non trouvé avec l'id: " + userId));
+        if (user.isDeleted()) {
+            throw new UsernameNotFoundException("Utilisateur supprimé");
+        }
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
@@ -52,6 +63,9 @@ public class UserService implements UserDetailsService {
         }
 
         User user = userOpt.get();
+        if (user.isDeleted()) {
+            throw new UsernameNotFoundException("Utilisateur supprimé");
+        }
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
@@ -71,16 +85,21 @@ public class UserService implements UserDetailsService {
         return userRepository.save(user);
     }
 
+    @Transactional
     public User updateAvatarUrl(Long userId, String avatarUrl) {
         @SuppressWarnings("null")
         Optional<User> optUser = userRepository.findById(userId);
         if (optUser.isEmpty()) return null;
 
         User user = optUser.get();
-        // ✅ nettoie l'ancien avatar (si géré par l'app)
-        avatarService.deleteIfManaged(user.getAvatarUrl());
+        String previousAvatarUrl = user.getAvatarUrl();
         user.setAvatarUrl(avatarUrl);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        if (mediaCleanup != null) {
+            mediaCleanup.deleteIfUnreferencedAfterCommit(java.util.stream.Stream.of(previousAvatarUrl)
+                    .filter(java.util.Objects::nonNull).toList());
+        }
+        return saved;
     }
 
     // 🔹 CRUD utilisateurs
@@ -90,7 +109,7 @@ public class UserService implements UserDetailsService {
     }
 
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        return userRepository.findByDeletedAtIsNull();
     }
 
     @SuppressWarnings("null")
@@ -124,7 +143,7 @@ public class UserService implements UserDetailsService {
         if (!actorIsAdmin && !target.getId().equals(actorId)) {
             throw new SecurityException("Interdit");
         }
-        userRepository.delete(target);
+        accountErasureService.erase(id);
     }
      @SuppressWarnings("null")
     public Optional<User> findById(Long id) {

@@ -30,4 +30,9 @@ public class VideoShare {
     }
 
     // Getters & Setters
+    public Long getId() { return id; }
+    public Video getVideo() { return video; }
+    public User getSender() { return sender; }
+    public User getReceiver() { return receiver; }
+    public boolean isSeen() { return seen; }
 }

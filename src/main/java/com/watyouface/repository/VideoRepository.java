@@ -8,4 +8,6 @@ import java.util.List;
 @Repository
 public interface VideoRepository extends JpaRepository<Video, Long> {
     List<Video> findByTitleContainingIgnoreCase(String title);
+    List<Video> findByUploader_Id(Long uploaderId);
+    boolean existsByUrl(String url);
 }

@@ -10,4 +10,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByFromUser_IdOrToUser_Id(Long fromUserId, Long toUserId);
 
     boolean existsByListing_Id(Long listingId);
+    List<Transaction> findByListing_Id(Long listingId);
 }
