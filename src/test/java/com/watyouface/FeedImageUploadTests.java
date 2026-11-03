@@ -45,6 +45,23 @@ class FeedImageUploadTests {
     @Test void bmpIsStoredAsJpg() throws Exception { assertNormalized("bmp", "image/bmp", "post.bmp"); }
 
     @Test
+    void transparentPngIsFlattenedAndStoredAsReadableJpeg() throws Exception {
+        BufferedImage image = new BufferedImage(4, 4, BufferedImage.TYPE_INT_ARGB);
+        image.setRGB(0, 0, 0x00000000);
+        image.setRGB(1, 1, 0x80FF0000);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        assertThat(ImageIO.write(image, "png", output)).isTrue();
+
+        MockMultipartFile transparent = new MockMultipartFile(
+                "file", "transparent.png", MediaType.IMAGE_PNG_VALUE, output.toByteArray());
+
+        String url = images.savePostImage(transparent, 1L);
+        assertThat(url).startsWith("/media/posts/post_").endsWith(".jpg");
+        assertThat(postFiles()).hasSize(1);
+        assertThat(ImageIO.read(postFiles().get(0).toFile())).isNotNull();
+    }
+
+    @Test
     void declaredMimeMustMatchActualImageContent() throws Exception {
         MockMultipartFile fakeJpeg = image("png", MediaType.IMAGE_JPEG_VALUE, "fake.jpg");
         assertThrows(IllegalArgumentException.class, () -> images.savePostImage(fakeJpeg, 1L));

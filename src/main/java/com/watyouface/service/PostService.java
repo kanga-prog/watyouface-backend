@@ -10,6 +10,7 @@ import com.watyouface.media.ImageUploadService;
 import com.watyouface.media.VideoService;
 import com.watyouface.media.MediaReferenceCleanupService;
 import com.watyouface.exception.ResourceNotFoundException;
+import com.watyouface.exception.MediaUploadException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -19,13 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 public class PostService {
-
-    private static final Logger log = LoggerFactory.getLogger(PostService.class);
 
     private final PostRepository postRepository;
     private final UserService userService;
@@ -96,13 +93,11 @@ public class PostService {
 
             } catch (IOException e) {
                 postRepository.delete(saved);
-                log.error("Post media processing failed for post {} ({})", saved.getId(), e.getClass().getSimpleName());
-                throw new IllegalStateException("Le traitement du média a échoué");
+                throw MediaUploadException.storageFailure(e);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 postRepository.delete(saved);
-                log.error("Post media processing interrupted for post {}", saved.getId());
-                throw new IllegalStateException("Le traitement du média a échoué");
+                throw MediaUploadException.storageFailure(e);
             } catch (IllegalArgumentException e) {
                 postRepository.delete(saved);
                 throw e;
@@ -118,17 +113,17 @@ public class PostService {
         String type = file.getContentType();
         if (ImageUploadService.isSupportedMime(type)) {
             if (file.getSize() > ImageUploadService.MAX_BYTES) {
-                throw new IllegalArgumentException("Image trop volumineuse : 10 Mo maximum.");
+                throw MediaUploadException.payloadTooLarge("Image trop volumineuse : 10 Mo maximum.");
             }
             return;
         }
         if (type != null && VIDEO_TYPES.contains(type)) {
             if (file.getSize() > MAX_POST_VIDEO_BYTES) {
-                throw new IllegalArgumentException("Vidéo trop volumineuse (maximum 200 MB)");
+                throw MediaUploadException.payloadTooLarge("Vidéo trop volumineuse (maximum 200 MB)");
             }
             return;
         }
-        throw new IllegalArgumentException("Type de média non autorisé");
+        throw MediaUploadException.unsupportedMediaType("Type de média non autorisé");
     }
 
     /** Sauvegarde un fichier média générique (uploads/) */

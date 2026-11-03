@@ -1,5 +1,6 @@
 package com.watyouface.media;
 
+import com.watyouface.exception.MediaUploadException;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -8,6 +9,8 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -66,7 +69,8 @@ public class ImageUploadService {
                     .size(MAX_DIMENSION, MAX_DIMENSION)
                     .outputQuality(0.88)
                     .asBufferedImage();
-            if (!ImageIO.write(normalized, "jpg", temporary.toFile())) {
+            BufferedImage jpegReady = flattenForJpeg(normalized);
+            if (!ImageIO.write(jpegReady, "jpg", temporary.toFile())) {
                 throw new IOException("Encodeur JPEG indisponible");
             }
             Files.move(temporary, output, StandardCopyOption.ATOMIC_MOVE);
@@ -89,47 +93,64 @@ public class ImageUploadService {
 
     private void validateEnvelope(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Image manquante ou vide");
+            throw MediaUploadException.badRequest("Image manquante ou vide");
         }
         if (file.getSize() > MAX_BYTES) {
-            throw new IllegalArgumentException("Image trop volumineuse : 10 Mo maximum.");
+            throw MediaUploadException.payloadTooLarge("Image trop volumineuse : 10 Mo maximum.");
         }
         if (!isSupportedMime(file.getContentType())) {
-            throw new IllegalArgumentException("Format d'image non autorisé");
+            throw MediaUploadException.unsupportedMediaType("Format d'image non autorisé");
         }
     }
 
     private BufferedImage decodeAndVerifyMime(MultipartFile file) {
         try (ImageInputStream stream = ImageIO.createImageInputStream(file.getInputStream())) {
-            if (stream == null) throw new IllegalArgumentException("Image invalide ou format non lisible");
+            if (stream == null) throw MediaUploadException.unprocessable("Image invalide ou format non lisible");
             Iterator<ImageReader> readers = ImageIO.getImageReaders(stream);
-            if (!readers.hasNext()) throw new IllegalArgumentException("Image invalide ou format non lisible");
+            if (!readers.hasNext()) throw MediaUploadException.unprocessable("Image invalide ou format non lisible");
 
             ImageReader reader = readers.next();
             try {
                 reader.setInput(stream, true, true);
                 String actualFormat = reader.getFormatName().toLowerCase(Locale.ROOT);
                 if (!actualFormat.equals(MIME_TO_FORMAT.get(file.getContentType()))) {
-                    throw new IllegalArgumentException("Le contenu ne correspond pas au type MIME déclaré");
+                    throw MediaUploadException.unprocessable("Le contenu ne correspond pas au type MIME déclaré");
                 }
                 BufferedImage image = reader.read(0);
-                if (image == null) throw new IllegalArgumentException("Image invalide ou format non lisible");
+                if (image == null) throw MediaUploadException.unprocessable("Image invalide ou format non lisible");
                 return image;
             } finally {
                 reader.dispose();
             }
-        } catch (IllegalArgumentException e) {
+        } catch (MediaUploadException e) {
             throw e;
         } catch (IOException | RuntimeException e) {
-            throw new IllegalArgumentException("Image invalide ou format non lisible");
+            throw MediaUploadException.unprocessable("Image invalide ou format non lisible");
         }
     }
 
     private void validateDimensions(BufferedImage image) {
         if (image.getWidth() <= 0 || image.getHeight() <= 0
                 || (long) image.getWidth() * image.getHeight() > MAX_PIXELS) {
-            throw new IllegalArgumentException("Dimensions d'image invalides ou trop grandes");
+            throw MediaUploadException.unprocessable("Dimensions d'image invalides ou trop grandes");
         }
+    }
+
+    /** JPEG has no alpha channel. Flatten transparency onto an explicit white background. */
+    private BufferedImage flattenForJpeg(BufferedImage source) {
+        if (!source.getColorModel().hasAlpha()) {
+            return source;
+        }
+        BufferedImage rgb = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = rgb.createGraphics();
+        try {
+            graphics.setColor(Color.WHITE);
+            graphics.fillRect(0, 0, rgb.getWidth(), rgb.getHeight());
+            graphics.drawImage(source, 0, 0, null);
+        } finally {
+            graphics.dispose();
+        }
+        return rgb;
     }
 
     private void cleanup(Path temporary, Path output) {

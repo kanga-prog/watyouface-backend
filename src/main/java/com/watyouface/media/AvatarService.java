@@ -1,5 +1,6 @@
 package com.watyouface.media;
 
+import com.watyouface.exception.MediaUploadException;
 import net.coobird.thumbnailator.Thumbnails;
 import net.coobird.thumbnailator.geometry.Positions;
 import org.springframework.http.MediaType;
@@ -8,6 +9,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
+import java.util.Iterator;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -23,8 +31,11 @@ public class AvatarService {
 
     private static final Set<String> ALLOWED = Set.of(
             MediaType.IMAGE_JPEG_VALUE,
-            MediaType.IMAGE_PNG_VALUE,
-            "image/webp"
+            MediaType.IMAGE_PNG_VALUE
+    );
+    private static final Map<String, String> MIME_TO_FORMAT = Map.of(
+            MediaType.IMAGE_JPEG_VALUE, "jpeg",
+            MediaType.IMAGE_PNG_VALUE, "png"
     );
 
     public AvatarService(MediaStorageService storage) {
@@ -35,32 +46,69 @@ public class AvatarService {
      * Sauvegarde un avatar: crop center + resize 256x256 + sortie JPG (compat max).
      * Retourne une URL publique "/media/avatars/<file>.jpg".
      */
-    public String saveAvatar(MultipartFile file, Long userId) throws IOException {
+    public String saveAvatar(MultipartFile file, Long userId) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Fichier avatar manquant ou vide");
+            throw MediaUploadException.badRequest("Fichier avatar manquant ou vide");
         }
         if (file.getSize() > MAX_BYTES) {
-            throw new IllegalArgumentException("Avatar trop volumineux (max 5MB)");
+            throw MediaUploadException.payloadTooLarge("Avatar trop volumineux (max 5MB)");
         }
 
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED.contains(contentType)) {
-            throw new IllegalArgumentException("Type de fichier non autorisé: " + contentType);
+            throw MediaUploadException.unsupportedMediaType("Type de fichier non autorisé");
         }
+
+        BufferedImage image = decodeAndVerifyMime(file);
 
         String filename = "avatar_" + userId + "_" + UUID.randomUUID() + ".jpg";
         String relative = "avatars/" + filename;
         String outputPath = storage.resolvePath(relative);
 
         // ✅ crop + resize stable
-        Thumbnails.of(file.getInputStream())
-                .size(AVATAR_SIZE, AVATAR_SIZE)
-                .crop(Positions.CENTER)
-                .outputFormat("jpg")
-                .outputQuality(0.9)
-                .toFile(outputPath);
+        try {
+            Thumbnails.of(image)
+                    .size(AVATAR_SIZE, AVATAR_SIZE)
+                    .crop(Positions.CENTER)
+                    .outputFormat("jpg")
+                    .outputQuality(0.9)
+                    .toFile(outputPath);
+        } catch (IOException | RuntimeException e) {
+            throw MediaUploadException.storageFailure(e);
+        }
 
         return storage.publicUrl(relative);
+    }
+
+    private BufferedImage decodeAndVerifyMime(MultipartFile file) {
+        try (ImageInputStream stream = ImageIO.createImageInputStream(file.getInputStream())) {
+            if (stream == null) {
+                throw MediaUploadException.unprocessable("Avatar invalide ou format non lisible");
+            }
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(stream);
+            if (!readers.hasNext()) {
+                throw MediaUploadException.unprocessable("Avatar invalide ou format non lisible");
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(stream, true, true);
+                String actualFormat = reader.getFormatName().toLowerCase(Locale.ROOT);
+                if (!actualFormat.equals(MIME_TO_FORMAT.get(file.getContentType()))) {
+                    throw MediaUploadException.unprocessable("Le contenu ne correspond pas au type MIME déclaré");
+                }
+                BufferedImage image = reader.read(0);
+                if (image == null) {
+                    throw MediaUploadException.unprocessable("Avatar invalide ou format non lisible");
+                }
+                return image;
+            } finally {
+                reader.dispose();
+            }
+        } catch (MediaUploadException e) {
+            throw e;
+        } catch (IOException | RuntimeException e) {
+            throw MediaUploadException.unprocessable("Avatar invalide ou format non lisible");
+        }
     }
 
     /**

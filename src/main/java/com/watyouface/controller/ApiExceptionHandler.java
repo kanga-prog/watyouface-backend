@@ -12,11 +12,32 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.watyouface.exception.ResourceNotFoundException;
 import com.watyouface.exception.StepUpDeliveryException;
 import com.watyouface.exception.StepUpRateLimitException;
+import com.watyouface.exception.MediaUploadException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    @ExceptionHandler(MediaUploadException.class)
+    public ResponseEntity<?> mediaUpload(MediaUploadException e) {
+        if (e.isServerError()) {
+            log.error("Media upload processing failed", e);
+        }
+        return ResponseEntity.status(e.getStatus()).body(Map.of("error", e.responseMessage()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<?> uploadTooLarge(MaxUploadSizeExceededException e) {
+        log.warn("Multipart request rejected because it exceeds the configured size limit");
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(Map.of("error", "Fichier trop volumineux"));
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<?> notFound(ResourceNotFoundException e) {
@@ -69,7 +90,8 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> unexpected() {
+    public ResponseEntity<?> unexpected(Exception e) {
+        log.error("Unhandled request failure", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Une erreur interne est survenue"));
     }

@@ -519,7 +519,7 @@ class SecurityApiIntegrationTests {
         MockMultipartFile file = new MockMultipartFile("file", "item.svg", "image/svg+xml", "<svg/>".getBytes());
         mvc.perform(multipart("/api/marketplace/listings/upload").file(file).with(csrf())
                         .header("Authorization", bearer(seller)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnsupportedMediaType());
     }
 
     @Test

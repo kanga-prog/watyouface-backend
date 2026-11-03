@@ -14,19 +14,23 @@ import com.watyouface.dto.ChangePasswordRequest;
 import com.watyouface.dto.StepUpRequest;
 import com.watyouface.dto.StepUpVerifyRequest;
 import com.watyouface.dto.StepUpTokenResponse;
+import com.watyouface.exception.MediaUploadException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
 // ✅ Laisse la config CORS globale (SecurityConfig) faire le travail
 public class UserController {
+
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     private UserService userService;
@@ -168,8 +172,11 @@ public class UserController {
 
         } catch (SecurityException e) {
             return ResponseEntity.status(401).body(Map.of("error", "Non authentifié"));
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body(Map.of("error", "Erreur lors de l'upload de l'avatar"));
+        } catch (MediaUploadException e) {
+            if (e.isServerError()) {
+                log.error("Avatar image processing failed", e);
+            }
+            return ResponseEntity.status(e.getStatus()).body(Map.of("error", e.responseMessage()));
         }
     }
 

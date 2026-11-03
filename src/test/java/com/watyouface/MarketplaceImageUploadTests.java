@@ -84,35 +84,40 @@ class MarketplaceImageUploadTests {
     }
 
     @Test
-    void rejectsWebpWithBadRequest() throws Exception {
-        assertBadRequest(new MockMultipartFile("file", "image.webp", "image/webp", "webp".getBytes()),
+    void rejectsWebpWithUnsupportedMediaType() throws Exception {
+        assertUploadError(new MockMultipartFile("file", "image.webp", "image/webp", "webp".getBytes()),
+                status().isUnsupportedMediaType(),
                 "Format d'image non autorisé");
     }
 
     @Test
-    void rejectsArbitraryMimeTypeWithBadRequest() throws Exception {
-        assertBadRequest(new MockMultipartFile("file", "file.txt", MediaType.TEXT_PLAIN_VALUE, "text".getBytes()),
+    void rejectsArbitraryMimeTypeWithUnsupportedMediaType() throws Exception {
+        assertUploadError(new MockMultipartFile("file", "file.txt", MediaType.TEXT_PLAIN_VALUE, "text".getBytes()),
+                status().isUnsupportedMediaType(),
                 "Format d'image non autorisé");
     }
 
     @Test
     void rejectsEmptyFileWithBadRequest() throws Exception {
-        assertBadRequest(new MockMultipartFile("file", "empty.png", MediaType.IMAGE_PNG_VALUE, new byte[0]),
+        assertUploadError(new MockMultipartFile("file", "empty.png", MediaType.IMAGE_PNG_VALUE, new byte[0]),
+                status().isBadRequest(),
                 "Image manquante ou vide");
     }
 
     @Test
-    void rejectsFilesLargerThanTenMegabytesWithBadRequest() throws Exception {
+    void rejectsFilesLargerThanTenMegabytesWithPayloadTooLarge() throws Exception {
         byte[] oversized = new byte[10 * 1024 * 1024 + 1];
 
-        assertBadRequest(new MockMultipartFile("file", "large.png", MediaType.IMAGE_PNG_VALUE, oversized),
+        assertUploadError(new MockMultipartFile("file", "large.png", MediaType.IMAGE_PNG_VALUE, oversized),
+                status().isPayloadTooLarge(),
                 "Image trop volumineuse : 10 Mo maximum.");
     }
 
     @Test
-    void rejectsUnreadablePngContentWithBadRequestAndNoPartialFile() throws Exception {
-        assertBadRequest(new MockMultipartFile("file", "invalid.png", MediaType.IMAGE_PNG_VALUE,
+    void rejectsUnreadablePngContentWithUnprocessableEntityAndNoPartialFile() throws Exception {
+        assertUploadError(new MockMultipartFile("file", "invalid.png", MediaType.IMAGE_PNG_VALUE,
                         "not a PNG image".getBytes()),
+                status().isUnprocessableEntity(),
                 "Image invalide ou format non lisible");
 
         assertThat(marketplaceFiles()).isEmpty();
@@ -144,13 +149,16 @@ class MarketplaceImageUploadTests {
     void rejectsImageWhoseBytesDoNotMatchItsDeclaredMimeType() throws Exception {
         MockMultipartFile pngClaimingToBeJpeg = image("mismatch.jpg", MediaType.IMAGE_JPEG_VALUE, "png");
 
-        assertBadRequest(pngClaimingToBeJpeg, "Le contenu ne correspond pas au type MIME déclaré");
+        assertUploadError(pngClaimingToBeJpeg, status().isUnprocessableEntity(),
+                "Le contenu ne correspond pas au type MIME déclaré");
         assertThat(marketplaceFiles()).isEmpty();
     }
 
-    private void assertBadRequest(MockMultipartFile file, String message) throws Exception {
+    private void assertUploadError(MockMultipartFile file,
+                                   org.springframework.test.web.servlet.ResultMatcher expectedStatus,
+                                   String message) throws Exception {
         mvc.perform(multipart(UPLOAD_URL).file(file))
-                .andExpect(status().isBadRequest())
+                .andExpect(expectedStatus)
                 .andExpect(jsonPath("$.error").value(message));
     }
 

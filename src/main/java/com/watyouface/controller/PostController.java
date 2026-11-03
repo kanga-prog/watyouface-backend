@@ -5,6 +5,7 @@ import com.watyouface.entity.User;
 import com.watyouface.security.Authz;
 import com.watyouface.service.PostService;
 import com.watyouface.service.UserService;
+import com.watyouface.exception.MediaUploadException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -158,6 +159,11 @@ public class PostController {
 
         } catch (SecurityException e) {
             return ResponseEntity.status(401).build();
+        } catch (MediaUploadException e) {
+            if (e.isServerError()) {
+                log.error("Post media processing failed", e);
+            }
+            return ResponseEntity.status(e.getStatus()).body(Map.of("error", e.responseMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
