@@ -261,3 +261,48 @@ tests média ciblés : 24 passés, 0 erreur, 0 échec
 ```
 
 Le déploiement et la recette Railway restent requis avant de modifier `PRODUCTION_CHANGE_PERFORMED`.
+
+## Mise à jour — déploiement et recette Railway le 2026-11-03
+
+Le commit `1b62f2fa825e59171d15b464b3f47f810b5ca77f` (`fix(media): harden image upload processing`) a été poussé sur `main` puis livré exclusivement par le workflow normal **Backend CI** GitHub Actions :
+
+```text
+run GitHub Actions : 41718195547
+Maven tests              : SUCCESS
+Docker build             : SUCCESS
+Deploy Railway production: SUCCESS
+Smoke test du workflow   : SUCCESS
+```
+
+Une recette applicative contrôlée a ensuite été faite contre `https://api.watyouface.com`, avec un compte de smoke test à identifiant unique, créé puis supprimé par les routes applicatives. Aucun compte existant, média existant, volume ou donnée PostgreSQL n'a été modifié manuellement.
+
+| Vérification | Résultat HTTP | Preuve fonctionnelle |
+|---|---:|---|
+| `GET /api/auth/csrf` | 200 | API et cookie CSRF disponibles |
+| Register / login du compte de test | 200 / 200 | cookie d'authentification utilisable |
+| `GET /api/users/me` | 200 | session authentifiée vérifiée |
+| `POST /api/users/avatar` avec WebP réel | 415 | WebP est rejeté avant stockage |
+| `POST /api/marketplace/listings/upload` avec PNG transparent | 200 | conversion PNG alpha → JPEG réussie |
+| Création puis suppression de l'annonce de test | 200 / 200 | nettoyage applicatif exercé |
+| `POST /api/posts` avec PNG transparent | 200 | ancien chemin Feed reproduit sans 500 |
+| Suppression du post de test | 204 | nettoyage applicatif exercé |
+| Suppression du compte de test | 200 | compte de recette retiré par l'API |
+
+Cette recette démontre que les deux défauts locaux corrigés se comportent correctement en production : le PNG transparent ne provoque plus l'échec d'encodage JPEG, et le WebP Avatar non décodable retourne désormais 415. Elle ne permet pas d'attribuer rétrospectivement chaque 500 historique aux mêmes fichiers, car leurs originaux et stacktraces n'étaient pas disponibles.
+
+Les logs des échecs média serveur sont maintenant passés avec l'exception SLF4J complète, sans inclure de contenu binaire, cookie, JWT, mot de passe, e-mail ou nom de fichier client. La recette réussie ne déclenche pas de stacktrace ; l'observation de ces logs nécessite un échec serveur réel, qui n'a volontairement pas été provoqué en production.
+
+## Résumé machine lisible — état après déploiement
+
+```text
+IMAGE_VOLUME_PRESENT=YES
+IMAGE_VOLUME_WRITABLE_AS_APP_USER=YES
+FEED_MARKETPLACE_SHARED_PIPELINE=YES
+AVATAR_SHARED_PIPELINE=NO
+ROOT_CAUSE_CONFIRMED=NO
+ROOT_CAUSE=UNKNOWN; two concrete defects fixed and reproduced successfully in production, but historic failing files/stacktraces were unavailable
+LOCAL_REPRODUCTION=YES
+LOGGING_INSUFFICIENT=NO
+SAFE_FIX_IDENTIFIED=YES
+PRODUCTION_CHANGE_PERFORMED=YES
+```
